@@ -1,0 +1,545 @@
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - ========================================================================
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 阶段 21: 统一 LLM 语义精筛与情感分析 (三轨 full/ctx/ss; prompt v8-2026-05-17 字节冻结)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - ========================================================================
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - LLM 推理参数: temperature=0.000, seed=42, force_json=True, models=3, concurrency=500
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - Logit-to-Score 概率映射: enabled=True
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 【功能】让 3 个 LLM 家族 (相当于 3 位独立金融分析员) 各读同一篇新闻: 先精筛
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -         判定是否真在讲'目标银行×金融科技'(verified 把关), 再判语气 正面/负面/中性,
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -         顺带给 创新位点(底层/应用)、实质性(实质/象征)、协同模式(自研/外部) 三维标签;
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -         三轨各跑一遍并各自 majority-vote, 产 _full/_ctx/_ss 整套列, 是面板'媒体语调'主变量之源。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 【方法】三模型 ensemble 多数决 (>50% 严格多数); sentiment(verified 轨) 平局/空票→保守'中性'(不产未定; 非金科轨 None=N/A),
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -         创新三维平局→保守 MAP 降级(象征性/应用场景/自主研发); logit-to-score 把(标签×置信度) 映射到 [-1,+1] 连续分 (enabled=True)。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -         verified gate = 仅全文轨 verified_full (full-only; ctx/ss 截断可能漏信息, 故只由全文 3-LLM 多数决定留篇)。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 【判读】verified 率高=语料金科相关度高; 情绪三类占比看方向; 三轨样本各自 just-identified
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -         不混同一 Hansen J。Triple-gate 含 full 的 4 态之和 == 输出样本数 (恒等校验); 7 态全和 = 任一轨 verified 的诊断并集。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 【确定性】核心付费阶段, 但确定性锚点 = _llm_cache.db (temperature=0.000, prompt v8-2026-05-17);
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -           缓存全命中 ⟺ 零 API 调用 ⟺ golden 字节级可复现 (并发 MAX_CONCURRENCY=500;  在线模式)。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - ========================================================================
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -   [N8 lineage] 已写入: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms_lineage.json
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 使用阶段14输出: 15_fintech_intensity.parquet
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -   🧭 项目 / 环境信息
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 阶段: 21_tone_llms (统一 LLM 语义精筛与情感分析, STAGES_MAIN; 三轨 full/ctx/ss; 全流水线唯一核心付费阶段)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.16.0
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 模块文件: F:\WiseSearch\data_antigravity_project\news_process\pipeline\sentiment\tone_llms.py
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 工作目录: F:\WiseSearch\data_antigravity_project\news_process
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · Python:   3.13.9 @ F:\Anaconda3\python.exe
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 平台:     Windows-11-10.0.26200-SP0 | CPU 逻辑核=32
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · PID=40780 | RUN_ID=(未设置) | OFFLINE 离线确定性守卫=OFF (在线模式, 缓存 miss 会付费调 API)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 确定性/成本: 命中 _llm_cache.db 即 $0 字节级复现; 缓存键=模型名+prompt 文本+prompt_version(v8-2026-05-17)+temperature(0.000) (temperature=0 下 seed 不进键)。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -   📂 输入 / 输出文件 (config/paths.yaml::output_dir + filenames)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 输入:     F:\WiseSearch\data_antigravity_project\news_process\data\processed\15_fintech_intensity.parquet (stage 14 fintech_intensity, 硬依赖)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 缓存:     F:\WiseSearch\data_antigravity_project\news_process\data\processed\_llm_cache.db (确定性锚点, 勿删铁律)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 输出全量: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms_full.parquet (含 verified True/False, 供验证模块)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 输出主表: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms.parquet (verified_full 全文轨过滤 full-only, 下游 stage 22/24/45 消费)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -   ⚙ 运行配置 (config/sentiment.yaml::tone_llm_processing)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 推理: temperature=0.000 | seed=42 | force_json=True | models=3 家族 | 并发 MAX_CONCURRENCY=500
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 模型清单: ['gpt54nano', 'gemini31', 'deepseekv4'] (gpt54nano/gemini31/deepseekv4; Prompt v8 字节冻结)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 重试: max_retries=80 (API 失败统一 80 次) | retry_delay=10.00s 固定间隔 (flat, 2026-06-26 全项目统一, 不再指数退避)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 平局重试: sentiment_tie_retry_rounds=80 (verified 轨情感平局/空票保守降级前先逐轮 barrier 绕缓存重调实时 API; ≤0 关闭; 仅在线模式)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 超时: total=600.0s | connect=120.0s | sock_read=600.0s
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · Logit-to-Score 概率映射: enabled=True (logit→[-1,+1] 连续分稳健性指标)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -   📖 方法论依据 (Author (Year). Journal, vol(issue), pages. DOI)
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 多模型投票共识 (self-consistency): Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdhery, A., & Zhou, D. (2022). Self-consistency improves chain of thought reasoning in language models. arXiv. https://doi.org/10.48550/arXiv.2203.11171
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 三模型各跑思维链后取多数票, 替代单模型采样, 提升判定稳健性。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 三角验证 (triangulation): Denzin, N. K. (2017). The research act: A theoretical introduction to sociological methods. Routledge. https://doi.org/10.4324/9781315134543
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 三轨(全文/邻近句/同句)× 三模型多源交叉, 满足顶刊三角验证标准。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 文本标注可复现性 / temperature=0 锚点: Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price movements? Return predictability and large language models. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.4412788
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → temperature=0 确定性推理 + 缓存锚点, 保证情感标签可 $0 复现。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 优于众包标注 (annotation quality): Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 支撑以 LLM 取代人工逐篇标注金融新闻语气/真伪的方法选择。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · logit-to-score 连续分映射 (置信加权): Törnberg, P. (2023). How to use LLMs for text analysis. arXiv. https://doi.org/10.48550/arXiv.2307.13106; Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 把(三分类标签 × 置信度)映射到 [-1,+1] 连续语气分, 作词典法之外的稳健性度量。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 不确定性表达 / 置信度引出: Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2023). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. arXiv. https://doi.org/10.48550/arXiv.2306.13063
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 最大熵/信息论 (类先验保守降级理据): Jaynes, E. T. (1957). Information theory and statistical mechanics. Physical Review, 106(4), 620-630. https://doi.org/10.1103/PhysRev.106.620
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 文本测度最佳实践 (temperature=0 / prompt 冻结 / 缓存确定性): de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 顶刊会计/金融 LLM 文本测度规范, 锚定本阶段 temperature=0 + Prompt v8 字节冻结 + _llm_cache.db 确定性复现的设计纪律。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 前视偏误检验 (lookahead / 复现性威胁): Gao, Z., Jiang, W., & Yan, Y. (2026). A test of lookahead bias in LLM forecasts (SSRN Working Paper No. 5985277; arXiv:2512.23847). https://doi.org/10.2139/ssrn.5985277
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 直接锚定本阶段 _llm_cache.db 离线确定性守卫 (NEWS_PROCESS_LLM_OFFLINE=1) 的动因: 用缓存固定历史响应以杜绝模型版本漂移/前视污染, 保证 golden 字节级可复现。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 记忆/数据污染 (验证门动因): Lopez-Lira, A., Tang, Y., & Zhu, M. (2025). The memorization problem: Can we trust LLMs' economic forecasts? (SSRN Working Paper No. 5217505; arXiv:2504.14765). https://doi.org/10.2139/ssrn.5217505
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 锚定本阶段缓存键四维 (模型名+prompt 文本+prompt_version+temperature) 与严格响应校验 (_is_cacheable_llm_response) 的必要性: 防止 LLM 记忆/泄漏污染情感标注。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 作计量框架 (生成式回归元/generated regressor): Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework (NBER Working Paper No. 33344). National Bureau of Economic Research. https://doi.org/10.3386/w33344
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 框定本阶段角色: 三模型投票产出的 verified/sentiment/创新三维标签是下游面板的'生成式回归元', 须按 LLM 计量框架审慎对待其测量误差与下游推断有效性。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · LLM 数据标注基础指南 / 误分类偏置与 prompt 敏感性: Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 把 LLM 当标注器须报告并锚定 temperature / prompt 版本、警惕误分类偏置与 prompt 敏感性 (本阶段 prompt_version + 三模型投票 + 缓存键四维即此纪律的工程化)。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -      · 生成式 AI 作金融研究测度工具 (领域综述): Eisfeldt, A. L., & Schubert, G. (2025). Generative AI and finance. Annual Review of Financial Economics, 17(1), 363-393. https://doi.org/10.1146/annurev-financial-112923-020503
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO -        → 领域级引用锚: 以生成式 AI 从非结构化金融新闻抽取结构化语气/创新属性变量。
+2026-07-25 15:25:36 - 21_tone_llms - PID:40780 - INFO - 加载预筛数据: F:\WiseSearch\data_antigravity_project\news_process\data\processed\15_fintech_intensity.parquet
+2026-07-25 15:25:40 - 21_tone_llms - PID:40780 - INFO - 总计候选新闻: 242,000
+2026-07-25 15:25:40 - 21_tone_llms - PID:40780 - INFO -   · 输入 DataFrame 形状: 242,000 行 × 54 列
+2026-07-25 15:25:40 - 21_tone_llms - PID:40780 - INFO -   · 关键输入列在位: 内容=✓, content_ctx=✓, content_ss=✓, target_bank=✓, 标题=✓, fintech_intensity_score=✓
+2026-07-25 15:25:40 - 21_tone_llms - PID:40780 - INFO -   · content_ss 非空 242,000 行 (100.0%); ss_is_fallback=True 行虽有值但回退全文 (见 stage 13 物化)。
+2026-07-25 15:25:40 - 21_tone_llms - PID:40780 - INFO - [Memory] 数据加载完成 | RSS: 7.67 GB | Available: 90.94 GB
+2026-07-25 15:25:40 - 21_tone_llms - PID:40780 - INFO -   'content_ctx' 已存在 (v3.6.0 stage 13 上游已物化), 跳过重复物化
+2026-07-25 15:25:41 - 21_tone_llms - PID:40780 - INFO - LLM 缓存: 3037107 条已缓存, 路径: F:\WiseSearch\data_antigravity_project\news_process\data\processed\_llm_cache.db
+2026-07-25 15:25:41 - 21_tone_llms - PID:40780 - INFO - 开始分发三轨组合模型处理任务，包含模型: ['gpt54nano', 'gemini31', 'deepseekv4']
+2026-07-25 15:25:41 - 21_tone_llms - PID:40780 - INFO - 逐条请求: 242000 条新闻 × 3 模型 × 3 轨道 = 2178000 个请求
+2026-07-25 15:26:02 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 三轨逐条请求开始: 共 2178000 个请求
+2026-07-25 15:36:16 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 108,900/2,178,000 (5.000%)
+2026-07-25 15:36:16 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 217,800/2,178,000 (10.00%)
+2026-07-25 15:36:17 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 326,700/2,178,000 (15.00%)
+2026-07-25 15:36:17 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 435,600/2,178,000 (20.00%)
+2026-07-25 15:36:18 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 544,500/2,178,000 (25.00%)
+2026-07-25 15:36:18 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 653,400/2,178,000 (30.00%)
+2026-07-25 15:36:19 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 762,300/2,178,000 (35.00%)
+2026-07-25 15:36:19 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 871,200/2,178,000 (40.00%)
+2026-07-25 15:36:19 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 980,100/2,178,000 (45.00%)
+2026-07-25 15:36:20 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,089,000/2,178,000 (50.00%)
+2026-07-25 15:36:20 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,197,900/2,178,000 (55.00%)
+2026-07-25 15:36:20 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,306,800/2,178,000 (60.00%)
+2026-07-25 15:36:21 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,415,700/2,178,000 (65.00%)
+2026-07-25 15:36:21 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,524,600/2,178,000 (70.00%)
+2026-07-25 15:36:22 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,633,500/2,178,000 (75.00%)
+2026-07-25 15:36:22 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,742,400/2,178,000 (80.00%)
+2026-07-25 15:36:22 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,851,300/2,178,000 (85.00%)
+2026-07-25 15:36:23 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 1,960,200/2,178,000 (90.00%)
+2026-07-25 15:36:23 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 2,069,100/2,178,000 (95.00%)
+2026-07-25 15:36:35 - 21_tone_llms - PID:40780 - ERROR - [deepseek-v4-flash] API 错误 400: {"error":{"message":"Content Exists Risk","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+2026-07-25 15:36:35 - 21_tone_llms - PID:40780 - INFO - [deepseek-v4-flash] 行 50816: 连续 80 次请求等待超过时限，该次结果将从投票中排除
+2026-07-25 15:36:35 - 21_tone_llms - PID:40780 - ERROR - [deepseek-v4-flash] API 错误 400: {"error":{"message":"Content Exists Risk","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+2026-07-25 15:36:35 - 21_tone_llms - PID:40780 - INFO - [deepseek-v4-flash] 行 50816: 连续 80 次请求等待超过时限，该次结果将从投票中排除
+2026-07-25 15:36:36 - 21_tone_llms - PID:40780 - ERROR - [deepseek-v4-flash] API 错误 400: {"error":{"message":"Content Exists Risk","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}
+2026-07-25 15:36:36 - 21_tone_llms - PID:40780 - INFO - [deepseek-v4-flash] 行 50816: 连续 80 次请求等待超过时限，该次结果将从投票中排除
+2026-07-25 15:51:05 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 86669: 连续 80 次请求未成功，最后状态码 500，该次结果将从投票中排除
+2026-07-25 15:52:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 105680: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:17 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 17478: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:17 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 108833: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:19 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 227728: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:20 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 215883: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:21 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 79683: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 122930: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 212118: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 131178: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 146009: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 47861: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:23 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 158555: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:23 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 131984: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:24 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 146009: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:26 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 39413: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:26 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 161415: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:26 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 105634: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:26 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 160333: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:26 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 232791: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:27 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 138658: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:27 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 118867: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:28 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 227728: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:28 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 146009: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:29 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 133186: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:29 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 122229: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 113159: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 29355: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 20487: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 115186: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 231582: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 211597: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 73545: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 166567: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:30 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 40480: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 61528: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 80528: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 23395: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 118867: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 131984: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 208838: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 181373: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 3005: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:31 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 52602: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:32 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 142431: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:33 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 110223: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:33 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 61528: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:33 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 175023: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:33 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 194393: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:34 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 36211: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:34 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 207060: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:34 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 80528: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 29075: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 91113: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 122237: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 217678: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 232107: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 231429: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 89496: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 33155: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 11423: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 192876: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 216094: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 208694: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 84302: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 65363: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 193358: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 212121: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 229468: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 30072: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 109971: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:36 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 239762: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:37 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 124534: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:37 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 80528: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:37 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 91147: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:38 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 81632: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:38 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 120649: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:38 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 18352: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:38 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 74639: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:38 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 195846: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:38 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 71387: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 73311: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 200704: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 115186: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 222307: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 443: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 52504: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 46519: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 214704: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 209135: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 60898: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 105634: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 38561: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 182481: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 55844: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 17118: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 86566: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:41 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 154614: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:41 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 52218: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:41 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 146634: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:42 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 232791: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:42 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 57921: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:42 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 153384: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:42 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 203801: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:42 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 86322: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:42 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 196214: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:43 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 206222: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:43 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 234589: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:43 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 227214: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 102524: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 234167: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 172993: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 101579: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 40626: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 89496: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:45 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 7830: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:45 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 234415: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:46 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 120499: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:46 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 127268: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:46 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 231190: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 128514: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 104365: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 46801: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 33936: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 108101: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 1937: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 154941: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:47 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 235183: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:48 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 175083: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:48 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 59042: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:49 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 170192: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:49 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 151057: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:50 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 170037: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:51 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 127403: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:51 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 125823: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:51 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 61949: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:51 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 65686: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:51 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 154327: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:52 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 10308: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:52 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 93166: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:52 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 167198: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:52 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 131579: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 186170: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 141420: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 230964: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 24535: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 89581: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 109994: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:53 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 62390: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:54 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 50681: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:54 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 76726: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:54 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 88706: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 224537: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 119889: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 137089: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 59917: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 27427: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 133092: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 154545: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 18527: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 15278: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:56 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 207130: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 81811: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 229374: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 213399: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 114408: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 240180: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 95739: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 154743: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 234526: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 70423: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 139540: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 63371: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:57 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 115949: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:58 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 161863: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:58 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 221691: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:58 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 232970: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:58 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 180740: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:58 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 160906: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:58 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 201068: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:59 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 119104: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:59 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 10386: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:59 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 222184: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:59 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 64347: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:53:59 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 162037: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:00 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 118472: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:00 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 201419: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:00 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 211853: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:00 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 234818: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:00 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 180780: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:00 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 207130: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:01 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 230906: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:01 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 170642: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:01 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 150288: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:01 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 136201: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:02 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 149395: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:02 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 30776: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:02 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 80900: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:02 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 202837: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:02 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 62145: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:02 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 160593: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:03 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 89445: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:03 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 47810: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:04 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 231586: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:04 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 190330: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:05 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 210457: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:05 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 149802: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:07 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 226266: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:08 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 64757: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:08 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 179929: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:08 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 181142: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:08 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 150872: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:09 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 163209: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:09 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 241502: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:09 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 176448: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:10 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 139185: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:10 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 144932: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:10 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 199470: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:11 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 208160: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:11 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 144894: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:11 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 206834: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:12 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 100793: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:13 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 169912: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:13 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 231500: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:13 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 86344: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:13 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 90536: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:14 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 223631: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:14 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 215505: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:14 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 142030: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:14 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 32599: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:14 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 116537: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:15 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 144195: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:16 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 82605: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:16 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 233334: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:17 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 154743: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:17 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 198304: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:17 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 165387: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:18 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 233292: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:19 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 29945: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:20 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 191113: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 226046: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 174450: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:22 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 162518: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:23 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 104388: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:23 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 124700: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:25 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 187317: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:25 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 194039: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:25 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 204630: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:25 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 46240: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:25 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 121609: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:28 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 241502: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:29 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 197142: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:29 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 204630: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:33 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 228236: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:35 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 216223: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:39 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 187862: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:40 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 133713: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:41 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 224103: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:44 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 7314: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:52 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 131265: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:54:59 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 2696: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:55:08 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 163368: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 15:55:08 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 请求进度: 2,178,000/2,178,000 (100.0%)
+2026-07-25 15:55:08 - 21_tone_llms - PID:40780 - INFO - 📡 LLM 三轨逐条请求完成: 共 2178000 个请求全部处理完毕
+2026-07-25 15:55:37 - 21_tone_llms - PID:40780 - INFO - ⚖️ verified 轨情感平局/空票: 24 个 (行×轨) 待重试 (逐轮全局 barrier, 每轮内并发, 最多 80 轮, force_refresh 绕过缓存, 温度=0.0); 仍未决者交 _aggregate_track 保守降级'中性'
+2026-07-25 16:12:03 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 86859: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 16:12:50 - 21_tone_llms - PID:40780 - INFO - [gemini-3.1-flash-lite] 行 80290: 连续 80 次请求未成功，最后一次 200 响应内容为空、不可解析或缺 is_bank_fintech_news 键，该次结果将从投票中排除
+2026-07-25 16:12:50 - 21_tone_llms - PID:40780 - INFO -   第 1/80 轮重试后: 24 → 10 仍平局/空票
+2026-07-25 16:13:03 - 21_tone_llms - PID:40780 - INFO -   第 2/80 轮重试后: 10 → 7 仍平局/空票
+2026-07-25 16:13:14 - 21_tone_llms - PID:40780 - INFO -   第 3/80 轮重试后: 7 → 6 仍平局/空票
+2026-07-25 16:13:26 - 21_tone_llms - PID:40780 - INFO -   第 4/80 轮重试后: 6 → 6 仍平局/空票
+2026-07-25 16:13:33 - 21_tone_llms - PID:40780 - INFO -   第 5/80 轮重试后: 6 → 6 仍平局/空票
+2026-07-25 16:13:45 - 21_tone_llms - PID:40780 - INFO -   第 6/80 轮重试后: 6 → 5 仍平局/空票
+2026-07-25 16:13:53 - 21_tone_llms - PID:40780 - INFO -   第 7/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:14:08 - 21_tone_llms - PID:40780 - INFO -   第 8/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:14:20 - 21_tone_llms - PID:40780 - INFO -   第 9/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:14:29 - 21_tone_llms - PID:40780 - INFO -   第 10/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:14:37 - 21_tone_llms - PID:40780 - INFO -   第 11/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:14:46 - 21_tone_llms - PID:40780 - INFO -   第 12/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:14:56 - 21_tone_llms - PID:40780 - INFO -   第 13/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:15:08 - 21_tone_llms - PID:40780 - INFO -   第 14/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:15:17 - 21_tone_llms - PID:40780 - INFO -   第 15/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:15:29 - 21_tone_llms - PID:40780 - INFO -   第 16/80 轮重试后: 5 → 5 仍平局/空票
+2026-07-25 16:15:36 - 21_tone_llms - PID:40780 - INFO -   第 17/80 轮重试后: 5 → 3 仍平局/空票
+2026-07-25 16:15:44 - 21_tone_llms - PID:40780 - INFO -   第 18/80 轮重试后: 3 → 3 仍平局/空票
+2026-07-25 16:15:56 - 21_tone_llms - PID:40780 - INFO -   第 19/80 轮重试后: 3 → 3 仍平局/空票
+2026-07-25 16:16:07 - 21_tone_llms - PID:40780 - INFO -   第 20/80 轮重试后: 3 → 3 仍平局/空票
+2026-07-25 16:16:15 - 21_tone_llms - PID:40780 - INFO -   第 21/80 轮重试后: 3 → 2 仍平局/空票
+2026-07-25 16:16:19 - 21_tone_llms - PID:40780 - INFO -   第 22/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:25 - 21_tone_llms - PID:40780 - INFO -   第 23/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:30 - 21_tone_llms - PID:40780 - INFO -   第 24/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:35 - 21_tone_llms - PID:40780 - INFO -   第 25/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:41 - 21_tone_llms - PID:40780 - INFO -   第 26/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:46 - 21_tone_llms - PID:40780 - INFO -   第 27/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:52 - 21_tone_llms - PID:40780 - INFO -   第 28/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:16:57 - 21_tone_llms - PID:40780 - INFO -   第 29/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:01 - 21_tone_llms - PID:40780 - INFO -   第 30/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:09 - 21_tone_llms - PID:40780 - INFO -   第 31/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:14 - 21_tone_llms - PID:40780 - INFO -   第 32/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:22 - 21_tone_llms - PID:40780 - INFO -   第 33/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:28 - 21_tone_llms - PID:40780 - INFO -   第 34/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:41 - 21_tone_llms - PID:40780 - INFO -   第 35/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:46 - 21_tone_llms - PID:40780 - INFO -   第 36/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:17:51 - 21_tone_llms - PID:40780 - INFO -   第 37/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:07 - 21_tone_llms - PID:40780 - INFO -   第 38/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:12 - 21_tone_llms - PID:40780 - INFO -   第 39/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:17 - 21_tone_llms - PID:40780 - INFO -   第 40/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:24 - 21_tone_llms - PID:40780 - INFO -   第 41/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:34 - 21_tone_llms - PID:40780 - INFO -   第 42/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:39 - 21_tone_llms - PID:40780 - INFO -   第 43/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:44 - 21_tone_llms - PID:40780 - INFO -   第 44/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:18:55 - 21_tone_llms - PID:40780 - INFO -   第 45/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:00 - 21_tone_llms - PID:40780 - INFO -   第 46/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:07 - 21_tone_llms - PID:40780 - INFO -   第 47/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:12 - 21_tone_llms - PID:40780 - INFO -   第 48/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:23 - 21_tone_llms - PID:40780 - INFO -   第 49/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:29 - 21_tone_llms - PID:40780 - INFO -   第 50/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:36 - 21_tone_llms - PID:40780 - INFO -   第 51/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:42 - 21_tone_llms - PID:40780 - INFO -   第 52/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:51 - 21_tone_llms - PID:40780 - INFO -   第 53/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:19:56 - 21_tone_llms - PID:40780 - INFO -   第 54/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:03 - 21_tone_llms - PID:40780 - INFO -   第 55/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:09 - 21_tone_llms - PID:40780 - INFO -   第 56/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:14 - 21_tone_llms - PID:40780 - INFO -   第 57/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:19 - 21_tone_llms - PID:40780 - INFO -   第 58/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:33 - 21_tone_llms - PID:40780 - INFO -   第 59/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:39 - 21_tone_llms - PID:40780 - INFO -   第 60/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:46 - 21_tone_llms - PID:40780 - INFO -   第 61/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:20:57 - 21_tone_llms - PID:40780 - INFO -   第 62/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:02 - 21_tone_llms - PID:40780 - INFO -   第 63/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:12 - 21_tone_llms - PID:40780 - INFO -   第 64/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:18 - 21_tone_llms - PID:40780 - INFO -   第 65/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:23 - 21_tone_llms - PID:40780 - INFO -   第 66/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:28 - 21_tone_llms - PID:40780 - INFO -   第 67/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:39 - 21_tone_llms - PID:40780 - INFO -   第 68/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:44 - 21_tone_llms - PID:40780 - INFO -   第 69/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:49 - 21_tone_llms - PID:40780 - INFO -   第 70/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:21:58 - 21_tone_llms - PID:40780 - INFO -   第 71/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:03 - 21_tone_llms - PID:40780 - INFO -   第 72/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:08 - 21_tone_llms - PID:40780 - INFO -   第 73/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:12 - 21_tone_llms - PID:40780 - INFO -   第 74/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:17 - 21_tone_llms - PID:40780 - INFO -   第 75/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:23 - 21_tone_llms - PID:40780 - INFO -   第 76/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:28 - 21_tone_llms - PID:40780 - INFO -   第 77/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:39 - 21_tone_llms - PID:40780 - INFO -   第 78/80 轮重试后: 2 → 2 仍平局/空票
+2026-07-25 16:22:48 - 21_tone_llms - PID:40780 - INFO -   第 79/80 轮重试后: 2 → 1 仍平局/空票
+2026-07-25 16:22:53 - 21_tone_llms - PID:40780 - INFO -   第 80/80 轮重试后: 1 → 1 仍平局/空票
+2026-07-25 16:22:53 - 21_tone_llms - PID:40780 - INFO - ⚖️ 重试 80 轮后仍有 1 个 (行×轨) 平局/空票, 保留原票交 _aggregate_track 保守降级为'中性'
+2026-07-25 16:23:23 - 21_tone_llms - PID:40780 - INFO - LLM 缓存命中统计: lookups=2,178,000 hits=2,177,699 v0_hits=0 misses=301 writes=763 hit_rate=0.9999
+2026-07-25 16:23:23 - 21_tone_llms - PID:40780 - INFO - 开始聚合各模型 JSON 响应并执行三轨多数投票三角验证...
+2026-07-25 16:24:42 - 21_tone_llms - PID:40780 - INFO - Logit-to-Score (NaN-aware 均值, 分母=非空数): full mean=0.7778 (n=169,805), ctx mean=0.7700 (n=162,414), ss mean=0.7588 (n=160,489), n_total=242,000
+2026-07-25 16:24:42 - 21_tone_llms - PID:40780 - WARNING - 共有 267 次模型 API 调用失败，已从对应投票中排除
+2026-07-25 16:24:42 - 21_tone_llms - PID:40780 - INFO -   创新位点 [full] [应用场景]: 166176
+2026-07-25 16:24:42 - 21_tone_llms - PID:40780 - INFO -   创新位点 [full] [底层技术]: 3629
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   创新位点 [ctx] [应用场景]: 158705
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   创新位点 [ctx] [底层技术]: 3709
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   创新位点 [ss] [应用场景]: 156679
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   创新位点 [ss] [底层技术]: 3810
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO - [_full] 多数决判定为真: 169,805/242,000 (70.17%)
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   [_full] [正面]: 162,195 (95.52%)
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   [_full] [中性]: 6,755 (3.978%)
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO -   [_full] [负面]: 855 (0.5035%)
+2026-07-25 16:24:43 - 21_tone_llms - PID:40780 - INFO - [_ctx] 多数决判定为真: 162,414/242,000 (67.11%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO -   [_ctx] [正面]: 154,260 (94.98%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO -   [_ctx] [中性]: 7,334 (4.516%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO -   [_ctx] [负面]: 820 (0.5049%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO - [_ss] 多数决判定为真: 160,489/242,000 (66.32%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO -   [_ss] [正面]: 152,076 (94.76%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO -   [_ss] [中性]: 7,688 (4.790%)
+2026-07-25 16:24:44 - 21_tone_llms - PID:40780 - INFO -   [_ss] [负面]: 725 (0.4517%)
+2026-07-25 16:25:04 - 21_tone_llms - PID:40780 - INFO - 已保存 parquet 文件: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms_full.parquet  (242,000 行)
+2026-07-25 16:25:04 - 21_tone_llms - PID:40780 - INFO - 已生成预览文件: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms_full.csv
+2026-07-25 16:25:04 - 21_tone_llms - PID:40780 - INFO - 全量 LLM 结果已保存: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms_full.parquet (242000 行)
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -   Triple gate (7 互斥态分解; full-only 下仅含-full 4 态进入输出):
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     full-only  = 7626
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     ctx-only   = 2907   (full 未过 → full-only 下排除)
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     ss-only    = 3267   (full 未过 → full-only 下排除)
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     full+ctx   = 8372
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     full+ss    = 6087
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     ctx+ss     = 3415   (full 未过 → full-only 下排除)
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -     all-three  = 147720
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -   含-full 4 态之和 = 输出样本 = 169805 (= full verified 169805)
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO -   7 态全和 (任一轨 verified 的诊断并集, ≥ 输出) = 179394
+2026-07-25 16:25:05 - 21_tone_llms - PID:40780 - INFO - 正在保存处理结果至 F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms.parquet...
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO - 已保存 parquet 文件: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms.parquet  (169,805 行)
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO - 已生成预览文件: F:\WiseSearch\data_antigravity_project\news_process\data\processed\21_tone_llms.csv
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO - ------------------------------------------------------------------------
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO - 【结果分析】LLM 三轨语义精筛与情感产出解读 (对照阈值/预期方向):
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -   · 缓存命中: hit_rate=0.9999, misses=301, writes=763 (lookups=2,178,000)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - WARNING -     ⚠ 存在 301 次缓存 miss / 763 次新写入 — 本次有新 API 调用(付费), 投票可能与历史盘面漂移; 复现 golden 前须确认这些新条目已稳定播种回 _llm_cache.db。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - WARNING -     ⚠ 267 次模型 API 调用失败已从投票中剔除 — 若失败集中于单一模型/单一轨, 对应 verified/sentiment 多数决会退化为双模型决, 建议核查网络/限流后重跑。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -   · verified 输出 (仅全文轨 verified_full 过即留, full-only): 169,805/242,000 (70.17%) → 即 21_tone_llms.parquet 下游样本。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _full: verified 169,805/242,000 (70.17%)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ctx: verified 162,414/242,000 (67.11%)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ss (银行+金科同句): verified 160,489/242,000 (66.32%)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -     判读: verified 率越高=语料越聚焦'银行×金科', 率过低(经验上 <10%)再结合金科词典缺失/语料漂移排查; 三轨取材窗口不同(全文 / 银行邻近句 / 银行∧金科同句)且回退比例各异 — ss 无共现时回退全文(镜像 ctx), 故三轨 verified 率互为稳健性印证、不存在固定大小关系(ss 可能高于或低于 full)。注: 自 2026-06-29 full-only gating 起, 是否留篇仅由全文轨 verified_full 决定 — ctx/ss verified 率仅作测度稳健性参考, 不再独立决定下游样本 (其行宇宙现为 full 留篇集的子集)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -   · Triple-gate 含-full 4 态之和=169,805, 输出样本=169,805 → 一致(full-only 恒等校验通过, 好)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -   · (诊断) 7 互斥态全和=179,394 = 任一轨 verified 的并集 (含被 full-only 排除的 9,589 篇 ctx-only/ss-only/ctx+ss)。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -     三轨全 verified (all-three) 147,720 篇 (86.99% of 输出样本); 占比越高=三种归因窗口判定越一致, 测度越稳。
+2026-07-25 16:25:14 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _full (verified=169,805): 正面 95.52% / 负面 0.5035% / 中性 3.978% / 未定 0.000%。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ctx (verified=162,414): 正面 94.98% / 负面 0.5049% / 中性 4.516% / 未定 0.000%。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ss (verified=160,489): 正面 94.76% / 负面 0.4517% / 中性 4.790% / 未定 0.000%。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     判读: 用户决策 (2026-06-23) 后 verified 轨情感平局/空票已保守降级为'中性'(不再产'未定'), 故'未定'占比应≈0 (残留非0 即异常态, 需排查); '中性'占比已含原平局降级部分; 正负面方向跨轨一致=测度收敛(好)。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     · llm_prob_score_full 输出(full-only) mean=0.7778 sd=0.2042 范围[-1.000,1.000] (非空 169,805); 极性桶 >0 97.35% / <0 0.7132% / ≈0 1.932%。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     · llm_prob_score_ctx 输出(full-only) mean=0.7762 sd=0.1997 范围[-1.000,1.000] (非空 156,092); 极性桶 >0 97.48% / <0 0.6336% / ≈0 1.884%。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     · llm_prob_score_ss 输出(full-only) mean=0.7638 sd=0.2021 范围[-1.000,1.000] (非空 153,807); 极性桶 >0 97.31% / <0 0.5741% / ≈0 2.111%。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -     判读: [-1,+1] 连续分(置信加权), >0 偏正面、<0 偏负面、|值| 越大语气越强; sd 越小=语气越集中(本语料近全正面故 mean 高、sd 小属预期), <0 桶占比即负面信号密度; 回归前据此判断 DV 是否有足够变异 — 过度集中(sd≈0)会削弱识别力。
+2026-07-25 16:25:15 - 21_tone_llms - PID:40780 - INFO -   · 创新三维标签分布 (各轨 verified 子样本; 平局/低置信→保守 MAP 降级):
+2026-07-25 16:25:16 - 21_tone_llms - PID:40780 - INFO -     - 创新位点 (底层技术/应用场景 → P4 locus): full 应用场景97.86%/底层技术2.137% | ctx 应用场景97.72%/底层技术2.284% | ss 应用场景97.63%/底层技术2.374%
+2026-07-25 16:25:16 - 21_tone_llms - PID:40780 - INFO -       📖 创新位点构念源: Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537–580. https://doi.org/10.1007/s11573-017-0852-x
+2026-07-25 16:25:17 - 21_tone_llms - PID:40780 - INFO -     - 实质性 (实质性/象征性 → P3 substance): full 象征性4.282%/实质性95.72% | ctx 象征性4.796%/实质性95.20% | ss 象征性6.020%/实质性93.98%
+2026-07-25 16:25:17 - 21_tone_llms - PID:40780 - INFO -       📖 实质性构念源: Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly, 39(3), 367–390. https://doi.org/10.2307/2393295
+2026-07-25 16:25:18 - 21_tone_llms - PID:40780 - INFO -     - 协同模式 (自主研发/外部协同 → P5 collab): full 外部协同34.14%/自主研发65.86% | ctx 外部协同33.55%/自主研发66.45% | ss 外部协同29.79%/自主研发70.21%
+2026-07-25 16:25:18 - 21_tone_llms - PID:40780 - INFO -       📖 协同模式构念源: Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in explaining innovation performance among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131–150. https://doi.org/10.1002/smj.507
+2026-07-25 16:25:18 - 21_tone_llms - PID:40780 - INFO -     判读: 二元构成是下游 P3/P4/P5 论文主因变量之源; 因平局/低置信票按保守 MAP 降级到基类(应用场景/象征性/自主研发), 该方向占比天然偏高 — 极端单边(如某类>99%)在 T=2 小样本属正常退化, 须以全量 T=19 占比为准, 不可据盘面下实质结论。
+2026-07-25 16:25:18 - 21_tone_llms - PID:40780 - INFO -   · 模型间一致性 (ensemble, n_models=3; 越接近 1=三模型越趋同, 测度越可靠):
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _full (verified=169,805): verified 票一致率 mean=0.9461 (全票一致 83.82%); 情感票一致率 mean=0.9690 (非空 169,805, 全票一致 90.69%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ctx (verified=162,414): verified 票一致率 mean=0.9500 (全票一致 84.99%); 情感票一致率 mean=0.9684 (非空 162,414, 全票一致 90.51%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ss (verified=160,489): verified 票一致率 mean=0.9534 (全票一致 86.03%); 情感票一致率 mean=0.9639 (非空 160,489, 全票一致 89.17%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     判读: 一致率是 3-LLM 评分员的 inter-rater reliability 替代量 — mean 越高 / 全票一致占比越大 = 三模型对'是否金科×语气'判断越收敛, 主变量越可信; 某轨显著低于其他轨说明该轨边界样本更多(语义更模糊), 解释其回归时需谨慎。下游 encode 以 agreement_rate 作连续衰减权重。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   · 三轨情感收敛 (all-three verified=147,720 篇): 三轨情感标签完全一致 141,731/147,720 (95.95%)。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     连续分跨轨 Pearson r: full~ctx=0.8199, full~ss=0.7786, ctx~ss=0.8338。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     判读: 同一篇在三种归因窗口(全文 / 银行邻近句 / 银行∧金科同句)下情感判定高度一致 = 测度对窗口选择稳健(收敛效度好); 一致率/相关偏低则窗口口径会实质改变语气测度 — 三轨更应作为彼此独立的稳健性各自进回归(铁律: 禁混同一 Hansen J), 而非互相替代。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   · 投票完整性 (满票=n_models=3; 缺票轨多数决退化为双/单模型):
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _full: 满票 241,889/242,000 (99.95%), 全模型缺席 0 篇, undefined(平局未决) 0 篇。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ctx: 满票 241,921/242,000 (99.97%), 全模型缺席 0 篇, undefined(平局未决) 0 篇。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     · 轨道 _ss: 满票 241,923/242,000 (99.97%), 全模型缺席 0 篇, undefined(平局未决) 0 篇。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -     判读: 离线/缓存全命中时满票应≈100%、全模型缺席=0; undefined 在 2026-06-23 决策后结构性恒 0(verified 轨平局已降级中性), 非 0 即异常须排查。满票率显著 <100% = 有模型响应缺失, 该批投票从 3 票退化为 2/1 票, 可靠性下降, 需核查网络/限流后重跑。
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO - ------------------------------------------------------------------------
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   ⏱ 运行期阶段计时 (墙钟):
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -      ①加载+ctx物化: 4.839s (0.1350%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -      ②三轨LLM并发请求: 3462s (96.60%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -      ③三轨聚合+多数投票: 76.02s (2.121%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -      ④写回+过滤+写盘+结果分析: 40.90s (1.141%)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -      合计(子阶段和): 3584s
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO - ══════════════════════════════════════════════════
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO - 阶段摘要: 21_tone_llms
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO - ──────────────────────────────────────────────────
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   耗时:     3584 秒 (59.73 分钟)
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   输入:     242,000 行
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   输出:     169,805 行
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   保留率:   70.17%
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO -   内存RSS:  22.39 GB
+2026-07-25 16:25:19 - 21_tone_llms - PID:40780 - INFO - ══════════════════════════════════════════════════
