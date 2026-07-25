@@ -288,6 +288,38 @@ RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 #   INSERT OR REPLACE **回写**确定性锚点 _llm_cache.db → 下次离线可复现该批
 #   新结果 (须并入既有 DEFERRED 批次受控重生 golden, 用户已选"回写缓存")。
 SENTIMENT_TIE_RETRY_ROUNDS = max(0, int(LLM_CONFIG.get('sentiment_tie_retry_rounds', 80)))
+
+# 用户决策 (2026-07-25): 平局重试路径的**内层** API 重试上限, 与主跑段
+# ``MAX_RETRIES`` (=80) 解耦。默认 **1** = "外层拥有重试, 内层单发"。
+#
+# 动因 (两趟生产日志实证, 见 scripts/audit/STAGE21_LOG_DEFECT_AUDIT_AND_
+# REMEDIATION_PLAN_2026-07-25.md D5):
+#   · 外层 ``SENTIMENT_TIE_RETRY_ROUNDS`` 本身就是一个重试循环, 内层再叠 80 次
+#     = 两层预算**相乘** (最坏 80×80 = 6,400 次/格), 属重复设计;
+#   · 单条 gemini31 "HTTP 200 但 body 空/不可解析/缺验证键" 病链跑满 80 次
+#     ≈ 80×(10s flat sleep + ~2.5s 请求) ≈ 1,000s; 每轮是**全局 barrier**
+#     (墙钟 = 最慢那一个请求) ⟹ 病链落进任一轮, 该轮即 ~17 分钟;
+#   · 实测: 15:25 趟第 1 轮 1,033s 独占全段 63%, 其余 79 轮仅 603s (7.6s/轮);
+#     18:41 趟连续两轮 1,002s / 1,035s, 按此外推剩余 78 轮 ≈ 22 小时。
+#   · 该类失败**不是**瞬时故障: 两趟弃票行集合交集 170/170 (18:41 趟是 15:25
+#     趟的严格子集, 零新增) ⟹ 同一批文章在同一趟内连打 80 次恢复率 0/170,
+#     两趟独立复现。恢复实际发生在**趟与趟之间** (小时尺度, 78 行在 3 小时
+#     间隔后自愈), 靠拖长单趟内层重试买不到。
+#
+# 为何取 1 不减恢复机会: 卡住的格总尝试预算 = 外层轮数 × 本值 = 80×1 = 80,
+# 与主跑段每格 80 次**等同**; 前 79 轮的任何失败都被下一轮接住, 真正丢失的
+# 只有"第 80 轮那一次没能续打"这一个边缘。而无病链时单轮墙钟回落到 ~7.6s
+# 地板 ⟹ 整段 ≈ 10 分钟 (原 22h 条件上界)。
+# ⚠ 刻意**只**作用于平局重试 call site: 主跑段 / stage 66 entity_masking /
+#   stage 70 prompt_sensitivity 的重试预算一律不动 (后两者各有自己的
+#   ENTITY_MASKING_MAX_RETRIES / PROMPT_MAX_RETRIES 并对外披露, 若在
+#   fetch_llm_async 内部做全局早停会使其披露值与实际行为不符)。
+# clamp 到 [1, MAX_RETRIES]: 0/负数无意义 (fetch_llm_async 内亦 max(1,..)),
+# 超过主跑段预算则违背"内层不该比主跑更激进"的设计意图。
+SENTIMENT_TIE_MAX_RETRIES = max(1, min(
+    MAX_RETRIES,
+    int(LLM_CONFIG.get('sentiment_tie_retry_max_retries', 1)),
+))
 REQUEST_TIMEOUT_TOTAL = float(LLM_CONFIG.get('timeout', 600))
 REQUEST_TIMEOUT_CONNECT = float(LLM_CONFIG.get('connect_timeout', min(120, REQUEST_TIMEOUT_TOTAL)))
 REQUEST_TIMEOUT_SOCK_CONNECT = float(LLM_CONFIG.get('sock_connect_timeout', REQUEST_TIMEOUT_CONNECT))
@@ -1076,6 +1108,15 @@ async def _resolve_unresolved_sentiment_tracks(
     进下一轮 (轮与轮之间是 barrier, 所有待决轨同步推进)。某轨某轮被打破即从下
     一轮的 pending 中剔除 (不再重复重调), 故已解析轨不会白跑后续轮次。
 
+    **内层重试预算 (用户决策 2026-07-25)**: 本路径的 ``fetch_llm_async`` 显式传
+    ``max_retries=SENTIMENT_TIE_MAX_RETRIES`` (默认 1), **不**继承主跑段的
+    ``MAX_RETRIES=80``。因为上面这个 ``for round_no`` 循环本身就是重试机制,
+    内层再叠 80 次 = 两层预算相乘; 而每轮是全局 barrier (墙钟 = 最慢那一个
+    请求), 一条跑满 80 次的病链 (~1,000s) 会把整轮拖成 ~17 分钟 —— 2026-07-25
+    两趟生产日志实证该模式, 外推剩余轮次 ≈ 22h。取 1 后卡住格的总尝试预算
+    = 轮数 × 1 = 80, 与主跑段等同, 恢复机会不减 (前 79 轮的失败都被下一轮
+    接住)。详见常量 ``SENTIMENT_TIE_MAX_RETRIES`` 处的完整实证与预算论证。
+
     缓存 / 确定性 (用户选"回写缓存"):
         新票经 ``fetch_llm_async`` 写入侧 ``cache.put`` (INSERT OR REPLACE)
         **覆盖**旧条目, 回写确定性锚点 ``_llm_cache.db`` → 下次离线 ($0) 可
@@ -1112,7 +1153,9 @@ async def _resolve_unresolved_sentiment_tracks(
 
     logger.info(
         f"⚖️ verified 轨情感平局/空票: {len(pending)} 个 (行×轨) 待重试 "
-        f"(逐轮全局 barrier, 每轮内并发, 最多 {SENTIMENT_TIE_RETRY_ROUNDS} 轮, "
+        f"(逐轮全局 barrier, 每轮内并发, 最多 {SENTIMENT_TIE_RETRY_ROUNDS} 轮 × "
+        f"内层 {SENTIMENT_TIE_MAX_RETRIES} 次 = 每格最多 "
+        f"{SENTIMENT_TIE_RETRY_ROUNDS * SENTIMENT_TIE_MAX_RETRIES} 次尝试, "
         f"force_refresh 绕过缓存, 温度={TEMPERATURE}); "
         "仍未决者交 _aggregate_track 保守降级'中性'"
     )
@@ -1130,6 +1173,11 @@ async def _resolve_unresolved_sentiment_tracks(
                 model_availability=model_availability,
                 prompt_version=PROMPT_VERSION,
                 force_refresh=True,
+                # 2026-07-25: 内层重试上限与主跑段解耦 (默认 1 = 单发) —
+                # 外层这个 for round_no 循环本身就是重试机制, 内层再叠
+                # MAX_RETRIES=80 会让一条病链把整轮 barrier 拖到 ~1000s。
+                # 详见 SENTIMENT_TIE_MAX_RETRIES 常量处的实证与预算论证。
+                max_retries=SENTIMENT_TIE_MAX_RETRIES,
             )
             for (idx, track) in pending
             for m in models
@@ -2118,6 +2166,10 @@ def _write_run_lineage(stage_start: float):
         ],
         "concurrency": MAX_CONCURRENCY,
         "max_retries": MAX_RETRIES,
+        # 2026-07-25: 平局重试路径内层预算与主跑段解耦, 两者都须落账 —
+        # 只报 max_retries 会让复现者以为该路径也是 80 次 (披露失真)。
+        "sentiment_tie_retry_rounds": SENTIMENT_TIE_RETRY_ROUNDS,
+        "sentiment_tie_max_retries": SENTIMENT_TIE_MAX_RETRIES,
         "retry_delay": RETRY_DELAY,
         "retry_backoff": "flat",  # 2026-06-26 全项目统一固定间隔, 不再指数退避
         "temperature": TEMPERATURE,
@@ -2236,6 +2288,12 @@ def _log_environment_and_methodology(input_path: str) -> None:
         logger.info(
             f"     · 平局重试: sentiment_tie_retry_rounds={SENTIMENT_TIE_RETRY_ROUNDS:,d} "
             "(verified 轨情感平局/空票保守降级前先逐轮 barrier 绕缓存重调实时 API; ≤0 关闭; 仅在线模式)"
+        )
+        logger.info(
+            f"       └ 内层重试上限 sentiment_tie_max_retries={SENTIMENT_TIE_MAX_RETRIES:,d} "
+            f"(与主跑段 max_retries={MAX_RETRIES:,d} 解耦; 外层轮次即重试机制, "
+            f"卡住格总预算 = {SENTIMENT_TIE_RETRY_ROUNDS:,d} 轮 × {SENTIMENT_TIE_MAX_RETRIES:,d} = "
+            f"{SENTIMENT_TIE_RETRY_ROUNDS * SENTIMENT_TIE_MAX_RETRIES:,d} 次)"
         )
         logger.info(
             f"     · 超时: total={sig4(REQUEST_TIMEOUT_TOTAL)}s | connect={sig4(REQUEST_TIMEOUT_CONNECT)}s | "

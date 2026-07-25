@@ -56,6 +56,14 @@ def _resp(verified: bool, sentiment, ver_conf: float = 0.9, sent_conf: float = 0
     return json.dumps(payload, ensure_ascii=False)
 
 
+@pytest.fixture(scope='module')
+def source_code():
+    """tone_llms.py 源码文本 — 供源码级回退闸使用 (行为闸测不出的静默回退)。"""
+    from news_process.pipeline.sentiment import tone_llms as _t
+    with open(_t.__file__, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
 @pytest.fixture
 def models():
     return [
@@ -377,3 +385,102 @@ def test_resolver_drops_resolved_tracks_between_rounds(monkeypatch, models):
     assert tone_llms._verified_sentiment_unresolved(results_map[0]["ss"], models) is False
     # ctx 未被触碰
     assert results_map[0]["ctx"][models[1]["model_name"]] == _resp(True, "正面")
+
+
+# ============================================================================
+# 内层重试预算解耦 (用户决策 2026-07-25) — SENTIMENT_TIE_MAX_RETRIES
+# ============================================================================
+# 动因: 外层 `for round_no` 循环本身就是重试机制, 内层若继承主跑段
+# MAX_RETRIES=80 则两层预算相乘 (最坏 6,400 次/格); 而每轮是全局 barrier,
+# 一条跑满 80 次的 "200 空响应" 病链 (~1,000s) 会把整轮拖成 ~17 分钟
+# (2026-07-25 两趟生产日志实证, 外推剩余轮次 ≈ 22h)。
+# 这几个 gate 防的是**静默回退**: call site 漏传 max_retries 即重新继承 80,
+# 且日志/lineage 仍报 80 → 现象只在生产真跑时才暴露 (本机 T=2 测不出)。
+
+
+class TestSentimentTieMaxRetries:
+
+    def test_constant_clamped_to_valid_range(self):
+        """常量须落在 [1, MAX_RETRIES]: 0/负数无意义, 超过主跑段违背设计意图。"""
+        assert isinstance(tone_llms.SENTIMENT_TIE_MAX_RETRIES, int)
+        assert 1 <= tone_llms.SENTIMENT_TIE_MAX_RETRIES <= tone_llms.MAX_RETRIES
+
+    def test_clamp_expression_present_in_source(self, source_code):
+        """clamp 必须是 max(1, min(MAX_RETRIES, cfg)) 形态 (防日后改成裸 int())。"""
+        seg_start = source_code.find("SENTIMENT_TIE_MAX_RETRIES = ")
+        assert seg_start != -1, "SENTIMENT_TIE_MAX_RETRIES 常量未找到"
+        seg = source_code[seg_start:seg_start + 240]
+        assert "max(1" in seg and "min(" in seg and "MAX_RETRIES" in seg, (
+            f"clamp 表达式缺失或被改写: {seg[:160]!r}"
+        )
+        assert "sentiment_tie_retry_max_retries" in seg, (
+            "常量未从 config 键 sentiment_tie_retry_max_retries 读取 (硬编码?)"
+        )
+
+    def test_call_site_passes_max_retries(self, source_code):
+        """源码闸: 平局重试 call site 必须显式传 max_retries, 否则静默继承 80。"""
+        fn_start = source_code.find("async def _resolve_unresolved_sentiment_tracks")
+        assert fn_start != -1, "_resolve_unresolved_sentiment_tracks 未找到"
+        fn_end = source_code.find("\ndef ", fn_start)
+        body = source_code[fn_start:fn_end if fn_end != -1 else len(source_code)]
+        assert "max_retries=SENTIMENT_TIE_MAX_RETRIES" in body, (
+            "平局重试 fetch_llm_async 调用未显式传 max_retries=SENTIMENT_TIE_MAX_RETRIES "
+            "(回退到继承主跑段 MAX_RETRIES=80 → 单轮 barrier 可被一条病链拖到 ~1000s)"
+        )
+
+    def test_resolver_forwards_max_retries_kwarg(self, monkeypatch, models):
+        """行为闸: 实际调用确实带上该 kwarg 且值 = 常量 (非仅源码字面量)。"""
+        monkeypatch.setattr(tone_llms, "LLM_OFFLINE", False)
+        monkeypatch.setattr(tone_llms, "SENTIMENT_TIE_RETRY_ROUNDS", 2)
+        monkeypatch.setattr(tone_llms, "SENTIMENT_TIE_MAX_RETRIES", 1)
+
+        df = _df(1)
+        results_map = {0: {
+            "full": _res_dict(models, ["正面", "中性", "负面"]),
+            "ctx": _res_dict(models, ["正面", "正面", "负面"]),
+            "ss": _res_dict(models, ["正面", "正面", "负面"]),
+        }}
+        seen = []
+
+        async def fake_fetch(session, semaphore, prompt, m, idx, track, **kw):
+            seen.append(kw.get("max_retries"))
+            # 始终平局 → 跑满 2 轮
+            i = [mm["model_name"] for mm in models].index(m["model_name"])
+            return idx, m["model_name"], _resp(True, ["正面", "中性", "负面"][i]), track
+
+        monkeypatch.setattr(tone_llms, "fetch_llm_async", fake_fetch)
+        asyncio.run(tone_llms._resolve_unresolved_sentiment_tracks(
+            session=None, semaphore=asyncio.Semaphore(10), df=df, models=models,
+            results_map=results_map, cache=None, request_pacers={},
+            model_availability=None,
+        ))
+        assert seen, "未发生任何重试调用"
+        assert set(seen) == {1}, f"max_retries kwarg 未按常量下传: {sorted(set(seen))}"
+        # 总预算 = 轮数 × 内层 (此处 2 轮 × 3 模型 = 6 次调用)
+        assert len(seen) == 2 * len(models)
+
+    def test_budget_invariant_matches_main_pass(self):
+        """预算不变量: 轮数 × 内层 ≥ 主跑段每格预算 (取 1 时恰好等同, 恢复机会不减)。
+
+        这是"砍内层不减恢复机会"论证的可执行化 —— 若日后有人下调轮数而忘了
+        同步上调内层 (或反之), 该 gate 会拦住 "总预算掉到主跑段之下"。
+        """
+        if tone_llms.SENTIMENT_TIE_RETRY_ROUNDS <= 0:
+            pytest.skip("平局重试已关闭 (rounds<=0), 预算不变量不适用")
+        budget = tone_llms.SENTIMENT_TIE_RETRY_ROUNDS * tone_llms.SENTIMENT_TIE_MAX_RETRIES
+        assert budget >= tone_llms.MAX_RETRIES, (
+            f"平局重试总预算 {budget} < 主跑段 {tone_llms.MAX_RETRIES} "
+            "— 卡住格拿到的尝试次数反而少于主跑段, 违背设计意图"
+        )
+
+    def test_lineage_and_banner_disclose_inner_budget(self, source_code):
+        """披露闸: lineage 元数据 + 启动横幅都须报内层预算 (只报 80 = 披露失真)。"""
+        assert '"sentiment_tie_max_retries": SENTIMENT_TIE_MAX_RETRIES' in source_code, (
+            "lineage 元数据未落账 sentiment_tie_max_retries"
+        )
+        assert '"sentiment_tie_retry_rounds": SENTIMENT_TIE_RETRY_ROUNDS' in source_code, (
+            "lineage 元数据未落账 sentiment_tie_retry_rounds"
+        )
+        assert "sentiment_tie_max_retries={SENTIMENT_TIE_MAX_RETRIES" in source_code, (
+            "启动横幅未回显内层重试上限"
+        )

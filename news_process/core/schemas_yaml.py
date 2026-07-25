@@ -65,6 +65,11 @@ class ToneLLMSchema:
     # 重新调实时 API 的最多轮数 (默认 80, 温度=0; 逐轮全局 barrier + 每轮内并发);
     # <=0 关闭 = 直接保守降级。
     sentiment_tie_retry_rounds: int = 80
+    # 用户决策 2026-07-25: 平局重试**内层** API 重试上限, 与主跑段 max_retries
+    # 解耦 (外层轮次本身即重试机制, 两层相乘最坏 6,400 次/格; 一条跑满的病链
+    # 会把该轮 barrier 拖到 ~1000s)。默认 1 = 外层拥有重试、内层单发;
+    # 总预算 = rounds × 本值 = 80, 与主跑段等同。见 tone_llms.SENTIMENT_TIE_MAX_RETRIES。
+    sentiment_tie_retry_max_retries: int = 1
     max_concurrency: int = 250  # 2026-07-21 用户决策: 项目统一 250 并发 (原默认 40)
     temperature: float = 0.0
     random_seed: int = 42
