@@ -305,3 +305,67 @@ def test_unknown_tier_falls_back_in_memory():
     ref = compute_boilerplate_ratios(docs, memory_tier='in_memory')
     got = compute_boilerplate_ratios(docs, memory_tier='bogus_tier')
     assert _eq(ref, got), '未知 tier 应回退 in_memory'
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 进程并行 exact two-pass gate (perf 2026-07-25; 计划
+# NINE_ENTRYPOINT_PRODUCTION_SCALE_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-25 §2-F4)
+# ══════════════════════════════════════════════════════════════════════════
+
+def test_boilerplate_parallel_equivalence():
+    """并行臂 (loky 进程) 与串行臂、legacy 单遍臂三者逐字节等价。
+
+    `parallel_min_docs=1` 强制小语料也走并行路径 (生产默认阈值 40,000)。"""
+    docs = _corpus_with_boiler()
+    ref_legacy = compute_boilerplate_ratios(docs, memory_tier='single_pass')
+    ref_serial = compute_boilerplate_ratios(docs, memory_tier='in_memory', n_jobs=1)
+    got_par = compute_boilerplate_ratios(
+        docs, memory_tier='in_memory', par_chunk_size=2, n_jobs=2, parallel_min_docs=1)
+    assert _eq(ref_legacy, ref_serial), '串行分块臂与 legacy 单遍臂不等 (前置不变量已破)'
+    assert _eq(ref_legacy, got_par), '并行臂与 legacy 单遍臂逐字节不等 (字节等价被破)'
+
+
+def test_boilerplate_parallel_chunk_invariance():
+    """par_chunk_size / n_jobs 是纯性能参数: 任意组合输出恒同。"""
+    docs = _corpus_with_boiler()
+    ref = compute_boilerplate_ratios(docs, memory_tier='in_memory', n_jobs=1)
+    for pcs, nj in ((1, 2), (3, 2), (len(docs), 3), (2 * len(docs), 2)):
+        got = compute_boilerplate_ratios(
+            docs, memory_tier='in_memory', par_chunk_size=pcs, n_jobs=nj,
+            parallel_min_docs=1)
+        assert _eq(ref, got), f'par_chunk_size={pcs} n_jobs={nj} 输出与串行参照不等'
+
+
+def test_boilerplate_parallel_threshold_gates_backend(monkeypatch):
+    """工况自适应: n_docs < parallel_min_docs 走串行 (不 spawn 进程); ≥ 则走并行。"""
+    docs = _corpus_with_boiler()
+    seen = {'parallel': 0}
+    orig = B._compute_chunked_parallel
+
+    def _spy(*a, **k):
+        seen['parallel'] += 1
+        return orig(*a, **k)
+
+    monkeypatch.setattr(B, '_compute_chunked_parallel', _spy)
+    compute_boilerplate_ratios(docs, memory_tier='in_memory', parallel_min_docs=10 ** 9)
+    assert seen['parallel'] == 0, '小工况不应走进程并行 (spawn 开销 + pytest 多进程怪癖)'
+    compute_boilerplate_ratios(docs, memory_tier='in_memory', parallel_min_docs=1, n_jobs=2)
+    assert seen['parallel'] == 1, '达阈值工况应走进程并行'
+
+
+def test_boilerplate_parallel_njobs_one_stays_serial(monkeypatch):
+    """n_jobs=1 是显式串行逃生口 (即便 n_docs 达阈值)。"""
+    docs = _corpus_with_boiler()
+    seen = {'parallel': 0}
+    monkeypatch.setattr(B, '_compute_chunked_parallel',
+                        lambda *a, **k: seen.__setitem__('parallel', 1))
+    compute_boilerplate_ratios(docs, memory_tier='in_memory', parallel_min_docs=1, n_jobs=1)
+    assert seen['parallel'] == 0, 'n_jobs=1 应强制串行'
+
+
+def test_boilerplate_budget_defaults_are_p0_calibrated():
+    """P0 (2026-07-25) 校准后的预算默认值锁: 旧 40M 占位会在生产 D≈32,000 篇处误触发。"""
+    assert B._DEFAULT_BUDGET_HARD == 400_000_000, \
+        'df_dict_budget_hard 默认值须为 P0 按 128GB 反推的 400M (旧 40M 占位生产必崩)'
+    assert B._DEFAULT_BUDGET_WARN == 100_000_000
+    assert B._DEFAULT_BUDGET_WARN < B._DEFAULT_BUDGET_HARD, '软预算须严格小于硬上限'

@@ -151,3 +151,62 @@ def test_score_to_label_config_wiring_anchor():
     # 接线值与 config/默认恒等 (当前 yaml 0.1/-0.1; 若刻意改 yaml, 更新此锚)
     assert pytest.approx(0.1) == tone.POS_THRESHOLD
     assert pytest.approx(-0.1) == tone.NEG_THRESHOLD
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 进程并行后端 gate (perf 2026-07-25; 计划
+# NINE_ENTRYPOINT_PRODUCTION_SCALE_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-25 §2-F3/F5)
+# ══════════════════════════════════════════════════════════════════════════
+
+def test_parallel_kwargs_workload_adaptive():
+    """批数 < 阈值 → 线程臂 (免 spawn); ≥ 阈值 → 进程臂 (绕 GIL)。"""
+    small = tone._parallel_kwargs(tone._PROC_PARALLEL_MIN_BATCHES - 1)
+    big = tone._parallel_kwargs(tone._PROC_PARALLEL_MIN_BATCHES)
+    assert small['prefer'] == 'threads', '小工况应留线程后端'
+    assert big['prefer'] == 'processes', '大工况应切进程后端 (否则生产被 GIL 锁成单核)'
+
+
+def test_proc_workers_capped_never_minus_one():
+    """进程臂 worker 数必须有限且 ≤ CPU 核数 —— n_jobs=-1 已实弹 MemoryError。
+
+    每个 loky worker 各持一份六部词典 + 注入 44,983 词的 jieba Trie (~0.6-2 GB),
+    32 核机上以 -1 起 32 worker 会直接撑爆内存 (2026-07-25 实测)。"""
+    kw = tone._parallel_kwargs(tone._PROC_PARALLEL_MIN_BATCHES)
+    assert kw['n_jobs'] > 0, '进程臂严禁 n_jobs=-1 (worker 各持一份词典 → MemoryError)'
+    assert kw['n_jobs'] <= (os.cpu_count() or 1)
+    assert tone._proc_workers() >= 1
+
+
+def test_proc_workers_config_override(monkeypatch):
+    """config sentiment_analysis.tone_words.proc_workers 可覆盖; 畸值回落默认。"""
+    monkeypatch.setitem(tone.SENTIMENT_PARAMS, 'proc_workers', 3)
+    assert tone._proc_workers() == 3
+    monkeypatch.setitem(tone.SENTIMENT_PARAMS, 'proc_workers', 'bogus')
+    assert tone._proc_workers() == min(tone._PROC_PARALLEL_MAX_WORKERS, os.cpu_count() or 1)
+    monkeypatch.setitem(tone.SENTIMENT_PARAMS, 'proc_workers', 0)
+    assert tone._proc_workers() == 1, 'proc_workers=0 应 clamp 到 1 (不可为 0/负)'
+
+
+def test_worker_helpers_are_module_level_picklable():
+    """loky 进程后端要求 worker 为模块级 (pickle-by-ref)。"""
+    import pickle
+    for fn in (tone._classify_batch_worker, tone._idf_df_chunk_worker):
+        assert fn.__module__ == tone.__name__
+        assert pickle.loads(pickle.dumps(fn)) is fn
+
+
+def test_silence_worker_logging_removes_handlers():
+    """worker 必须彻底静音: setup_logging 的 delay+首开截断语义下, 子进程首条日志
+    会把父进程 <stage>.log 从头截断 (2026-07-24 'worker 横幅毁日志头' 实弹先例)。"""
+    import logging as _logging
+    lg = tone.logger
+    saved = list(lg.handlers)
+    saved_disable = _logging.root.manager.disable
+    try:
+        lg.addHandler(_logging.NullHandler())
+        tone._silence_worker_logging()
+        assert lg.handlers == [], 'worker 静音后 logger 不得残留任何 handler'
+        assert _logging.root.manager.disable >= _logging.CRITICAL
+    finally:
+        _logging.disable(saved_disable)
+        lg.handlers = saved

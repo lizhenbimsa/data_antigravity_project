@@ -93,6 +93,15 @@ sentiment_analysis:
     adversative_boost: 1.5                          # 转折后权重提升倍数
                                                     # 白话: "虽然…但是…"里"但是"后面的话才是作者真实态度, 情感权重乘 1.5 加重。
 
+    # ── 进程并行 worker 上限 (perf 2026-07-25; 与线程后端逐字节等价, 仅墙钟) ──
+    # jieba.cut / 状态机打分是纯 Python 持 GIL, 生产语料下 prefer='threads' 退化为单核
+    # (T=2 实测 0.0657 s/篇 → 外推 169,807 篇 ≈3.1 小时)。批数 ≥8 时切 loky 进程后端。
+    # ⚠ 严禁 n_jobs=-1: 每 worker 各持一份六部词典 + 注入 44,983 词的 jieba Trie
+    #   (~0.6-2 GB/worker), 2026-07-25 实弹在 32 核机上以 -1 起 32 worker 直接 MemoryError。
+    # 白话: 用多个进程同时打分绕开 Python 的单核限制; 但每个进程都要自带一整套词典,
+    #   开太多会把内存吃光, 所以固定一个小上限。
+    proc_workers: 12
+
     # 否定词集合（遇到否定词时，将其后 negation_window 个分词单元内的情感词极性翻转）
     negation_words:
       # A. 单字否定
@@ -509,7 +518,17 @@ herd_detection:
 # 白话: 数套话时"分批数=一次性数结果一模一样", 文章多也不爆内存; 参数缺省全走代码内置默认。
 boilerplate:
   memory_tier: in_memory        # in_memory=tier1 分块(已实现,默认) / single_pass=旧单遍字节等价参照臂 / disk|auto=tier2 DEFERRED→raise
-  chunk_size: 20000             # 每块文档数; 纯性能参数, 不改输出 (字节等价)
-  df_dict_budget_warn: 8000000  # global_df entry 软预算, 超则 loud WARNING (非兜底)
-  df_dict_budget_hard: 40000000 # global_df entry 硬上限, 超则 SystemExit (Pass1 循环内, 拒绝跑优于 OOM-killer 静默 SIGKILL)
-                                # ⚠ 40M=保守占位, 生产机跑执行计划 §3-P0 实测 per-entry 字节后按 128GB 反推校准
+  chunk_size: 20000             # 串行路径每块文档数; 纯性能参数, 不改输出 (字节等价)
+  # ── 预算 (2026-07-25 生产 P0 实测校准落地; 详见 boilerplate.py 顶部「§P0 实测」) ──
+  # P0 实测 (169,807 篇 stage21 gated 语料, content_full 轨, 本机 128GB):
+  #   增长曲线 D=32,000→40.28M entry, Heaps β=0.8266 → 生产 D=169,807 外推 M≈1.596 亿 entry;
+  #   per-entry = 130.1 B (进程 RSS delta 实测) → 单轨 global_df 峰值 ≈ 19.3 GB, tier1 可产。
+  #   ⚠ 旧 40M 占位会在 full 轨 D≈32,000 篇 (约 19%) 处 SystemExit 并连坐 nuke 整批 stage-22。
+  df_dict_budget_warn: 100000000  # 软预算 ≈13GB @130B/entry; 超则 loud WARNING (非兜底)
+  df_dict_budget_hard: 400000000  # 硬上限 ≈52GB @130B/entry; 超则 SystemExit (Pass1 循环内, 拒绝跑优于 OOM-killer 静默 SIGKILL)
+                                  # 按 128GB 反推: 52GB(global_df) + ~17GB(worker) + ~10GB(df/其它) ≈ 79GB, 留 ~49GB 余量
+  # ── 进程并行 (perf 2026-07-25; 与串行逐字节等价, 仅墙钟; 镜像 stage 15 工况自适应后端) ──
+  # char_wb (4,6)-gram 分词是纯 Python GIL 热点, 串行实测 ≈52 篇/s → 三轨双遍 ≈3.7h。
+  parallel_min_docs: 40000      # ≥该规模才切进程后端 (之下串行: dev/pytest 零行为变化 + 免 spawn 开销)
+  par_chunk_size: 4000          # 并行路径每块文档数 (控 worker 峰值内存 ≈1.4GB/worker)
+  n_jobs: 12                    # 并行 worker 数 (=1 强制串行)

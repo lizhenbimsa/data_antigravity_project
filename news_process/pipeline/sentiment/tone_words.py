@@ -1092,15 +1092,25 @@ def build_idf_weights(
             local_df.update(tokens_in_doc)
         return local_df
 
-    # 3. 执行多线程分块并行的 tone tokenizer 切词统计 (去重后唯一文档语料)
+    # 3. 执行分块并行的 tone tokenizer 切词统计 (去重后唯一文档语料)
     batch_size = 2000
     num_batches = max(1, (N - 1) // batch_size + 1)
     chunks = [texts[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
 
-    logger.info(f"IDF: 正在使用 jieba 并行计算文档频率以保持语义精确同构 (唯一文档 {N} 篇, {num_batches} 个批次)...")
-    results = Parallel(n_jobs=-1, prefer='threads')(
-        delayed(_compute_chunk_df)(chunk) for chunk in chunks
-    )
+    # 工况自适应后端 (perf 2026-07-25, 镜像 stage 15 §1b): jieba.cut 纯 Python 持 GIL,
+    # 生产语料下 prefer='threads' 退化为单核。DF = 跨块 Counter 整数求和, order-independent
+    # ⟹ 后端/块序无关, 逐字节等价 (与 stage 15 DF 同型论证)。
+    _par_kw = _parallel_kwargs(num_batches)
+    logger.info(f"IDF: 正在使用 jieba 并行计算文档频率以保持语义精确同构 (唯一文档 {N} 篇, "
+                f"{num_batches} 个批次, 后端={_par_kw['prefer']})...")
+    if _par_kw['prefer'] == 'processes':
+        results = Parallel(**_par_kw)(
+            delayed(_idf_df_chunk_worker)(chunk, all_words) for chunk in chunks
+        )
+    else:
+        results = Parallel(**_par_kw)(
+            delayed(_compute_chunk_df)(chunk) for chunk in chunks
+        )
     
     doc_freq = Counter()
     for local_df in results:
@@ -1342,6 +1352,95 @@ def _inject_custom_dicts_to_jieba():
 
 # 注入操作延迟到 main() 中执行
 # _inject_custom_dicts_to_jieba()
+
+
+# ============================================================================
+# 进程并行 worker + 工况自适应后端 (perf fix 2026-07-25)
+# ============================================================================
+# 病根 (与 stage 15 §1b 同型): jieba.cut / 状态机打分是纯 Python、持 GIL, 原两处
+#   `Parallel(prefer='threads')` 在 32 核上退化为单核 —— T=2 dev 实测 0.0657 s/篇,
+#   外推生产 gated 语料 169,807 篇 ⟹ ④三轨词典打分 ≈3.1 小时 (占 stage 22 墙钟 66%),
+#   ③IDF 文档频率另 ≈6.5 分钟。
+# 修法: worker 提升为模块级 (loky 需 pickle-by-ref) + 工况自适应后端:
+#   · 大工况 (批数 >= _PROC_PARALLEL_MIN_BATCHES, 生产语料) → loky 进程后端真并行绕 GIL;
+#   · 小工况 (测试 / 小样本) → 保持 threads, 免 Windows 进程 spawn 开销 + pytest 多进程怪癖。
+# 字节等价 (byte-equivalent-by-construction, 经真数据 A/B 实证):
+#   · worker 侧自建与主进程**同集同序**的词典与 jieba 注入态 (`load_all_dictionaries()` 读同
+#     一 tone_dicts.json + `_inject_custom_dicts_to_jieba()` 同序 add_word) ⟹ 分词逐字节一致;
+#   · IDF 权重是**语料级**产物, 不可在 worker 重算 (会依赖分块) → 由主进程算好后**整体传入**,
+#     worker 只消费, 零重算 ⟹ 权重逐位相同;
+#   · 打分逐篇独立 (`df.apply(_dual_analyze, axis=1)` 无跨行状态), loky 按提交序保序返回,
+#     父进程 `pd.concat` 顺序不变 ⟹ 行序与列值逐位一致;
+#   · IDF 的 DF = 跨块 Counter **整数**求和, order-independent ⟹ 与块数/后端无关。
+# ⚠ worker 绝不写日志: `setup_logging` 的 delay+首开截断语义使**任一子进程的首条日志**会把
+#   父进程 `<stage>.log` 从头截断 (2026-07-24 "worker 横幅毁日志头" 实弹先例) → worker 入口
+#   一律 `logging.disable(CRITICAL)` + 摘除 handler。
+_PROC_PARALLEL_MIN_BATCHES = 8    # >= 8 批才切进程后端 (batch_size=5000 ⟹ ~4 万篇起)
+# ⚠ 进程臂 worker 上限 (**不可用 n_jobs=-1**): 每个 loky worker 都要各自持有一份
+#   六部词典 (31,966 词条) + clarity/LM 子词典 + **注入 44,983 个自定义词的 jieba Trie**,
+#   实测单 worker 常驻 ~0.6-2 GB。2026-07-25 实弹: 本机 32 核下 n_jobs=-1 起 32 个 worker
+#   → 直接 **MemoryError** 崩掉整批。故进程臂固定小上限, 并留 config 覆盖口。
+#   (线程臂无此问题 — 共享同一份词典/Trie, 故线程臂仍沿用 config n_jobs。)
+_PROC_PARALLEL_MAX_WORKERS = 12
+
+
+def _proc_workers() -> int:
+    """进程臂 worker 数 = min(配置值, CPU 核数); config: sentiment_analysis.tone_words.proc_workers。"""
+    try:
+        _v = SENTIMENT_PARAMS.get('proc_workers', _PROC_PARALLEL_MAX_WORKERS)
+        _v = int(_v) if not isinstance(_v, bool) else _PROC_PARALLEL_MAX_WORKERS
+    except (TypeError, ValueError):
+        _v = _PROC_PARALLEL_MAX_WORKERS
+    return max(1, min(_v, os.cpu_count() or _PROC_PARALLEL_MAX_WORKERS))
+
+
+def _parallel_kwargs(num_batches: int) -> dict:
+    """按工况规模选 joblib 后端: 大 → 进程 (绕 GIL 真并行); 小 → 线程 (免 spawn 开销)。
+
+    两后端对本阶段输出严格字节等价 (见上方论证), 仅影响墙钟, 不影响任何产物列。"""
+    if num_batches >= _PROC_PARALLEL_MIN_BATCHES:
+        return {'n_jobs': _proc_workers(), 'prefer': 'processes'}
+    return {'n_jobs': -1, 'prefer': 'threads'}
+
+
+def _silence_worker_logging() -> None:
+    """子进程内彻底静音 logging (防首条日志截断父进程 <stage>.log)。幂等。"""
+    for _h in list(logger.handlers):
+        logger.removeHandler(_h)
+    logging.disable(logging.CRITICAL)
+
+
+def _ensure_worker_dicts() -> None:
+    """worker 侧幂等自建词典 + jieba 注入态 (与主进程同集同序 ⟹ 分词逐字节一致)。"""
+    global ALL_DICTIONARIES
+    if ALL_DICTIONARIES is None:
+        ALL_DICTIONARIES = load_all_dictionaries()
+    _inject_custom_dicts_to_jieba()          # 内部 _JIEBA_INJECTED 幂等守卫
+
+
+def _idf_df_chunk_worker(chunk_texts: list, all_words: set) -> Counter:
+    """IDF 文档频率分块 worker (模块级, 供 loky pickle-by-ref)。
+
+    返回本块 {词: 命中该词的唯一文档数} 局部 Counter, 由调用方跨块求和 (order-independent)。"""
+    _silence_worker_logging()
+    _ensure_worker_dicts()
+    _tk = _get_tone_tokenizer()
+    local_df = Counter()
+    for text in chunk_texts:
+        local_df.update(set(_tk.cut(text)) & all_words)
+    return local_df
+
+
+def _classify_batch_worker(df_batch: pd.DataFrame, idf_dicts) -> tuple:
+    """三轨词典打分分块 worker (模块级, 供 loky pickle-by-ref)。
+
+    `idf_dicts` = 主进程算好的语料级 IDF 加权词典 (worker 绝不重算, 见上方论证)。
+    返回与 `classify_batch` 完全相同的 (processed_df, stats) 二元组。"""
+    global IDF_DICTIONARIES
+    _silence_worker_logging()
+    _ensure_worker_dicts()
+    IDF_DICTIONARIES = idf_dicts
+    return classify_batch(df_batch)
 
 
 def _compute_lm_non_sentiment_for_text_tone_tok(
@@ -2266,13 +2365,24 @@ def main():
     all_stats = []
     processed_dfs = []
     n_jobs = CONFIG['parallel'].get('n_jobs', -1)
-    logger.info(f"使用 joblib 并行处理: n_jobs={n_jobs}, 共 {num_batches} 个批次 "
+    # 工况自适应后端 (perf 2026-07-25): 生产规模走 loky 进程后端绕 GIL, 小工况留线程。
+    # 两后端逐字节等价 (见 _parallel_kwargs 上方论证 + gate test_tone_words_parallel_equivalence)。
+    _par_kw = dict(_parallel_kwargs(num_batches))
+    if _par_kw['prefer'] == 'threads':
+        _par_kw['n_jobs'] = n_jobs           # 线程臂沿用 config n_jobs (行为与旧版一致)
+    logger.info(f"使用 joblib 并行处理: n_jobs={_par_kw['n_jobs']}, 后端={_par_kw['prefer']}, "
+                f"共 {num_batches} 个批次 "
                 f"(batch_size={batch_size}; 每篇 6 词典 × 3 轨 × (1 主分+7 消融+IDF) 打分)")
 
     _t = time.time()
-    results = Parallel(n_jobs=n_jobs, prefer='threads')(
-        delayed(classify_batch)(batch) for batch in df_batches
-    )
+    if _par_kw['prefer'] == 'processes':
+        results = Parallel(**_par_kw)(
+            delayed(_classify_batch_worker)(batch, IDF_DICTIONARIES) for batch in df_batches
+        )
+    else:
+        results = Parallel(**_par_kw)(
+            delayed(classify_batch)(batch) for batch in df_batches
+        )
     for res_df, res_stats in results:
         processed_dfs.append(res_df)
         all_stats.append(res_stats)

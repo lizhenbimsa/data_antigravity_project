@@ -300,7 +300,14 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     # 逐位相同 (同一 double→float32 舍入路径; gate = test_embedding_engine_streaming)。
     out: np.ndarray | None = None   # dim 由首个命中 (全 miss 时由首个完成批) 确定后分配
     dim: int | None = None
-    _rows_written = 0               # 写行完备计数 — 旧全局数量断言的流式等价物之一
+    # 写行完备**掩码** (F2 修复 2026-07-25, 取代旧的单调自增计数器 `_rows_written`):
+    # 旧计数器在「批已成功写 out → 随后 cache.put_batch 抛异常 (如 SQLite
+    # `disk I/O error` / `database is locked`) → 被泛 except 捕获 → 整批重试 → 再次
+    # `+= len(batch)`」路径下**重复计数**, 使终局 `assert _rows_written == len(texts)`
+    # 误报为写行完备性破坏, 把一次可恢复的瞬时 DB 故障放大成 **AssertionError 崩掉整轨**
+    # (生产 stage 25 首播实弹: `written=2108 != N=2000`, 2026-07-25 22:35)。
+    # 掩码按**全局行号**置位, 幂等 ⟹ 同批重试任意次结果不变; 语义 (防漏写/双写/错位) 不变。
+    _written = np.zeros(len(texts), dtype=bool)
     missing_indices: list[int] = []
     # 命中分桶诊断 (按字符长度) — 同遍累加计数器, 不再依赖全量结果列表 (输出格式不变)
     _buckets = {'短 (<2000 字)': [0, 0], '中 (2000-20000 字)': [0, 0],
@@ -337,7 +344,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                 f"(model={embedding_model})"
             )
         out[_i] = np.asarray(_row, dtype=np.float32)
-        _rows_written += 1
+        _written[_i] = True
 
     missing_texts = [texts[_i] for _i in missing_indices]
 
@@ -430,7 +437,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         _sem = asyncio.Semaphore(max(1, min(EMB_API_CONCURRENCY, n_batches)))
 
         async def _process_batch(batch_idx: int, batch: list[str], session) -> None:
-            nonlocal _done, out, dim, _rows_written
+            nonlocal _done, out, dim
             delay = RETRY_DELAY
             last_err = ""
             async with _sem:
@@ -474,9 +481,9 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                         f"批 {batch_idx + 1} 嵌入维度不齐: "
                                         f"shape={_arr.shape} != (*, {dim})"
                                     )
-                                out[np.asarray(batch_rows[batch_idx],
-                                               dtype=np.intp)] = _arr
-                                _rows_written += len(batch)
+                                _rows_idx = np.asarray(batch_rows[batch_idx], dtype=np.intp)
+                                out[_rows_idx] = _arr
+                                _written[_rows_idx] = True      # 幂等置位 (重试安全, 见 F2)
                                 # fix(M1, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-M1):
                                 # 归档前移至 put_batch 之前, 归档失败跳过缓存写入 —
                                 # 消除"先 put 后 archive 失败 → 批已入缓存永久命中、
@@ -522,12 +529,26 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                             f"重调+重试归档): {_arch_exc!r}"
                                         )
                                 if cache and _archive_ok:
-                                    cache.put_batch(
-                                        embedding_model,
-                                        batch,
-                                        [json.dumps(emb) for emb in batch_embs],
-                                        prompt_version=text_pipeline_version,
-                                    )
+                                    # fix(F2, 2026-07-25): put_batch 失败**不再冒泡**到外层
+                                    # 泛 except → 不再触发整批重试。旧行为下一次 SQLite 瞬时
+                                    # 故障 (`disk I/O error` / 并发 `database is locked`) 会
+                                    # ① 白白**重调一次付费 API**, ② 令写行计数重复 (见 F2 掩码
+                                    # 注释) 进而 AssertionError 崩掉整轨。本批向量此刻已正确写入
+                                    # `out`, 缺的只是缓存条目 → 语义与上方归档失败一致:
+                                    # 本轮结果照常可用, 下次 run 该批 cache miss 重调即可自愈。
+                                    try:
+                                        cache.put_batch(
+                                            embedding_model,
+                                            batch,
+                                            [json.dumps(emb) for emb in batch_embs],
+                                            prompt_version=text_pipeline_version,
+                                        )
+                                    except Exception as _put_exc:  # noqa: BLE001
+                                        logger.warning(
+                                            f"    缓存写入 (batch {batch_idx + 1}) 失败 "
+                                            f"(不阻塞、不重试、不重调 API; 本批向量本轮有效, "
+                                            f"下次 run 该批 cache miss 重调自愈): {_put_exc!r}"
+                                        )
                                 _done += 1
                                 if _done % 5 == 0 or _done == n_batches:
                                     logger.info(
@@ -590,8 +611,10 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
             f"嵌入输出矩阵未分配 (内部不变量破): n_texts={len(texts)}, "
             f"n_missing={len(missing_texts)}"
         )
-    assert _rows_written == len(texts), (
-        f"写行完备性异常: written={_rows_written} != N={len(texts)}"
+    _n_written = int(_written.sum())
+    assert _n_written == len(texts), (
+        f"写行完备性异常: written={_n_written} != N={len(texts)} "
+        f"(未写行号前 10: {np.flatnonzero(~_written)[:10].tolist()})"
     )
     return out
 

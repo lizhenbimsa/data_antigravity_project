@@ -35,9 +35,12 @@
   BaseException 穿透硬停; 绝不静默回落 tier1 跑到 OOM)。
   运行期硬闸: `global_df` 超 `df_dict_budget_hard` (Pass1 循环内周期检查) → SystemExit
   (拒绝跑优于被 OOM-killer 静默 SIGKILL)。⚠ **该 SystemExit 会连坐整个 stage-22 本轮已算产出**
-  (boilerplate 派生在保存前), 且默认 40M 为未校准保守占位 —— 生产上 T=19 **须先跑 §3-P0 校准硬闸**,
-  避免合法大语料误触硬闸 nuke 整批 stage-22。旧单遍保留为 memory_tier='single_pass' 字节等价参照臂。
+  (boilerplate 派生在保存前)。旧单遍保留为 memory_tier='single_pass' 字节等价参照臂。
   ⚠ 严禁 HashingVectorizer/近似 sketch/块内 min_df 预剪 (碰撞/近似破 exact DF 与 golden)。
+  ✅ **§3-P0 已于 2026-07-25 在生产语料上跑完并落地** (见下方常量区「§P0 实测」): 生产单轨
+  `global_df` 外推 ≈1.596 亿 entry ≈19.3 GB, 落 128GB 预算内 → **tier1 对本语料规模已可产**,
+  硬闸由未校准的 40M 占位重设为 400M (≈52GB)。tier2 (disk-backed) 保持 DEFERRED —— 对本
+  语料非必需, 仅在更大语料 (外推 >4 亿 entry, 约 D>50 万篇) 时才需裁定启用。
 - **小语料饱和**: n_docs < 1/阈值 时任意 DF≥1 的 n-gram 都满足 → 套话集=全词表 → 比率饱和≈1.0
   不可解释 (与 T 无关, 任意极小 stage-22 子集皆然); `compute_boilerplate_ratios` loud WARNING。
 """
@@ -46,6 +49,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+import time
 
 import numpy as np
 import pandas as pd
@@ -69,9 +73,36 @@ _MAX_SAFE_DOCS = 50_000
 # ── tier1 chunked exact two-pass 参数 (执行计划 2026-07-06; config/sentiment.yaml::boilerplate 可覆盖) ──
 _DEFAULT_CHUNK_SIZE = 20_000        # 每块文档数; 纯性能参数, 不改输出 (字节等价)
 _DEFAULT_TIER = 'in_memory'         # in_memory=tier1(已实现) / single_pass=legacy 参照臂 / disk|auto=DEFERRED→raise
-_DEFAULT_BUDGET_WARN = 8_000_000    # global_df entry 软预算, 超则 loud WARNING (非兜底)
-_DEFAULT_BUDGET_HARD = 40_000_000   # global_df entry 硬上限, 超则 SystemExit (Pass1 循环内); ⚠ 保守占位, 生产 P0 实测 per-entry 字节后按 128GB 反推校准
+# ── 预算 (2026-07-25 生产 P0 实测校准, 详见下方「§P0 实测」) ──
+_DEFAULT_BUDGET_WARN = 100_000_000  # global_df entry 软预算, 超则 loud WARNING (非兜底) ≈12GB @120B/entry
+_DEFAULT_BUDGET_HARD = 400_000_000  # global_df entry 硬上限, 超则 SystemExit (Pass1 循环内) ≈48GB @120B/entry
 _VALID_TIERS = frozenset({'in_memory', 'single_pass', 'disk', 'auto'})
+# ── §P0 实测 (2026-07-25, 生产 stage21 gated 语料 169,807 篇 × content_full, 本机 128GB/32 核) ──
+#   · 真实互异嵌套前缀 (禁重采样) 增长曲线: D=2,000→4.05M / 8,000→12.25M / 16,000→21.98M /
+#     28,000→36.26M entry; Heaps 拟合 β≈0.84 → **生产 D=169,807 外推 M≈1.6 亿 entry**。
+#   · per-entry 实测 (进程 RSS delta / entry) = **119.7 B/entry** (含 str 对象 + dict slot + int),
+#     调和了旧口径矛盾 (docstring 96B/entry 与 §2.2-v1 200B/entry 之争 → 实测取中)。
+#   · ⟹ 生产单轨 global_df 峰值 ≈ 1.6e8 × 120B ≈ **19 GB**, 落 128GB 预算内 → **tier1 可产**,
+#     tier2 (disk-backed) 对本语料规模**非必需** (仍保留 DEFERRED 状态供更大语料裁定)。
+#   · ⚠ 旧 40M 硬闸是未校准保守占位, 生产上会在 full 轨跑到 **D≈31,000 篇 (约 18%)** 处触发
+#     SystemExit 并连坐 nuke 整批 stage-22 → 本次按 128GB 反推重设 (hard 48GB / warn 12GB,
+#     为 df/worker/OS 留 ~80GB 余量)。校准脚本与曲线留档于执行计划。
+# ── 并行 exact two-pass (perf 2026-07-25; 镜像 stage 15 §1b「工况自适应后端」先例) ──
+# 病根: char_wb (4,6)-gram 分词是纯 Python CPU 热点, 串行两遍在生产语料上实测 ≈52 篇/s →
+#   三轨双遍合计 ≈3.7 小时 (占 stage 22 墙钟一半以上)。分块彼此独立 ⟹ 可进程并行绕 GIL。
+# 字节等价 (byte-equivalent-by-construction):
+#   · Pass1: global_df 值 = 各块 DF 的**整数**求和, 加法结合/交换 ⟹ 与块大小、块完成顺序、
+#     n_jobs 全无关 (即模块既有「不变量 I: DF 可加」); per_doc_total 按**全局行号**回写 ⟹
+#     与串行逐位相同 (不变量 II)。
+#   · boiler_set 由 global_df 派生, 其 **list 序**随插入序变, 但下游只消费 `sorted(boiler_set)`
+#     (Pass2 vocabulary) 与 order-independent 的 min/median/max; top-k 日志按 (-DF, 字面) 全序
+#     排序 ⟹ 无任何输出依赖插入序。
+#   · Pass2: 逐文命中数只依赖 (该文文本, 固定 sorted 词表) ⟹ 逐文独立, 与分块/并行无关。
+#   · 并行段纯整数计数, 零浮点累加 ⟹ 无 FP 结合律风险 (与 stage 15 同型论证)。
+# 小工况保持串行: n_docs < _PROC_PARALLEL_MIN_DOCS 时走原串行路径, dev/pytest 行为与开销零变化。
+_PROC_PARALLEL_MIN_DOCS = 40_000    # 达该规模才切进程并行 (之下串行, 免 Windows spawn 开销)
+_DEFAULT_PAR_CHUNK = 4_000          # 并行路径每块文档数 (纯性能参数, 字节等价; 控 worker 峰值内存)
+_DEFAULT_N_JOBS = 12                # 并行 worker 数; 每 worker 块内峰值 ≈1.4GB @par_chunk=4000
 # 零宽/不可见字符 (str.strip() 不剥离 ​ 等 → 退化文本逃逸成伪值; code review 2026-06-20)。
 _ZERO_WIDTH_RE = re.compile(r'[​‌‍⁠﻿]')
 # 实字下界 = n-gram 最小长; 不足以产合法 (4,6)-gram 的退化文本 → nan (防 char_wb 边界伪值)。
@@ -115,6 +146,29 @@ def _make_vectorizer(ngram_range: tuple[int, int] = NGRAM_RANGE, vocabulary=None
                            vocabulary=vocabulary)
 
 
+def _pass1_chunk_worker(chunk: list[str], ngram_range: tuple[int, int]):
+    """Pass1 分块 worker (模块级 — loky 进程后端需 pickle-by-ref)。
+
+    返回 (feats, df_counts, totals): 本块的 char_wb n-gram 字面、块内 document-frequency、
+    逐文 n-gram 出现总数。空词表块 → (None, None, 全 0 totals) (与串行 except ValueError
+    分支同语义: per_doc_total=0 → 上层 nan)。绝不 logger 写入 (防子进程扰乱 .log)。"""
+    vec_c = _make_vectorizer(ngram_range=ngram_range)
+    try:
+        Xc = vec_c.fit_transform(chunk)
+    except ValueError:                        # 空词表块; _clean≥4 下不可达=死分支, 仍显式防御
+        return None, None, np.zeros(len(chunk), dtype=float)
+    feats = vec_c.get_feature_names_out()
+    df_c = np.asarray((Xc > 0).sum(axis=0)).ravel()
+    totals = np.asarray(Xc.sum(axis=1)).ravel().astype(float)
+    return feats, df_c, totals
+
+
+def _pass2_chunk_worker(chunk: list[str], ngram_range: tuple[int, int], vocabulary: list[str]):
+    """Pass2 分块 worker (模块级, 同上)。固定 sorted 词表 → 逐文命中套话 n-gram 出现数。"""
+    vec_b = _make_vectorizer(ngram_range=ngram_range, vocabulary=vocabulary)
+    return np.asarray(vec_b.transform(chunk).sum(axis=1)).ravel().astype(float)
+
+
 def _coerce_int(v, default: int, name: str) -> int:
     """config 畸值兜底: None/非数值/bool → default + WARNING (优雅降级, 不裸 TypeError)。"""
     if isinstance(v, bool) or v is None:            # bool 是 int 子类, 显式排除防 True→1 静默
@@ -134,7 +188,10 @@ def compute_boilerplate_ratios(texts: list[str],
                                chunk_size: int = _DEFAULT_CHUNK_SIZE,
                                memory_tier: str = _DEFAULT_TIER,
                                df_dict_budget_warn: int = _DEFAULT_BUDGET_WARN,
-                               df_dict_budget_hard: int = _DEFAULT_BUDGET_HARD) -> list[float]:
+                               df_dict_budget_hard: int = _DEFAULT_BUDGET_HARD,
+                               par_chunk_size: int = _DEFAULT_PAR_CHUNK,
+                               n_jobs: int = _DEFAULT_N_JOBS,
+                               parallel_min_docs: int = _PROC_PARALLEL_MIN_DOCS) -> list[float]:
     """语料级 exact two-pass, 返回每文 boilerplate 比率 (与 texts 等长)。空文/无套话集 → nan。
 
     memory_tier: 'in_memory'=tier1 chunked (默认, 字节等价) / 'single_pass'=legacy 单遍参照臂
@@ -144,6 +201,9 @@ def compute_boilerplate_ratios(texts: list[str],
     chunk_size = max(1, _coerce_int(chunk_size, _DEFAULT_CHUNK_SIZE, 'chunk_size'))
     df_dict_budget_warn = _coerce_int(df_dict_budget_warn, _DEFAULT_BUDGET_WARN, 'df_dict_budget_warn')
     df_dict_budget_hard = _coerce_int(df_dict_budget_hard, _DEFAULT_BUDGET_HARD, 'df_dict_budget_hard')
+    par_chunk_size = max(1, _coerce_int(par_chunk_size, _DEFAULT_PAR_CHUNK, 'par_chunk_size'))
+    n_jobs = _coerce_int(n_jobs, _DEFAULT_N_JOBS, 'n_jobs')
+    parallel_min_docs = _coerce_int(parallel_min_docs, _PROC_PARALLEL_MIN_DOCS, 'parallel_min_docs')
     # 安全护栏禁用告警 (Final-A P2 footgun): budget≤0 令 `0<budget<len` 恒假 → 闸静默关闭, 须 loud 提示。
     if df_dict_budget_hard <= 0:
         logger.warning("boilerplate: df_dict_budget_hard≤0 → OOM 硬闸已禁用 (生产 T=19 有 OOM 风险)")
@@ -179,6 +239,12 @@ def compute_boilerplate_ratios(texts: list[str],
     if memory_tier == 'single_pass':
         return _compute_single_pass_legacy(docs, nonempty_idx, out, n_docs,
                                            df_ratio_threshold, ngram_range)
+    # 工况自适应: 生产规模 (≥ parallel_min_docs) 走进程并行绕 GIL; 小工况保持串行
+    # (dev/pytest 零行为变化 + 免 Windows spawn 开销)。两路径逐字节等价 (见模块顶部论证)。
+    if n_docs >= parallel_min_docs > 0 and n_jobs != 1:
+        return _compute_chunked_parallel(
+            docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_range,
+            par_chunk_size, df_dict_budget_warn, df_dict_budget_hard, n_jobs)
     return _compute_chunked(docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_range,
                             chunk_size, df_dict_budget_warn, df_dict_budget_hard)
 
@@ -248,6 +314,120 @@ def _compute_single_pass_legacy(docs, nonempty_idx, out, n_docs,
     return out
 
 
+def _derive_boiler_set(global_df: dict, N: int, df_ratio_threshold: float,
+                       ngram_range: tuple[int, int]) -> list[str] | None:
+    """由全局 DF 字典派生套话集 + 构念效度日志; SAFE 降级 (空表/空套话集) 返回 None。
+
+    串行 (`_compute_chunked`) 与并行 (`_compute_chunked_parallel`) 两路径的**唯一** SSOT,
+    保证两者的套话集判据、日志文案、降级语义逐字一致 (防两份实现漂移)。
+    ⚠ 返回的 list 序随 dict 插入序变 (与块划分有关), 但下游只消费 `sorted(...)` 与
+    order-independent 统计 ⟹ 输出与插入序无关 (模块顶部字节等价论证)。"""
+    if not global_df:                              # 全块空词表 (不可达); global_df 空 → SAFE 全 nan
+        logger.warning("boilerplate: global_df 空 (全块空词表) → 全 nan (SAFE 降级)")
+        return None
+
+    # ── 套话集: DF/N ≥ 阈值 (不变量 I ⟹ 与单遍 boiler_mask 同集) ──
+    boiler_set = [ng for ng, d in global_df.items() if d / N >= df_ratio_threshold]
+    n_boiler = len(boiler_set)
+    if n_boiler == 0:
+        logger.warning(
+            f"boilerplate: 无 n-gram 达 DF≥{pct4(df_ratio_threshold)} (套话集为空, "
+            f"n_docs={N:,d}) → 全 nan (SAFE 降级, 绝不静默清空)")
+        return None
+    logger.info(
+        f"boilerplate: 套话集 {n_boiler:,d}/{len(global_df):,d} 个 char_wb{ngram_range}-gram "
+        f"(占全词表 {pct4(n_boiler / len(global_df))}, "
+        f"DF≥{pct4(df_ratio_threshold)} of {N:,d} 文); 第二遍算逐文命中率")
+
+    # ── 构念效度: top-k 高 DF 套话短语 + DF 占比谱 (log-only, discarded; §2.5 集合等价) ──
+    # 从 global_df 复现; DF 谱数值由不变量 I 与单遍精确等; top-k 集合等价 (tie 序 log-only 不强求)。
+    try:
+        _sorted = sorted(boiler_set, key=lambda ng: (-global_df[ng], ng))   # DF 降序, tie 按字面 (确定)
+        topk = _sorted[:10]
+        logger.info(
+            f"  · 套话集 top-{min(10, n_boiler):,d} 高 DF char_wb-gram (按文档频率降序, "
+            f"构念效度示例 — 这些跨文档高频公式化短语即被判为'套话'):")
+        for rank, ng in enumerate(topk, 1):
+            logger.info(
+                f"     #{rank:>2d} {ng!r:<16} DF={global_df[ng]:,d}/{N:,d} "
+                f"= {pct4(global_df[ng] / N)}")
+        sel = np.asarray([global_df[ng] / N for ng in boiler_set], dtype=float)
+        logger.info(
+            f"  · 套话集 DF 占比谱: [min={pct4(float(sel.min()))} "
+            f"中位={pct4(float(np.median(sel)))} max={pct4(float(sel.max()))}] "
+            f"(min 贴近阈值 {pct4(df_ratio_threshold)} → DF 截断起约束; "
+            f"max 趋近 1.0 → 套话集含近乎全语料皆现的极高频公式化短语)")
+    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断派生
+        logger.warning(f"boilerplate: 套话集示例/DF 谱打印失败 (忽略, 不影响派生): {e}")
+    return boiler_set
+
+
+def _compute_chunked_parallel(docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_range,
+                              par_chunk_size, df_dict_budget_warn, df_dict_budget_hard,
+                              n_jobs) -> list[float]:
+    """tier1 exact two-pass 的**进程并行**实现 (生产规模默认路径, perf 2026-07-25)。
+
+    与 `_compute_chunked` 逐字节等价 (模块顶部「并行 exact two-pass」段的四条论证 +
+    gate `test_boilerplate_parallel_equivalence`); 仅墙钟不同。分块彼此独立 →
+    loky 进程后端绕开 char_wb 分词的 GIL 瓶颈。
+
+    内存契约: 结果以 **generator** 逐块消费即弃 (禁一次性物化全部块结果 —— 生产
+    43 块 × ~200MB 序列化会额外吃 8GB+); 父进程峰值 ≈ global_df + 少量在途块。"""
+    from joblib import Parallel, delayed
+
+    N = n_docs
+    global_df: dict[str, int] = {}
+    per_doc_total = np.zeros(N, dtype=float)
+    _warned_soft = False
+    bounds = [(s, min(s + par_chunk_size, N)) for s in range(0, N, par_chunk_size)]
+    logger.info(
+        f"boilerplate: 进程并行 exact two-pass — {N:,d} 文 / {len(bounds)} 块 "
+        f"(par_chunk_size={par_chunk_size:,d}, n_jobs={n_jobs}); 与串行逐字节等价, 仅提速")
+
+    # ── Pass 1 (并行): 各块 (feats, DF, totals) → 父进程整数求和 (order-independent) ──
+    t0 = time.time()
+    par = Parallel(n_jobs=n_jobs, prefer='processes', return_as='generator')
+    results = par(delayed(_pass1_chunk_worker)(docs[s:e], ngram_range) for s, e in bounds)
+    for (start, stop), (feats, df_c, totals) in zip(bounds, results):
+        idx = np.arange(start, stop)
+        per_doc_total[idx] = totals                # 空词表块 worker 已回 0 → nan (belt-and-suspenders)
+        if feats is None:
+            continue
+        for j, ng in enumerate(feats):
+            global_df[ng] = global_df.get(ng, 0) + int(df_c[j])   # 不变量 I: DF 可加
+        del feats, df_c, totals                    # 即弃, 防在途块累积
+        if not _warned_soft and 0 < df_dict_budget_warn < len(global_df):
+            logger.warning(
+                f"boilerplate: global_df {len(global_df):,d} entry 超软预算 {df_dict_budget_warn:,d} "
+                f"(仅告警, 非兜底; 生产超规模请跑 P0 裁定 tier2)")
+            _warned_soft = True
+        # ⚠ 运行期硬闸 IN-LOOP: RAM 耗尽前抢先 fail-loud, 防 OOM-killer 静默 SIGKILL
+        if 0 < df_dict_budget_hard < len(global_df):
+            raise SystemExit(
+                f"boilerplate: global_df {len(global_df)} entry 超硬上限 {df_dict_budget_hard}; "
+                f"tier1 不可产, 到生产机跑执行计划 §3-P0 外推裁定 tier2 (DEFERRED)")
+    logger.info(f"boilerplate: Pass1 完成 (global_df {len(global_df):,d} entry, "
+                f"{sig4(time.time() - t0)}s)")
+
+    boiler_set = _derive_boiler_set(global_df, N, df_ratio_threshold, ngram_range)
+    if boiler_set is None:
+        return out
+    vocab = sorted(boiler_set)
+    del global_df, boiler_set                      # Pass2 只需固定小词表, 及早释放 ~GB 级 DF 字典
+
+    # ── Pass 2 (并行): 固定 sorted 词表逐文命中数 (逐文独立) ──
+    t1 = time.time()
+    par2 = Parallel(n_jobs=n_jobs, prefer='processes', return_as='generator')
+    res2 = par2(delayed(_pass2_chunk_worker)(docs[s:e], ngram_range, vocab) for s, e in bounds)
+    for (start, stop), boiler_c in zip(bounds, res2):
+        for k in range(stop - start):
+            i_global = start + k
+            t = per_doc_total[i_global]
+            out[nonempty_idx[i_global]] = round(boiler_c[k] / t, 6) if t > 0 else float('nan')
+    logger.info(f"boilerplate: Pass2 完成 ({sig4(time.time() - t1)}s)")
+    return out
+
+
 def _compute_chunked(docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_range,
                      chunk_size, df_dict_budget_warn, df_dict_budget_hard) -> list[float]:
     """tier1 chunked exact two-pass (memory_tier='in_memory', 默认)。
@@ -285,43 +465,9 @@ def _compute_chunked(docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_
                 f"boilerplate: global_df {len(global_df)} entry 超硬上限 {df_dict_budget_hard}; "
                 f"tier1 不可产, 到生产机跑执行计划 §3-P0 外推裁定 tier2 (DEFERRED)")
 
-    if not global_df:                              # 全块空词表 (不可达); global_df 空 → SAFE 全 nan
-        logger.warning("boilerplate: global_df 空 (全块空词表) → 全 nan (SAFE 降级)")
+    boiler_set = _derive_boiler_set(global_df, N, df_ratio_threshold, ngram_range)
+    if boiler_set is None:                         # SAFE 降级 (空 global_df / 空套话集), 已 loud
         return out
-
-    # ── 套话集: DF/N ≥ 阈值 (不变量 I ⟹ 与单遍 boiler_mask 同集) ──
-    boiler_set = [ng for ng, d in global_df.items() if d / N >= df_ratio_threshold]
-    n_boiler = len(boiler_set)
-    if n_boiler == 0:
-        logger.warning(
-            f"boilerplate: 无 n-gram 达 DF≥{pct4(df_ratio_threshold)} (套话集为空, "
-            f"n_docs={N:,d}) → 全 nan (SAFE 降级, 绝不静默清空)")
-        return out
-    logger.info(
-        f"boilerplate: 套话集 {n_boiler:,d}/{len(global_df):,d} 个 char_wb{ngram_range}-gram "
-        f"(占全词表 {pct4(n_boiler / len(global_df))}, "
-        f"DF≥{pct4(df_ratio_threshold)} of {N:,d} 文); 第二遍算逐文命中率")
-
-    # ── 构念效度: top-k 高 DF 套话短语 + DF 占比谱 (log-only, discarded; §2.5 集合等价) ──
-    # 从 global_df 复现; DF 谱数值由不变量 I 与单遍精确等; top-k 集合等价 (tie 序 log-only 不强求)。
-    try:
-        _sorted = sorted(boiler_set, key=lambda ng: (-global_df[ng], ng))   # DF 降序, tie 按字面 (确定)
-        topk = _sorted[:10]
-        logger.info(
-            f"  · 套话集 top-{min(10, n_boiler):,d} 高 DF char_wb-gram (按文档频率降序, "
-            f"构念效度示例 — 这些跨文档高频公式化短语即被判为'套话'):")
-        for rank, ng in enumerate(topk, 1):
-            logger.info(
-                f"     #{rank:>2d} {ng!r:<16} DF={global_df[ng]:,d}/{N:,d} "
-                f"= {pct4(global_df[ng] / N)}")
-        sel = np.asarray([global_df[ng] / N for ng in boiler_set], dtype=float)
-        logger.info(
-            f"  · 套话集 DF 占比谱: [min={pct4(float(sel.min()))} "
-            f"中位={pct4(float(np.median(sel)))} max={pct4(float(sel.max()))}] "
-            f"(min 贴近阈值 {pct4(df_ratio_threshold)} → DF 截断起约束; "
-            f"max 趋近 1.0 → 套话集含近乎全语料皆现的极高频公式化短语)")
-    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断派生
-        logger.warning(f"boilerplate: 套话集示例/DF 谱打印失败 (忽略, 不影响派生): {e}")
 
     # ── Pass 2: 流式逐文命中 (固定小 boiler_set 词表, 内存恒有界; 仅一次 transform/块) ──
     vec_boiler = _make_vectorizer(ngram_range=ngram_range, vocabulary=sorted(boiler_set))
@@ -356,7 +502,8 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
     except Exception as e:  # noqa: BLE001 — config 不可用则全走模块默认 (test 零 config 直调不受影响)
         logger.warning(f"boilerplate: load_config 读取失败 → 走模块默认 kwargs: {e}")
     _bp_kwargs = {k: _bp_cfg[k] for k in
-                  ('chunk_size', 'memory_tier', 'df_dict_budget_warn', 'df_dict_budget_hard')
+                  ('chunk_size', 'memory_tier', 'df_dict_budget_warn', 'df_dict_budget_hard',
+                   'par_chunk_size', 'n_jobs', 'parallel_min_docs')
                   if k in _bp_cfg}
     _tier = _bp_kwargs.get('memory_tier', _DEFAULT_TIER)
     _chunk = _bp_kwargs.get('chunk_size', _DEFAULT_CHUNK_SIZE)
@@ -380,6 +527,16 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
             "memory_tier=%s | chunk_size=%s | 三轨(full=headline, ctx/ss=稳健轨, 2026-07-03) | "
             "$0 纯 CPU/确定性(exact two-pass, 字节等价, 无 HASHSEED 依赖)",
             text_col, out_col, pct4(DF_RATIO_THRESHOLD), NGRAM_RANGE, _tier, f"{int(_chunk):,d}")
+        # 并行/预算配置 (perf+OOM 2026-07-25): 与串行逐字节等价, 仅墙钟与 fail-loud 上限
+        logger.info(
+            "  · 并行/预算: parallel_min_docs=%s | par_chunk_size=%s | n_jobs=%s | "
+            "df_dict_budget_warn=%s | df_dict_budget_hard=%s "
+            "(P0 实测 130.1 B/entry; 生产单轨 global_df 外推 ≈1.6 亿 entry ≈19.3 GB)",
+            f"{int(_bp_kwargs.get('parallel_min_docs', _PROC_PARALLEL_MIN_DOCS)):,d}",
+            f"{int(_bp_kwargs.get('par_chunk_size', _DEFAULT_PAR_CHUNK)):,d}",
+            _bp_kwargs.get('n_jobs', _DEFAULT_N_JOBS),
+            f"{int(_bp_kwargs.get('df_dict_budget_warn', _DEFAULT_BUDGET_WARN)):,d}",
+            f"{int(_bp_kwargs.get('df_dict_budget_hard', _DEFAULT_BUDGET_HARD)):,d}")
     except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
         logger.warning(f"boilerplate: 子步骤 banner 打印失败 (忽略, 不影响派生): {e}")
 
