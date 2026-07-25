@@ -1,6 +1,7 @@
 # 九入口**生产规模**顺序真跑审计与整改执行计划 (2026-07-25)
 
-基线: main=`de6d7a83` (stage21 平局重试预算解耦后)。工作树起点干净 (三处 `M` 均为本轮改动)。
+基线: main=`de6d7a83` (stage21 平局重试预算解耦后)。工作树起点干净; 本轮前置整改已入库
+main=`6e5beb89` (F1/F2/F3/F4/F5 + 10 个新 gate + 本计划文档)。
 
 **与前九轮的本质差异**: 前九轮 (2026-07-10..07-22) 的 ②③④⑤⑥⑦ 全部跑在 **T=2 dev 语料**
 (833–1,151 行) 上; 本轮是主线 **stage 22 及其下游 (22/23/24/25/26/40/46/51) 首次在生产语料上真跑**
@@ -14,19 +15,26 @@
 | # | 入口 | 模式 | 结果 | 耗时 | 备注 |
 |---|------|------|------|------|------|
 | ① | LLMs_for_FinTech_dic/00_LLMs_for_dic.py | `LLMS_DIC_OFFLINE=1` | **EXIT=0** | 43.65s | 0 ERROR / 0 WARNING; 阶段②保留 696/915 (76.07%); 产 `bank_keywords_20260725_215401.xlsx` |
-| ② | run_pipeline_function.py | 无 flag 全 16 阶段 (生产语料) | (§6 回填) | — | 前置 F1/F3/F4 整改 + stage25 播种后启动 |
+| ② | run_pipeline_function.py | 无 flag 全 16 阶段 (生产语料) | (§6 回填) | — | 2026-07-25 23:56:18 启动 (PID 22088); 与 stage25 播种**刻意重叠**, 见下方时序说明 |
 | ③ | run_pipeline_validation.py | 全 16 验证阶段 | (§6 回填) | — | |
-| ④ | run_paper.py | `--list` + 11 篇白名单逐篇 | (§6 回填) | — | |
+| ④ | run_paper.py | `--list` + 逐篇 `--stage tables` / `--stage figures` (**刻意不用默认 `all`**, 见 F13) | (§6 回填) | — | |
 | ⑤ | 80_placebo_and_alt_anchor.py | — | (§6 回填) | — | |
 | ⑥ | 81_stata_data_audit.py | — | (§6 回填) | — | 上轮基线 0 FAIL / 18 WARN / 142 PASS |
 | ⑦ | 82_export_stats_excel.py | — | (§6 回填) | — | |
 | ⑧ | company_listed_bank/run_pipeline.py | 全链 01→04 | (§6 回填) | — | |
 | ⑨ | company_tax_bank/run_pipeline.py | 全链 01→04 | (§6 回填) | — | |
 
-**前置工作 (②启动前必须完成, 见 §2/§3)**:
-- **P0 内存校准** (CLAUDE.md 明载「T=19 首播前必先跑」) → F1;
-- **stage 25 嵌入生产首播播种** (956,710 条 → 全局去重后 2 × 377,520 条真实缺口);
-- **F2/F3/F4/F5 代码整改 + 字节等价 A/B 实证**。
+**前置工作与实际时序 (⚠ 与初稿计划不同, 据实记录)**:
+- **②启动前已完成**: ① 真跑; **P0 内存校准** (CLAUDE.md 明载「T=19 首播前必先跑」) → F1;
+  **F1/F2/F3/F4/F5 代码整改 + 两组字节等价 A/B 实证** + 10 个新 gate; fast 基线复核
+  (12 FAILED + 20 ERROR = 11 慢性 + 21 docid 半迁移, **0 新增**)。
+- **②启动时仍在进行**: **stage 25 嵌入生产首播播种** (三轨并集去重 539,282 唯一文本;
+  MAIN 与 `_lg` 各 miss 377,520 条)。
+  **刻意重叠的依据**: ② 的执行序为 00→…→24→25, 从 00 跑到 25 至少 6–8 小时, 而两家播种
+  ETA 分别 ~1.5h / ~2.7h ⟹ ② 抵达 stage 25 时播种早已收尾; 重叠可省 ~2.7 小时墙钟。
+  **风险与兜底**: 播种是网络/TPM 受限 (CPU 占用低), ② 是 CPU 受限, 资源面基本正交;
+  播种器具块级容错 + 8 遍收敛; §9-3 中止判据仍对「stage 25 整轨 NaN」保持硬止损。
+  ⚠ 该重叠是**运行决策**, 若复现本轮请按各自机器实测 ETA 重新判断, 勿照抄。
 
 ---
 
@@ -171,6 +179,86 @@
 - `inference_cache: true` ⟹ 首跑昂贵、重跑廉价 (`_local_model_cache.db` 现仅 4.7 MB = T=2 代)。
 - 本轮**不改**任何 BERT 数学层/批大小 (改 `inference_batch_size` 会改缓存复合键且可能改 cuBLAS
   kernel 选择 → 破位级可复现)。实际墙钟以 ② 日志为准 (§6 回填)。
+
+### F13 [MAJOR · 运行契约不可扩展 · 本轮以参数规避并披露] 入口④ `--stage all` 内嵌重跑整条主线
+
+- **真 (代码级)**: `run_paper.py` 默认 `--stage all` → 各 paper 的 `analysis.main()` 中
+  `if args.stage in ('pipeline', 'all'): run_main_pipeline(_extra)` → 直接调
+  `run_pipeline_function.run_pipeline()` **全 16 阶段**。
+- **T=2 无感, 生产不可扩展**: 上轮 (2026-07-22) 11 篇各 ~1,230s 因为主线在 T=2 只要 ~20 分钟;
+  生产语料下主线单趟 ~10–16 小时 ⟹ 11 篇 = **110–176 小时**, 且会把 stage 21/25 的
+  预清理-重跑循环重复 11 次 (含每次少量 cache miss 的付费调用)。
+- **本轮处置 (刻意偏离 + 披露)**: ② 已在同一代际跑完主线 ⟹ ④ 改为
+  `--list` + 逐篇 `--stage tables` 与 `--stage figures`。二者并集 = `all` 减去**冗余的**
+  主线重跑, paper 侧产物 (表/图) 覆盖率 100%。
+  - 备选 B (未采用): `--stage all --skip-21-if-exists --skip-unchanged` 让内嵌主线自跳过 —
+    更贴近「原样跑入口」, 但 `--skip-unchanged` 带 F9 已知边界 (stage 40 可能被跳过 →
+    opt-in 特征列保留旧值), 且 11 次跳过校验本身也要小时级, 收益不抵风险。
+- **建议 (研究决策, 本轮不改代码)**: 给 `run_paper.py` 增一个 `--assume-pipeline-fresh`
+  或把 `--stage` 默认值从 `all` 改为 `tables,figures`, 使生产规模下的默认路径不再隐含
+  一次全链重跑。
+
+### F15 [研究决策已裁定 · 2026-07-26 用户指令] stage 25 输入构造 v1 (Bybee 400 字) → v2 (整篇)
+
+- **裁定**: 用户 2026-07-26 指令「将语义陈旧度改成整篇」。落点在 **stage 25** 的文本构造
+  (⚠ 用户表述为「stage 26 播种」, 实际 stage 26 不调任何 API — 纯 CPU MinHash+faiss,
+  只消费 stage 25 的向量; 已当面澄清后按 stage 25 执行)。
+- **改法**: 与 stage 16 `policy_alignment.main()` **逐字节同构** —— full 轨 `.str.strip()`,
+  ctx/ss 轨**不** strip (照抄其既有不对称), 无预截断, 超长交引擎切块+token 加权池化。
+  新增 `INPUT_STRATEGY` 开关 ('whole_text_v2' 现行 / 'bybee400_v1' 退役可回退) + 产物
+  provenance 列 `sbert_input_strategy`。
+- **v1 理由已失效 (改动依据)**: v1 的书面理由是「避免 SBERT max_seq_len=512 截断丢尾」,
+  属 v3.14.0 之前的**本地 SentenceTransformer** 时代; API 化后单条上限 8191 token,
+  生产实测块扩展因子 **1.0118** (99% 单块直送)。
+- **收益 (实测)**: 只读探针 — 三轨并集 **582,724 唯一块**, MAIN 与 `_lg` 各
+  **582,724/582,724 命中 miss=0** ⟹ 本阶段**零新增付费嵌入**, 全部复用 stage 16 已播条目。
+- **⚠ 头号陷阱 (已在代码/日志三处写死告警)**: 模块注释原写「改输入构造必须 bump
+  `_TEXT_PIPELINE_VERSION`」—— 但该值是 **spec 级共享**命名空间 (`embedding_api.
+  text_pipeline_version`), 被 stage 15/16/26/27/40 共用, **一 bump 全项目 117 万条已播
+  嵌入整体作废需重播**。本变更**恰好不需要 bump** (新键与 stage 16 已有正确条目重合);
+  代际改由不进缓存键的 `sbert_input_strategy` 列承载。gate `test_sbert_whole_text_v2.py`
+  第 ③ 条锁死该不变量。
+- **下游传导 (第一轮审核实查, 订正了初判)**: `25_article_embeddings.parquet` 的**唯一**
+  真实消费者是 stage 26 (`article_staleness`) → `semantic_staleness_{full,ctx,ss}` +
+  3 个 `_lg` 孪生 → 面板与 40/46/51。
+  - ✅ **网络嵌入轨不受影响**: `network_spillover` 的 `W_emb` 由 `_embed_peer_texts` 自行
+    嵌入 **bank-year 聚合超级文档**, 并不读 25 的产物 (其 L1922 注释「本嵌入轨依赖
+    25_article_embeddings」是**第三处陈旧注释**, 同句还提到不存在的「stage 45」→ 并入 F14)。
+  - ✅ 无基于语义嵌入的冻结 sidecar (grep 实证); stage 26 的 provenance 校验是宽松
+    `if col in columns` 形式 → 新增列安全。
+- **须复核的构念风险 (每次重生都要看)**: stage 26 的 surface 轨本就是**整篇** MinHash,
+  semantic 轨改整篇后两者互补性可能下降。stage 26 已 emit G-D2.1 诊断
+  (`corr(surface_staleness_full, semantic_staleness_full)`, 期望带 **[0.3, 0.7]**) →
+  ②跑完必须读该值并如实披露; 若越出带外, 须在 manuscript 说明或重议口径。
+- **沉没成本 (据实记录)**: 变更前已按 v1 口径播种 400 字嵌入 —— MAIN 侧 136/189 块
+  (~27.2 万条, **已写入主库 `_llm_cache.db`**, 成为孤儿条目, 约 +25GB, 不影响正确性);
+  `_lg` 侧 ~17 万条写在独立库 `_llm_cache_seed_lg.db` (6.5GB, **刻意不合并**, 保留在盘上
+  以便万一回退 v1 时可用; 同理保留 `data/llm_archive_seed_lg/`)。
+- **时序**: 变更时入口② 正跑在 stage 00, 尚未 import `article_sbert` (各阶段独立子进程,
+  用时才起) ⟹ 编辑安全, 且②抵达 stage 25 时将自动使用 v2 新码。
+- **待验 (② 抵达 stage 25 前必做)**: ② 会重生 `14_news_with_ctx.parquet`; 须在其重生后
+  **重跑一次只读探针**确认仍 100% 命中 (理论上确定性重跑逐字节相同, 但不得假定)。
+
+### F14 [MINOR · 陈旧注释误导 · 报告] 「stage 25 = strategic_diff」是重编号残留, 且其缓存论断已被实测证伪
+
+- **三处** (第三处于 2026-07-26 F15 审核时追加): `core/dag.py:296` / `pipeline/filtering/
+  policy_alignment.py:880` / `pipeline/panel/network_spillover.py:1922`。第三处写「本嵌入轨
+  依赖 25_article_embeddings(当前缺), stage 45 未重跑嵌入 pass」—— 实际该轨由
+  `_embed_peer_texts` 自行嵌 bank-year 超级文档、**从不读** 25 的产物, 且 `stage 45`
+  不在 `STAGES_MAIN` 中。
+- 前两处均写
+  「stage 16 (policy_alignment) + **stage 25 (strategic_diff)**」。前者已于 2026-07-14
+  fix(D5) 把 policy_alignment 从「stage 15」订正为「stage 16」, 但**漏改同句的 stage 25**。
+- **实际**: `25_article_sbert.py` 才是 stage 25 (article-level 嵌入持久化); `strategic_diff`
+  由 `pipeline/panel/runner.py` (stage 40 步骤 8e) 与 `policy_similarity.py` 消费, 无任何
+  `25_*.py` 引用 (grep 实证)。
+- **附带失实**: policy_alignment.py:880 据此断言「stage 25 嵌的是 (bank,year) 聚合超级文档
+  (非文章级), **粒度错配不可能共享缓存**」。对**真正的** stage 25 (article_sbert) 而言此
+  论断为假 —— 2026-07-25 实测: stage 25 三轨并集 539,282 唯一文本中 **161,762 条 (30.00%)
+  直接命中既有缓存** (逐轨 ss 49.6% / ctx 26.0% / full 12.5%), 命中来源正是 stage 16/27
+  的文章级嵌入 (当整篇文本 ≤400 字时, stage 25 的 `[:400]` 截断与整篇同字节 ⟹ 同缓存键)。
+- **处置**: 本轮只报告 (注释层, 计算行为无关)。建议随下一轮注释批改把两处 stage 25 订正为
+  「stage 40 步骤 8e (strategic_diff)」, 并删除已被证伪的「不可能共享缓存」论断。
 
 ### F11 [清理] 未跟踪残留
 

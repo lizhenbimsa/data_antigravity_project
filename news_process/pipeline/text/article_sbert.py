@@ -9,7 +9,9 @@ embeddings 持久化, 让 D2 (staleness) / D3 (Krippendorff α)
 Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Business news and
 business cycles. The Journal of Finance, 79(5), 3105-3147.
 https://doi.org/10.1111/jofi.13377
-→ 标题 + 首段 300 字策略 (避免 SBERT 512-token 截断丢尾段)
+→ 标题 + 首段 300 字策略 (**v1 口径, 2026-07-26 起退役**; 其理由「避免 SBERT
+  512-token 截断丢尾段」属本地 SentenceTransformer 时代, API 化后已失效 — 见
+  「输入策略」段)
   (期刊订正: 此前误标 RFS 37(3):887-936, 经 Crossref 核验为 JF 79(5);
    与 scripts/audit/LITERATURE_ANCHORS_2026-06-13.md:140 锚点对齐)
 
@@ -21,13 +23,25 @@ https://doi.org/10.1111/jofi.13377
    (text-embedding-3-large, OpenAI)。两者地位对等、互为稳健性 (跨厂商独立性), ``_lg``
    后缀仅命名机制无层级。统一经 ``embedding_engine.embed_texts(spec=…)`` (API 路径,
    经 ``_llm_cache.db`` 穿透缓存); 本地 SentenceTransformer (text2vec/bge-m3) 已整体移除。
-2. **输入策略**: 标题 + 首段 300 字 (Bybee 2024; ~100-150 token/篇 远未触嵌入 8191
-   token 上限 → 引擎不分块、直送 API)。
+2. **输入策略 (v2, 2026-07-26 用户裁定改整篇; v1 为 Bybee 400 字截断, 已退役但保留可回退)**:
+   **整篇** content_{full,ctx,ss}, 与 stage 16 ``policy_alignment.main()`` **逐字节同构**
+   (full 轨 ``.str.strip()``; ctx/ss 轨不 strip —— 该不对称是 stage 16 既有事实, 照抄),
+   无预截断, 超长交引擎 ``split_text_for_embedding`` 切块 + token 加权池化。
+   改因: v1 的理由「中文新闻 ~1200 token > SBERT max_seq_len=512」属 v3.14.0 之前的本地
+   模型约束, API 化后单条上限 8191 token; 生产实测 content_full 均值 1,512 字 / p95
+   4,003 字, **块扩展因子 1.0118 (99% 单块直送)**, 截断前提消失。
+   收益 (2026-07-26 只读探针实测): 三轨并集 582,724 唯一块, 两 spec 各 **582,724/582,724
+   命中 miss=0** ⟹ 本阶段零新增付费嵌入 (全部复用 stage 16 已播条目)。
+   代价: 向量改变 ⟹ stage 26 ``semantic_staleness_*`` 及 ``_lg`` 孪生改数, 面板下游随之
+   改数; 且 surface 轨本就是整篇 MinHash, semantic 改整篇后**互补性可能下降**, 每次重生
+   须复核 G-D2.1 诊断带 corr∈[0.3,0.7] 并如实披露。
+   ⚠ 缓存键命名空间 (``text_pipeline_version``) **不得因本变更 bump** —— 见常量区告警。
 3. **嵌入轴 full/ctx/ss 三路平价 × co-primary 双 spec**:
    full 读 content_full / ctx 读 content_ctx / ss 读 content_ss (三者均由 stage 13
    prepend 标题【恰好一次】), 编码时 title_col=None 关闭二次前置 → 三轨同型构造、标题各一次;
    仅输入文本范围不同 (全文 vs 实体窗口 vs 银行+金科同句窗口)。缺 content_full 时回退裸
-   '内容'+'标题' (走 _truncate_for_sbert Bybee 前置, 标题一次)。
+   '内容'+'标题' (v2 走 ``prepend_title(t, b).strip()``, 与 stage 16 回退分支同构, 标题一次;
+   v1 曾走 _truncate_for_sbert Bybee 前置)。
    **🔴 both-or-neither parity (D-4a)**: 每轨 MAIN 或 _lg 任一 embed_texts 返回 None →
    该轨两列 (emb_X / emb_X_lg) 同缺 (不留单边孤儿列)。content_ss/content_ctx 缺列 (旧 schema)
    时该轨两列均不写, 下游 stage 26 优雅缺席对应 semantic_staleness (向后兼容)。
@@ -58,7 +72,7 @@ always-on 执行); 也可单独手动触发:
 
 **处理步骤** (v3.14.0, 2026-06-27 all-API co-primary 双轨):
 1. 嵌入 spec 从 `config/features.yaml` 取两套: MAIN=`embedding_api` (Qwen/Qwen3-Embedding-8B) + `_lg`=`embedding_large` (text-embedding-3-large); 各带 text_pipeline_version 作缓存命名空间。
-2. `encode_articles(df, content_col, spec, …)`: 文本构造 = Bybee 2024 风格'标题(≤100字, TITLE_CHARS) + 首段(≤300字, FIRST_PARA_CHARS)'。**关键对称性**: content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置。经 `embedding_engine.embed_texts(spec=…)` 走 API 路径 (穿透 _llm_cache.db); 返回单位归一向量 (N, 4096) (Qwen) / (N, 3072) (large) float32; embed_texts 返回 None (API 重试耗尽) 时该轨置 None。
+2. `encode_articles(df, content_col, spec, …)`: 文本构造 = **整篇** content_{track} (v2, 2026-07-26; 与 stage 16 policy_alignment 逐字节同构 — full 轨 strip / ctx·ss 不 strip, 无预截断)。v1 的 Bybee'标题(≤100字)+首段(≤300字)'口径已退役, 常量与 `_truncate_for_sbert` 保留供一键回退 (INPUT_STRATEGY='bybee400_v1')。**关键对称性**: content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置。经 `embedding_engine.embed_texts(spec=…)` 走 API 路径 (穿透 _llm_cache.db); 返回单位归一向量 (N, 4096) (Qwen) / (N, 3072) (large) float32; embed_texts 返回 None (API 重试耗尽) 时该轨置 None。
 3. 每轨 (full/ctx/ss) 用 MAIN + _lg 两 spec 各嵌一遍 (`_embed_track_dual`); both-or-neither: 任一 None 则该轨两列同缺。emb_full 读 content_full(缺则裸 内容+标题), emb_ctx 读 content_ctx(缺列则不产), emb_ss 读 content_ss(缺列则不产)。
 4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 26 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_{full,ctx,ss}(Qwen) + emb_{full,ctx,ss}_lg(large)(parquet 兼容的 list-of-1D-array; 缺轨不写)+ 双套 provenance(MAIN model_id/model_revision/text_pipeline_version + _lg 镜像三元组)。
 
@@ -111,7 +125,9 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # MAIN (canonical, 无后缀) = Qwen/Qwen3-Embedding-8B (config embedding_api)
 # _lg (孪生槽)            = text-embedding-3-large (config embedding_large)
 # 两者地位对等、互为稳健性 (跨厂商 阿里 Qwen ⟂ OpenAI), `_lg` 后缀仅命名机制无层级。
-# title+300char 短文本远未触 8191 token → 引擎不分块、直送 API; 维度 Qwen 4096 / large 3072 (不同, 余弦维度无关绝不混算)。
+# v2 (2026-07-26) 整篇输入: 生产实测块扩展因子 1.0118 → ~99% 单块直送, 超 8191 token 的极长文
+# 由引擎切块 + token 加权池化 (v1「title+300char 远未触上限、绝不分块」已退役)。
+# 维度 Qwen 4096 / large 3072 (不同, 余弦维度无关绝不混算)。
 _MAIN_SPEC = CONFIG.get('embedding_api', {})
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
 
@@ -127,17 +143,46 @@ _SBERT_MODEL_ID_LG = _eng.spec_model(_LARGE_SPEC, default='text-embedding-3-larg
 
 # 30a 输入文本构造版本 (provenance, 与 LLMCache 的 prompt_version 维度同哲学):
 # v4 = 2026-06-28 all-API co-primary dual (Qwen MAIN + large _lg; content_full/ctx/ss
-# 已 prepend 标题一次, title_col=None 关二次前置)。任何对输入构造/截断策略的变更必须 bump。
+# 已 prepend 标题一次, title_col=None 关二次前置)。
+# ⚠⚠ **绝不因本模块的输入构造变更去 bump 这两个版本号** (2026-07-26 用户裁定改整篇时的
+#   头号陷阱): 它们是 `_eng.spec_version(spec)` 读出的 **spec 级共享**命名空间 (config
+#   `embedding_api.text_pipeline_version` / `embedding_large.…`), 被 stage 15/16/26/27/40
+#   共用 —— 一旦 bump, 全部已播种嵌入 (2026-07-24/25 生产首播 117 万条 + 本轮增量) **全部
+#   作废需重播**。本模块 2026-07-26 的构造变更**恰好不需要 bump**: 新构造与 stage 16
+#   (policy_alignment) 逐字节同构 ⟹ 缓存键与其**已在 v4 命名空间下的正确条目重合**。
+#   构造代际改由下方 `INPUT_STRATEGY` 单独记入产物 provenance 列 (不进缓存键)。
 _TEXT_PIPELINE_VERSION = _eng.spec_version(_MAIN_SPEC)
 _TEXT_PIPELINE_VERSION_LG = _eng.spec_version(_LARGE_SPEC)
 
-# Bybee 2024 风格 "标题 + 首段 300 字" 截断
+# ── 输入文本构造策略 (2026-07-26 用户裁定: v1 Bybee 400 字截断 → v2 整篇) ──
+# **为何改**: v1 的书面理由是「中文新闻中位 ~800 字 ≈1200 token > SBERT max_seq_len=512,
+#   取标题(≤100)+首段(≤300) 避免 512-token 截断丢尾」—— 该约束属 v3.14.0 之前的**本地
+#   SentenceTransformer 时代**; 改走 API 后单条上限 8191 token, 实测生产语料 content_full
+#   均值 1,512 字 / p95 4,003 字, **块扩展因子仅 1.0118 (99% 单块直送, 不触发池化)**,
+#   截断的技术前提已消失。
+# **改成什么**: 与 stage 16 `policy_alignment.main()` **逐字节同构** ——
+#   full 轨 `.str.strip()`; ctx/ss 轨**不** strip (该不对称是 stage 16 的既有事实, 照抄);
+#   无预截断, 超长交引擎 `split_text_for_embedding` 切块 + token 加权池化。
+# **收益 (实测, 非估算)**: 2026-07-26 只读探针 — 三轨并集 582,724 个唯一块, 两 spec
+#   **各 582,724/582,724 命中, miss=0** ⟹ stage 25 改造后**零新增付费嵌入**。
+# **代价 (须知情)**: 本模块向量改变 ⟹ stage 26 `semantic_staleness_{full,ctx,ss}` 及其
+#   `_lg` 孪生改数 ⟹ 面板与下游 40/46/51 相关列改数。另: stage 26 的 surface 轨是整篇
+#   MinHash, semantic 轨改整篇后两者**互补性可能下降** (设计诊断带 corr∈[0.3,0.7],
+#   见 article_staleness G-D2.1) → 每次重生须复核该诊断值并如实披露。
+# v1 口径 (`_truncate_for_sbert` + TITLE_CHARS/FIRST_PARA_CHARS) **保留但已退役**:
+#   供历史对照与一键回退 (把 INPUT_STRATEGY 改回 'bybee400_v1' 即可), 勿删。
+INPUT_STRATEGY = 'whole_text_v2'      # 'whole_text_v2' (现行) | 'bybee400_v1' (退役参照)
+_VALID_STRATEGIES = frozenset({'whole_text_v2', 'bybee400_v1'})
+
+# Bybee 2024 风格 "标题 + 首段 300 字" 截断 (v1 退役口径; 保留供回退/历史对照)
 TITLE_CHARS = 100
 FIRST_PARA_CHARS = 300
 
 
 def _truncate_for_sbert(title: str, content: str) -> str:
-    """构造 SBERT 输入: 截短标题 + 首段 300 字; 避免 512 token 截断丢尾."""
+    """[v1 退役口径, 保留供回退] 构造 SBERT 输入: 截短标题 + 首段 300 字。
+
+    ⚠ 仅在 INPUT_STRATEGY='bybee400_v1' 时生效; 现行 v2 走整篇 (见上方策略段)。"""
     t = (title or '')[:TITLE_CHARS].strip()
     c = (content or '')[:FIRST_PARA_CHARS].strip()
     if t and c:
@@ -149,17 +194,44 @@ def _build_track_docs(
     df: pd.DataFrame,
     content_col: str,
     title_col: Optional[str] = '标题',
+    *,
+    strip_text: bool = False,
 ) -> list[str]:
-    """构造一轨的 Bybee 2024 风格输入文本 list (标题+首段 300 字; title_col=None 跳过二次前置)."""
-    if title_col and title_col in df.columns:
+    """构造一轨的输入文本 list。
+
+    v2 (现行, INPUT_STRATEGY='whole_text_v2'): **整篇** content_{track}, 与 stage 16
+    `policy_alignment.main()` 逐字节同构 —— `strip_text=True` 仅 full 轨用 (照抄 stage 16
+    的既有不对称: full 带 `.str.strip()`, ctx/ss 不带); 无预截断, 超长交引擎切块池化。
+    旧 schema 回退分支 (无 content_* 列时 title_col='标题') 亦对齐 stage 16 的
+    `prepend_title(t, b).strip()`, 使两阶段在回退路径上同样共享缓存。
+
+    v1 (退役, 'bybee400_v1'): 标题(≤100)+首段(≤300) 截断; 保留供一键回退。
+    """
+    if INPUT_STRATEGY not in _VALID_STRATEGIES:      # config 畸值 → fail-loud (绝不静默改测度)
+        raise ValueError(
+            f"article_sbert: 未知 INPUT_STRATEGY={INPUT_STRATEGY!r}; "
+            f"合法值 {sorted(_VALID_STRATEGIES)}")
+
+    if INPUT_STRATEGY == 'bybee400_v1':
+        if title_col and title_col in df.columns:
+            return [
+                _truncate_for_sbert(t, c)
+                for t, c in zip(df[title_col].fillna(''), df[content_col].fillna(''))
+            ]
         return [
-            _truncate_for_sbert(t, c)
-            for t, c in zip(df[title_col].fillna(''), df[content_col].fillna(''))
+            (c or '')[:TITLE_CHARS + FIRST_PARA_CHARS]
+            for c in df[content_col].fillna('')
         ]
-    return [
-        (c or '')[:TITLE_CHARS + FIRST_PARA_CHARS]
-        for c in df[content_col].fillna('')
-    ]
+
+    # ── v2 整篇 (与 stage 16 逐字节同构) ──
+    if title_col and title_col in df.columns:
+        # 旧 schema 回退: 镜像 policy_alignment 的 `prepend_title(t, b).strip()` 分支
+        from news_process.core.text.entity_context import prepend_title
+        _t = df[title_col].fillna('').astype(str)
+        _c = df[content_col].fillna('').astype(str)
+        return [prepend_title(t, b).strip() for t, b in zip(_t, _c)]
+    _s = df[content_col].fillna('').astype(str)
+    return _s.str.strip().tolist() if strip_text else _s.tolist()
 
 
 def encode_articles(
@@ -168,27 +240,32 @@ def encode_articles(
     spec: dict,
     title_col: Optional[str] = '标题',
     *,
+    strip_text: bool = False,
     cache=None,
     log_prefix: str = "ArticleSBERT",
 ) -> np.ndarray | None:
     """经统一引擎 (embed_texts) 对一轨文本做 API 嵌入; 输出 (N, dim) numpy 数组.
 
     v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 改走 embed_texts(spec=…) 的
-    API 路径 (Qwen MAIN 或 large _lg)。title+300char 短文本远未触 8191 token →
-    引擎不分块、直送 API; 返回单位归一向量 (norm=1 → cosine=点积)。
+    API 路径 (Qwen MAIN 或 large _lg); 返回单位归一向量 (norm=1 → cosine=点积)。
+    v2 (2026-07-26): 输入改**整篇** (与 stage 16 逐字节同构) —— 生产实测块扩展因子
+    1.0118, 即 ~99% 文章仍单块直送, 余下超 8191 token 的极长文由引擎切块 + token 加权
+    池化 (旧注「title+300char 远未触上限、引擎不分块」已随 v1 退役, 勿再据此推断)。
 
     Args:
         df: article-level DataFrame.
         content_col: 'content_full' / 'content_ctx' / 'content_ss' / '内容'.
         spec: 嵌入 spec (CONFIG['embedding_api'] 或 CONFIG['embedding_large']).
         title_col: '标题' (仅旧 schema 回退时用; content_* 已 prepend 标题恰好一次).
+        strip_text: 是否对文本做 `.str.strip()` —— **仅 full 轨为 True**, 照抄 stage 16
+            的既有不对称; 该值决定缓存键字节, 改动会使该轨全体 miss 并付费重嵌。
         cache: 已打开的 LLMCache 共享连接 (跨轨/跨 spec 复用)。
 
     Returns:
         (N, dim) float32 embeddings, 或 embed_texts 返回 None (API 重试耗尽/形状异常)
         时返回 None (该轨置 NaN, 由 main both-or-neither 联动降级)。
     """
-    docs = _build_track_docs(df, content_col, title_col)
+    docs = _build_track_docs(df, content_col, title_col, strip_text=strip_text)
 
     logger.info(
         f"  编码 {len(docs)} 篇文章 (spec={_eng.spec_model(spec)}, content_col={content_col})"
@@ -268,6 +345,11 @@ def _build_output_frame(
         'model_id_lg': _SBERT_MODEL_ID_LG,
         'model_revision_lg': '',
         'text_pipeline_version_lg': _TEXT_PIPELINE_VERSION_LG,
+        # 输入文本构造代际 (2026-07-26 新增): **不进缓存键**, 仅标记本产物由哪代构造生成。
+        # 必要性: v1 (400 字截断) 与 v2 (整篇) 两代产物的 text_pipeline_version 同为 v4
+        # (键命名空间未变, 见常量区「绝不 bump」告警), 若无本列则两代产物在 provenance 上
+        # 不可区分 —— 而它们的 semantic_staleness 下游数值不同, 混用会静默串代。
+        'sbert_input_strategy': INPUT_STRATEGY,
     })
     return pd.DataFrame(out)
 
@@ -277,7 +359,7 @@ def main():
     logger.info("=" * 72)
     logger.info(
         "阶段 25: Article-level SBERT 嵌入持久化 "
-        "(v3.7.0 PR #9; Bybee et al. 2024 JF 标题+首段策略)"
+        f"(v3.7.0 PR #9; 输入策略={INPUT_STRATEGY} — v2 整篇, 与 stage 16 逐字节同构)"
     )
     logger.info("=" * 72)
     logger.info(
@@ -288,8 +370,10 @@ def main():
     logger.info(
         "【方法】v3.14.0 co-primary 双 API 嵌入 (零本地模型): 每轨用两个 API spec 各嵌一遍 —— "
         f"MAIN(canonical 无后缀)={_SBERT_MODEL_ID} + _lg(孪生)={_SBERT_MODEL_ID_LG} "
-        "(跨厂商 阿里 Qwen ⟂ OpenAI 对等互证); 输入构造 = 标题(≤"
-        f"{TITLE_CHARS}字) + 首段(≤{FIRST_PARA_CHARS}字, Bybee 2024); "
+        "(跨厂商 阿里 Qwen ⟂ OpenAI 对等互证); 输入构造 = **整篇** content_{track} "
+        "(v2 2026-07-26; 与 stage 16 policy_alignment 逐字节同构 — full 轨 .strip() / "
+        "ctx·ss 不 strip, 无预截断, 超长交引擎切块+token 加权池化; 故本阶段与 stage 16 "
+        "共享同一批缓存条目, 正常情况下零新增付费); "
         "嵌入轴 full/ctx/ss 三路 (content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, "
         "title_col=None 关二次前置; ss=银行+金科同句轨, content_ss 缺则不产 emb_ss); "
         "embed_texts 返回单位归一向量 → (N, 4096) (Qwen) / (N, 3072) (large) float32。"
@@ -341,13 +425,27 @@ def main():
         # ── 📖 方法论依据 (参考文献信息; 把核心方法的学术出处 emit 进日志) ──
         logger.info("  📖 方法论依据 (经核验注册表, 逐字照抄 APA-7 + DOI)")
         logger.info(
-            "     · 标题+首段 SBERT 输入策略: Bybee, L., Kelly, B., Manela, A., & Xiu, D. "
+            "     · 标题+首段 SBERT 输入策略 (**v1 口径, 2026-07-26 起退役**; 引文保留以记载来源): "
+            "Bybee, L., Kelly, B., Manela, A., & Xiu, D. "
             "(2024). Business news and business cycles. The Journal of Finance, 79(5), "
             "3105-3147. https://doi.org/10.1111/jofi.13377"
         )
         logger.info(
-            "       → 中文新闻中位 ~800 字 ≈ 1200 token > SBERT max_seq_len=512; "
-            "取『标题(≤100字)+首段(≤300字)』避免 512-token 截断丢尾段。"
+            "       → v1 理由『中文新闻中位 ~800 字 ≈1200 token > SBERT max_seq_len=512, "
+            "取标题(≤100)+首段(≤300) 避免截断丢尾』属**本地 SentenceTransformer 时代**约束; "
+            "v3.14.0 全 API 化后单条上限 8191 token, 该前提已失效 → 2026-07-26 改整篇 (v2)。"
+        )
+        logger.info(
+            "     · 整篇不截断 + 超长分段池化 (v2 现行口径, 与 stage 16 / 27 同管线): "
+            "Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using "
+            "Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical "
+            "Methods in Natural Language Processing and the 9th International Joint "
+            "Conference on Natural Language Processing (EMNLP-IJCNLP) (pp. 3982-3992). "
+            "Association for Computational Linguistics. https://doi.org/10.18653/v1/D19-1410"
+        )
+        logger.info(
+            "       → 对比双方 (文章 / 政策锚点 / 陈旧度参照) 同管线、整文不截断, 符合 "
+            "Hoberg & Phillips (2016 JPE) / Loughran & McDonald (2011 JF) 文本相似度规范。"
         )
         logger.info(
             "     · language embedding 范式 (BERT 嵌入测文本语义立场, 本阶段 SBERT 轨最新锚): "
@@ -390,10 +488,13 @@ def main():
             f"+ _lg={_SBERT_MODEL_ID_LG} (跨厂商对等互证)"
         )
         logger.info(
-            f"     · 输入截断: TITLE_CHARS={TITLE_CHARS:,d} | "
-            f"FIRST_PARA_CHARS={FIRST_PARA_CHARS:,d} | "
-            f"text_pipeline_version={_TEXT_PIPELINE_VERSION} | "
-            f"_lg version={_TEXT_PIPELINE_VERSION_LG}"
+            f"     · 输入构造: INPUT_STRATEGY={INPUT_STRATEGY} "
+            + ("(整篇, 无预截断; full 轨 .strip() / ctx·ss 不 strip — 与 stage 16 逐字节同构)"
+               if INPUT_STRATEGY == 'whole_text_v2'
+               else f"(v1 退役口径: TITLE_CHARS={TITLE_CHARS:,d} + FIRST_PARA_CHARS={FIRST_PARA_CHARS:,d})")
+            + f" | text_pipeline_version={_TEXT_PIPELINE_VERSION} | "
+            f"_lg version={_TEXT_PIPELINE_VERSION_LG} "
+            "(⚠ 该版本号是 spec 级共享命名空间, 严禁因本阶段输入构造变更而 bump)"
         )
         logger.info(
             "     · 嵌入轴: full/ctx/ss 三路平价 (content_full/content_ctx/content_ss "
@@ -433,13 +534,15 @@ def main():
     except Exception as _e_io:  # noqa: BLE001
         logger.warning(f"  输入 schema provenance 打印失败 (不影响处理): {_e_io}")
 
-    # ── 📏 截断决策的语料实证 (日志富集 Round8 2026-06-29; 纯日志, golden-safe) ──
-    # docstring/日志把"中文新闻中位 ~800 字 > SBERT 512 token"作为 Bybee 2024『标题+首段
-    # 300 字』截断策略的依据 (本文件 L349-351 / L71), 但此前从未在真实语料上 MEASURE。此处在
-    # 嵌入源文本列 (content_full 优先, 缺则裸 内容) 上实测字符长度分布 (中位/均值/标准差/四分位
-    # via sig4 + min/max 整数) + 截断率 [pct4(正文 > FIRST_PARA_CHARS=300 的占比) = 被首段
-    # 截断丢尾的文章比例; pct4(标题 > TITLE_CHARS=100 的占比)], 把"~800 字"从断言升级为带语料
-    # 证据的运行期度量 (量化丢弃了多少正文)。整块在 try/except 内, 结果仅喂 logger, 不回写 df。
+    # ── 📏 输入长度的语料实证 (日志富集 Round8 2026-06-29; 2026-07-26 随 v2 改口径; 纯日志) ──
+    # 原动机: docstring 曾把"中文新闻中位 ~800 字 > SBERT 512 token"当作 v1『标题+首段 300 字』
+    # 截断的依据却从未在真实语料上 MEASURE, 故此处实测长度分布把断言升级为运行期度量。
+    # v2 (2026-07-26 整篇) 下**不再有任何预截断** → 截断率语义消失, 改为:
+    #   · 长度分布 (中位/均值/标准差/四分位 via sig4 + min/max 整数) 保留 (仍是有用的语料画像);
+    #   · 「被丢尾占比」两行仅在 INPUT_STRATEGY='bybee400_v1' 时才 emit (否则是失实断言);
+    #   · v2 下超长文章由引擎 split_text_for_embedding 切块+池化, 其规模由 embedding_engine
+    #     的「分段: N 文本 → M 段」日志行给出 (不在此重复分词, 免 242k 篇的重复 tokenize 开销)。
+    # 整块在 try/except 内, 结果仅喂 logger, 不回写 df。
     try:
         _len_src_col = 'content_full' if 'content_full' in df.columns else '内容'
         if _len_src_col in df.columns and len(df) > 0:
@@ -452,47 +555,65 @@ def main():
                 f"Q3={sig4(_q.loc[0.75])} | min={int(_body_len.min()):,d} "
                 f"max={int(_body_len.max()):,d} 字"
             )
-            _trunc_body = float((_body_len > FIRST_PARA_CHARS).mean())
-            logger.info(
-                f"     · 首段截断率: {pct4(_trunc_body)} 文章正文 > FIRST_PARA_CHARS="
-                f"{FIRST_PARA_CHARS:,d} 字 (= Bybee 2024 取首段后被丢尾的文章占比; "
-                "截断越多说明『取首段而非全文』省下越多嵌入算力)"
-            )
-            if '标题' in df.columns:
-                _title_len = df['标题'].fillna('').astype(str).str.len()
-                _trunc_title = float((_title_len > TITLE_CHARS).mean())
+            if INPUT_STRATEGY == 'bybee400_v1':
+                _trunc_body = float((_body_len > FIRST_PARA_CHARS).mean())
                 logger.info(
-                    f"     · 标题截断率: {pct4(_trunc_title)} 文章标题 > TITLE_CHARS="
-                    f"{TITLE_CHARS:,d} 字 (标题中位={sig4(_title_len.median())} 字)"
+                    f"     · 首段截断率: {pct4(_trunc_body)} 文章正文 > FIRST_PARA_CHARS="
+                    f"{FIRST_PARA_CHARS:,d} 字 (= Bybee 2024 取首段后被丢尾的文章占比; "
+                    "截断越多说明『取首段而非全文』省下越多嵌入算力)"
                 )
-            logger.info(
-                "       → (白话: 把 docstring 断言的『中文新闻中位 ~800 字』在本语料上实测一遍, "
-                "用实际字符长度分布与截断率印证『标题+首段 300 字』的取舍丢弃了多少正文 —— "
-                "让截断决策从断言变为有语料证据的运行期度量。)"
-            )
+                if '标题' in df.columns:
+                    _title_len = df['标题'].fillna('').astype(str).str.len()
+                    _trunc_title = float((_title_len > TITLE_CHARS).mean())
+                    logger.info(
+                        f"     · 标题截断率: {pct4(_trunc_title)} 文章标题 > TITLE_CHARS="
+                        f"{TITLE_CHARS:,d} 字 (标题中位={sig4(_title_len.median())} 字)"
+                    )
+                logger.info(
+                    "       → (白话: 把 docstring 断言的『中文新闻中位 ~800 字』在本语料上实测一遍, "
+                    "用实际字符长度分布与截断率印证『标题+首段 300 字』的取舍丢弃了多少正文 —— "
+                    "让截断决策从断言变为有语料证据的运行期度量。)"
+                )
+            else:
+                logger.info(
+                    "     · 预截断: **无** (INPUT_STRATEGY=whole_text_v2, 2026-07-26 改整篇) — "
+                    "全篇送嵌入, 超 8191 token 的文章由引擎 split_text_for_embedding 切块 + "
+                    "token 加权池化处理, 分段规模见下方 embedding 引擎的『分段: N 文本 → M 段』行"
+                )
+                logger.info(
+                    "       → (白话: 以前只把标题和开头 300 字交给模型, 现在整篇都交。上面这组"
+                    "长度数字就是本批语料的真实体量; 极少数超长文章会被切成几段分别算再合并, "
+                    "不会丢掉尾巴。)"
+                )
     except Exception as _e_len:  # noqa: BLE001
         logger.warning(f"  截断决策语料实证打印失败 (不影响处理): {_e_len}")
 
     # ── 嵌入轴 full/ctx/ss 三路 × co-primary 双 spec (Qwen MAIN + large _lg) 编码 ──
     # v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 每轨用两个 API spec 各嵌一遍。
     # content_full / content_ctx / content_ss 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】,
-    # 故 title_col=None 关闭 _truncate_for_sbert 二次前置 (否则 ctx/ss 轨标题×2 与 full 轨不对称)。
+    # 故 title_col=None 关闭二次前置 (否则 ctx/ss 轨标题×2 与 full 轨不对称)。
     # full/ctx/ss 同型构造, 仅输入文本范围不同 (full=标题+全文 / ctx=标题+实体窗口 / ss=标题+银行∧金科同句窗口)。
-    # 缺 content_full 时回退裸 '内容'+'标题' (旧 schema; _truncate_for_sbert 注入标题一次)。
+    # 缺 content_full 时回退裸 '内容'+'标题' (旧 schema; v2 走 prepend_title(...).strip(), 标题一次)。
+    # ⚠ v2 (2026-07-26): 仅 full 轨传 strip_text=True — 该不对称照抄 stage 16, 是缓存键共享的
+    #    字节级前提 (改任一侧 → 该轨全体 cache miss + 付费重嵌)。
     # 🔴 both-or-neither parity (D-4a): 每轨 MAIN 或 _lg 任一 embed_texts 返回 None →
     #    该轨两列 (emb_X / emb_X_lg) 同置 None (不产, 不留单边孤儿列)。
     # 单连接复用: 一个共享 LLMCache 传入全部 ≤6 次 embed_texts (省重复 open; 产出逐位不变)。
     _shared_cache = LLMCache(CACHE_DB_PATH)
 
-    def _embed_track_dual(content_col: str, title_col):
-        """对一轨用 MAIN + _lg 两 spec 各嵌一遍; both-or-neither → 任一 None 则返 (None, None)."""
+    def _embed_track_dual(content_col: str, title_col, *, strip_text: bool = False):
+        """对一轨用 MAIN + _lg 两 spec 各嵌一遍; both-or-neither → 任一 None 则返 (None, None).
+
+        `strip_text` 只在 full 轨为 True —— 照抄 stage 16 `policy_alignment` 的既有不对称
+        (full 轨 `.str.strip()`, ctx/ss 轨不 strip); 该不对称是缓存键共享的**字节级前提**,
+        改任一侧都会使该轨全体 cache miss 并产生付费重嵌。"""
         _m = encode_articles(
             df, content_col=content_col, spec=_MAIN_SPEC, title_col=title_col,
-            cache=_shared_cache, log_prefix="ArticleSBERT-MAIN",
+            strip_text=strip_text, cache=_shared_cache, log_prefix="ArticleSBERT-MAIN",
         )
         _l = encode_articles(
             df, content_col=content_col, spec=_LARGE_SPEC, title_col=title_col,
-            cache=_shared_cache, log_prefix="ArticleSBERT-LARGE",
+            strip_text=strip_text, cache=_shared_cache, log_prefix="ArticleSBERT-LARGE",
         )
         if _m is None or _l is None:
             logger.error(
@@ -508,6 +629,7 @@ def main():
         embs_full, embs_full_lg = _embed_track_dual(
             content_col='content_full' if _has_cfull else '内容',
             title_col=None if _has_cfull else '标题',
+            strip_text=True,        # 仅 full 轨 strip (镜像 stage 16; 见 _embed_track_dual 注释)
         )
         embs_ctx, embs_ctx_lg = (
             _embed_track_dual(content_col='content_ctx', title_col=None)
