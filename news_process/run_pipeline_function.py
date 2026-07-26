@@ -204,6 +204,18 @@ STAGE_CODE_VERSION: dict[str, tuple[str, str]] = {
     "00_preprocessing.py": (
         "news_process.pipeline.preprocess._constants", "PREPROCESS_CODE_VERSION",
     ),
+    # F22 (2026-07-27): stage 25/26 接入代码版本门。stage 25 的版本号里**编进了**输入构造
+    # 开关 (SBERT_CODE_VERSION = f'sbert-v2:{INPUT_STRATEGY}') —— 把 INPUT_STRATEGY 回退到
+    # 'bybee400_v1' 会自动使版本失配 → reject skip → 强制重跑, 杜绝"翻开关却被静默跳过"。
+    # ⚠ 两个模块路径必须是**零副作用叶模块** (`pipeline/text/_constants`): 本函数在
+    # orchestrator 父进程里 importlib.import_module 它; 若指向 article_sbert/article_staleness
+    # 本体, 父进程 import 会执行 setup_logging → 截断该阶段的生产日志。
+    "25_article_sbert.py": (
+        "news_process.pipeline.text._constants", "SBERT_CODE_VERSION",
+    ),
+    "26_article_staleness.py": (
+        "news_process.pipeline.text._constants", "STALENESS_CODE_VERSION",
+    ),
 }
 
 

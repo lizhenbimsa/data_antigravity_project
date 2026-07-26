@@ -114,7 +114,9 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.caching import LLMCache  # noqa: E402
 from news_process.core.config import load_config  # noqa: E402
+from news_process.core.data_versioning import save_parquet_with_metadata  # noqa: E402
 from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
+from news_process.pipeline.text import _constants as _CONST  # noqa: E402
 from news_process.pipeline.text import embedding_engine as _eng  # noqa: E402
 
 CONFIG = load_config()
@@ -170,9 +172,13 @@ _TEXT_PIPELINE_VERSION_LG = _eng.spec_version(_LARGE_SPEC)
 #   MinHash, semantic 轨改整篇后两者**互补性可能下降** (设计诊断带 corr∈[0.3,0.7],
 #   见 article_staleness G-D2.1) → 每次重生须复核该诊断值并如实披露。
 # v1 口径 (`_truncate_for_sbert` + TITLE_CHARS/FIRST_PARA_CHARS) **保留但已退役**:
-#   供历史对照与一键回退 (把 INPUT_STRATEGY 改回 'bybee400_v1' 即可), 勿删。
-INPUT_STRATEGY = 'whole_text_v2'      # 'whole_text_v2' (现行) | 'bybee400_v1' (退役参照)
-_VALID_STRATEGIES = frozenset({'whole_text_v2', 'bybee400_v1'})
+#   供历史对照与一键回退 (把 _constants.INPUT_STRATEGY 改回 'bybee400_v1' 即可), 勿删。
+# ⚠ SSOT 已迁至叶模块 `pipeline/text/_constants.py` (F22, 2026-07-27): orchestrator 的
+#   --skip-unchanged 代码版本门要在**父进程**里 import 版本号, 而 import 本模块会触发
+#   setup_logging → 截断本阶段生产日志。故常量下沉到零副作用叶模块, 此处仅 re-export
+#   (保持 `article_sbert.INPUT_STRATEGY` 既有引用/monkeypatch 点不变)。
+INPUT_STRATEGY = _CONST.INPUT_STRATEGY  # 'whole_text_v2' (现行) | 'bybee400_v1' (退役参照)
+_VALID_STRATEGIES = _CONST.VALID_STRATEGIES
 
 # Bybee 2024 风格 "标题 + 首段 300 字" 截断 (v1 退役口径; 保留供回退/历史对照)
 TITLE_CHARS = 100
@@ -653,7 +659,21 @@ def main():
         df, embs_full, embs_ctx, embs_ss,
         embs_full_lg=embs_full_lg, embs_ctx_lg=embs_ctx_lg, embs_ss_lg=embs_ss_lg,
     )
-    out_df.to_parquet(out_path, index=False)
+    # F22 (2026-07-27): 由裸 to_parquet 改 save_parquet_with_metadata —— 写 data_version
+    # (input_hashes/config_file_hashes/resource_hashes/code_version) 使本阶段可被
+    # orchestrator 的通用 --skip-unchanged 判据识别。此前无元数据 ⟹ 结构性**不可跳过**
+    # ⟹ 每次 stage 40 失败重试都白跑 25(2645s)+26(6766s) ≈ 2.6h (2026-07-26/27 实弹两次)。
+    # preserve_index=False 逐位等价原 to_parquet(index=False); 元数据只进 schema 不进数据列
+    # → golden 只哈希数据列 → golden-safe。
+    save_parquet_with_metadata(
+        df=out_df,
+        output_path=out_path,
+        stage_name="25_article_sbert",
+        config=CONFIG,
+        input_files=[src_path],
+        code_version=_CONST.SBERT_CODE_VERSION,
+        preserve_index=False,
+    )
 
     size_mb = os.path.getsize(out_path) / 1024 / 1024
     logger.info(f"  输出: {out_path} ({sig4(size_mb)} MB)")

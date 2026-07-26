@@ -122,7 +122,9 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
+from news_process.core.data_versioning import save_parquet_with_metadata  # noqa: E402
 from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
+from news_process.pipeline.text import _constants as _CONST  # noqa: E402
 
 CONFIG = load_config()
 STAGE_NAME = "26_article_staleness"
@@ -766,7 +768,29 @@ def main():
         + ['target_bank', 'year']
         + [c for c in art_df.columns if 'staleness' in c]
     )
-    art_df[keep_cols].to_parquet(out_path, index=False)
+    # F22 (2026-07-27): 裸 to_parquet → save_parquet_with_metadata (两处产物均须写, 因
+    # OUTPUT_REGISTRY 为本阶段登记了 26_article_staleness + 26_staleness_panel 两个文件,
+    # --skip-unchanged 要求**全部**登记产物都带 data_version 才判可跳)。
+    # input_files 三源: ①stage14 文本源 ②stage25 嵌入 (semantic 轨) ③verified 域门控源
+    # (_restrict_to_panel_domain 实读的 24_herd_decay, 缺则 21_tone_llms) —— 少声明任一,
+    # 上游改数后本阶段会被误判可跳。preserve_index=False 逐位等价原 index=False。
+    _skip_inputs = [src_path] + [p for p in (emb_path,) if os.path.exists(p)] + [
+        p for p in (
+            os.path.join(output_dir, CONFIG['filenames'].get(
+                'output_24_herd_decay', '24_herd_decay.parquet')),
+            os.path.join(output_dir, CONFIG['filenames'].get(
+                'output_21_tone_llms', '21_tone_llms.parquet')),
+        ) if os.path.exists(p)
+    ][:1]
+    save_parquet_with_metadata(
+        df=art_df[keep_cols],
+        output_path=out_path,
+        stage_name="26_article_staleness",
+        config=CONFIG,
+        input_files=_skip_inputs,
+        code_version=_CONST.STALENESS_CODE_VERSION,
+        preserve_index=False,
+    )
     logger.info(f"  article-level → {out_path}")
     # io_provenance (Round 8, log-only): 落盘后补 输出 schema 指纹 —— keep_cols 总数 +
     # 实际落盘的全部 staleness 列清单 (surface/semantic × full/ctx/ss × MAIN/_lg co-primary),
@@ -785,7 +809,15 @@ def main():
     # fix(omni-g-embed-06/08, 2026-06-11): 平均域收缩到 verified 面板语料
     panel = aggregate_to_bank_year(_restrict_to_panel_domain(art_df, output_dir))
     panel_path = os.path.join(output_dir, '26_staleness_panel.parquet')
-    panel.to_parquet(panel_path, index=False)
+    save_parquet_with_metadata(          # F22: 同上 (第 2 个登记产物, 与 article-level 同源指纹)
+        df=panel,
+        output_path=panel_path,
+        stage_name="26_article_staleness",
+        config=CONFIG,
+        input_files=_skip_inputs,
+        code_version=_CONST.STALENESS_CODE_VERSION,
+        preserve_index=False,
+    )
     logger.info(f"  bank-year → {panel_path} ({len(panel):,d} 行)")
     phase_durations['④持久化 + bank-year 聚合'] = time.time() - _t_write
 
