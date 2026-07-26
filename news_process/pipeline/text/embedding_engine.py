@@ -261,10 +261,41 @@ def split_text_for_embedding(text) -> list[str]:
     tokens = _EMB_ENCODING.encode(text, disallowed_special=())
     if len(tokens) <= EMB_MAX_TOKENS:
         return [text]
-    return [
-        _EMB_ENCODING.decode(tokens[i:i + EMB_MAX_TOKENS])
-        for i in range(0, len(tokens), EMB_MAX_TOKENS)
-    ]
+    # ── F21 后置条件强制 (2026-07-26 生产实弹) ──────────────────────────────
+    # 现场: stage 40 (strategic_diff bank-year 超级文档, 2017 年) 跑 2 小时后崩于
+    #   `RuntimeError: Embedding 单条输入超限: 8192 > 8191` —— 即**本函数切出的块**
+    #   在下游 `get_embeddings_api` 被重新 encode 时算出 8192 token, 违反本函数契约,
+    #   而那条守卫是**致命不可重试**的 raise → 整阶段报废。
+    # 复现记录 (据实): 前两次尝试 (①真实语料滑动 292 个切点; ②按 '\n' 复刻 2017 年
+    #   428 条超级文档) **均未复现** —— 因连接符错了 (strategic_diff 实际用**空格**
+    #   `' '.join`) 且未取最长文档。第三次按真实口径取**最长 60 条** bank-year 超级文档,
+    #   **复现成功**: 4 条含病态块 (受影响年份 2017/2018/2022/2023)。
+    #   即便如此, 本函数仍**不依赖对成因的判断**, 而是直接强制后置条件: 每个返回块实测
+    #   回编码 ≤ EMB_MAX_TOKENS, 不满足就收缩 token 窗口重切 —— 与漂移成因无关, 恒成立。
+    # 兼容性 (实测, 非推断): 对回编码守恒的文本, `hi` 一次命中即等于旧的
+    #   `tokens[i:i+EMB_MAX_TOKENS]` → 切块字面与旧版**逐字节相同** (60 条最长超级文档中
+    #   **56 条完全一致**)。仅含病态块的 4 条文档切块改变 (707/14,684 块 = 4.81%);
+    #   而**那些文档此前根本产不出结果** —— 实测变化前后的 707 个块在缓存中命中数**均为 0**
+    #   ⟹ **零有效结果失效、零重复付费** (新块属首次付费, 本就要付)。
+    out: list[str] = []
+    lo, n_tok = 0, len(tokens)
+    while lo < n_tok:
+        hi = min(lo + EMB_MAX_TOKENS, n_tok)
+        piece = _EMB_ENCODING.decode(tokens[lo:hi])
+        # 回编码守恒守卫: 超限则按几何比例收缩窗口 (避免逐 token 回退的 O(n) 重编码)
+        for _ in range(64):                       # 有界重试, 防病态输入死循环
+            if len(_EMB_ENCODING.encode(piece, disallowed_special=())) <= EMB_MAX_TOKENS:
+                break
+            shrink = max(1, (hi - lo) // 32)
+            hi = max(lo + 1, hi - shrink)
+            piece = _EMB_ENCODING.decode(tokens[lo:hi])
+        else:
+            logger.warning(
+                f"    split_text_for_embedding: 块 [{lo}:{hi}] 收缩 64 次仍超限 "
+                f"(原文 {n_tok:,d} token) — 按当前窗口放行, 交由下游守卫处理")
+        out.append(piece)
+        lo = hi
+    return out
 
 
 async def get_embeddings_api(texts, spec: dict, cache=None, *,
@@ -399,8 +430,16 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         for _pos, text in enumerate(missing_texts):
             n_tok = max(1, len(_EMB_ENCODING.encode(text, disallowed_special=())))
             if n_tok > EMB_MAX_TOKENS:
+                # F21 (2026-07-26): 本守卫在 stage 40 生产跑中被触发 (8192 > 8191) 并
+                # 致命中断整阶段, 但旧消息**只有两个数字**, 无法定位是哪条文本/哪次调用
+                # → 上游排查只能靠猜 (实测两条复现路径均未命中)。补足可定位信息;
+                # split_text_for_embedding 已强制后置条件, 正常路径下本分支不可达。
                 raise RuntimeError(
-                    f"Embedding 单条输入超限: {n_tok} > {EMB_MAX_TOKENS}"
+                    f"Embedding 单条输入超限: {n_tok} > {EMB_MAX_TOKENS} "
+                    f"(model={embedding_model}, missing_texts 第 {_pos} 条 / 共 "
+                    f"{len(missing_texts):,d}, 全局行号={missing_indices[_pos]}, "
+                    f"字符数={len(str(text)):,d}, 首 80 字={str(text)[:80]!r}) — "
+                    f"上游 split_text_for_embedding 的后置条件被破坏, 请连同本消息报缺陷"
                 )
             if current_batch and (
                 len(current_batch) >= 2000
