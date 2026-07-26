@@ -210,3 +210,56 @@ def test_silence_worker_logging_removes_handlers():
     finally:
         _logging.disable(saved_disable)
         lg.handlers = saved
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# stage 24 herd_decay 进程并行 gate (F20, 2026-07-26; 与 stage22 同型范式)
+# ══════════════════════════════════════════════════════════════════════════
+
+def test_herd_parallel_kwargs_workload_adaptive():
+    """银行数 < 阈值 → 串行 (免 spawn); ≥ 阈值 → 进程后端 (绕单线程瓶颈)。"""
+    from news_process.pipeline.sentiment import herd_decay as H
+    small = H._parallel_kwargs(H._PROC_PARALLEL_MIN_BANKS - 1)
+    big = H._parallel_kwargs(H._PROC_PARALLEL_MIN_BANKS)
+    assert small['n_jobs'] == 1, '小工况应串行'
+    assert big['prefer'] == 'processes', (
+        '大工况应切进程后端 —— 生产 991 家可算银行串行需 ≈5.8 小时并撞穿父端超时')
+    assert big['n_jobs'] > 0, '严禁 n_jobs=-1 (每 worker 各持 TF-IDF 矩阵)'
+    assert big['n_jobs'] <= (os.cpu_count() or 1)
+
+
+def test_herd_proc_workers_config_override(monkeypatch):
+    from news_process.pipeline.sentiment import herd_decay as H
+    monkeypatch.setitem(H.HERD_CFG, 'proc_workers', 4)
+    assert H._proc_workers() == 4
+    monkeypatch.setitem(H.HERD_CFG, 'proc_workers', 'bogus')
+    assert H._proc_workers() == min(H._PROC_PARALLEL_MAX_WORKERS, os.cpu_count() or 1)
+    monkeypatch.setitem(H.HERD_CFG, 'proc_workers', 0)
+    assert H._proc_workers() == 1, 'proc_workers=0 应 clamp 到 1'
+
+
+def test_herd_worker_is_module_level_picklable():
+    """loky 进程后端要求 worker 为模块级 (pickle-by-ref)。"""
+    import pickle
+
+    from news_process.pipeline.sentiment import herd_decay as H
+    assert H._herd_bank_worker.__module__ == H.__name__
+    assert pickle.loads(pickle.dumps(H._herd_bank_worker)) is H._herd_bank_worker
+
+
+def test_herd_worker_silences_logging():
+    """⚠ herd_decay 在**模块级**调 setup_logging → 子进程首条日志会截断父进程
+    24_herd_decay_processor.log (2026-07-24 实弹先例)。worker 必须先静音。"""
+    import logging as _logging
+
+    from news_process.pipeline.sentiment import herd_decay as H
+    lg = H.logger
+    saved, saved_disable = list(lg.handlers), _logging.root.manager.disable
+    try:
+        lg.addHandler(_logging.NullHandler())
+        H._silence_worker_logging()
+        assert lg.handlers == [], 'worker 静音后不得残留 handler'
+        assert _logging.root.manager.disable >= _logging.CRITICAL
+    finally:
+        _logging.disable(saved_disable)
+        lg.handlers = saved

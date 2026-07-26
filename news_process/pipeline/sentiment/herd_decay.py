@@ -326,6 +326,77 @@ def _bucketed_similar_counts(tfidf_matrix, dates: list, thresholds=None) -> np.n
     return similar_counts[:, 0] if thresholds is None else similar_counts
 
 
+# ============================================================================
+# 进程并行 worker + 工况自适应后端 (perf fix 2026-07-26, F20)
+# ============================================================================
+# 病根: 逐银行的 TF-IDF + 余弦是纯 Python/BLAS 混合的**单线程**循环。生产实测:
+#   1,247 家银行 (991 家 ≥2 篇可算), 前 50 家 (遍历序含工/建/农/中/中信五大行,
+#   占全部文章 62.3%) 耗时 **103 分钟仍未走完** → 按逐年度前缀成本模型 (前 50 家
+#   = 29.75% 总成本) 外推**全程 ≈5.8 小时**, 撞穿父端超时被强杀。
+# ⚠ 反直觉的成本结构 (实测): 最贵的**不是**巨型行而是**卡在 2000 篇以下的中型行** ——
+#   超 2000 篇的年度前缀走 7 天窗双指针 O(N·window), 而 2000 篇以下走 dense O(n²);
+#   故北京银行(1,855篇)/深圳前海微众(1,676篇)/江苏银行(1,802篇) 反比工行(24,684篇) 贵。
+# 修法 (镜像 stage 15 §1b / stage 22 已验证范式): 各银行**完全独立** (无跨行状态,
+#   TF-IDF 逐行拟合, as-of 年度前缀亦在行内) → 提升 worker 为模块级走 loky 进程后端。
+# 字节等价 (byte-equivalent-by-construction):
+#   · 逐银行计算彼此无依赖, worker 内排序键/算法与串行分支**同一函数**;
+#   · 结果按**提交序**回收并逐银行 `df.loc[indices, col] = ...` 写回 —— 各银行 indices
+#     两两不交, 故写回顺序不改任何格的值;
+#   · 三个 herd 计数累加器是**整数求和**, order-independent。
+# ⚠ worker 绝不写日志: 本模块**模块级**调 `setup_logging` (L137), 子进程 import 时其
+#   首条日志会把父进程 24_herd_decay_processor.log 从头截断 (2026-07-24 实弹先例);
+#   已核实 `_compute_similar_counts_for_track` 内**零** logger 调用 → 静音无诊断损失。
+_PROC_PARALLEL_MIN_BANKS = 200   # ≥200 家可算银行才切进程后端 (之下串行, 免 spawn 开销)
+_PROC_PARALLEL_MAX_WORKERS = 12  # 同 stage 22: 严禁 -1 (每 worker 各持 TF-IDF 矩阵)
+
+
+def _proc_workers() -> int:
+    """进程臂 worker 数 = min(配置值, CPU 核数); config: herd_detection.proc_workers。"""
+    try:
+        _v = HERD_CFG.get('proc_workers', _PROC_PARALLEL_MAX_WORKERS)
+        _v = int(_v) if not isinstance(_v, bool) else _PROC_PARALLEL_MAX_WORKERS
+    except (TypeError, ValueError):
+        _v = _PROC_PARALLEL_MAX_WORKERS
+    return max(1, min(_v, os.cpu_count() or _PROC_PARALLEL_MAX_WORKERS))
+
+
+def _parallel_kwargs(n_banks: int) -> dict:
+    """按工况规模选 joblib 后端: 大 → 进程 (真并行); 小 → 串行 (免 spawn 开销)。"""
+    if n_banks >= _PROC_PARALLEL_MIN_BANKS:
+        return {'n_jobs': _proc_workers(), 'prefer': 'processes'}
+    return {'n_jobs': 1, 'prefer': 'threads'}
+
+
+def _silence_worker_logging() -> None:
+    """子进程内彻底静音 logging (防首条日志截断父进程 <stage>.log)。幂等。"""
+    import logging as _logging
+    for _h in list(logger.handlers):
+        logger.removeHandler(_h)
+    _logging.disable(_logging.CRITICAL)
+
+
+def _herd_bank_worker(bank_df, full_col: str, has_ctx: bool, has_ss: bool,
+                      thresholds: list, bank_name=None):
+    """单银行三轨跟风计数 worker (模块级, 供 loky pickle-by-ref)。
+
+    返回 (indices, full_counts, ctx_counts, ss_counts); 与串行分支**同一算法同一函数**,
+    仅执行位置不同。调用方按提交序回收后写回 df (各银行 indices 不交 → 写回序无关)。"""
+    _silence_worker_logging()
+    _sort_keys = ['日期'] + [c for c in ('标题', '内容') if c in bank_df.columns]
+    bank_df = bank_df.sort_values(_sort_keys, kind='stable').copy()
+    indices = bank_df.index.tolist()
+    dates = bank_df['日期'].tolist()
+    full_counts = _compute_similar_counts_for_track(
+        bank_df, full_col, dates, bank_name=bank_name, thresholds=thresholds)
+    ctx_counts = _compute_similar_counts_for_track(
+        bank_df, 'content_ctx', dates, bank_name=bank_name,
+        thresholds=thresholds) if has_ctx else full_counts
+    ss_counts = _compute_similar_counts_for_track(
+        bank_df, 'content_ss', dates, bank_name=bank_name,
+        thresholds=thresholds) if has_ss else full_counts
+    return indices, full_counts, ctx_counts, ss_counts
+
+
 def _compute_similar_counts_for_track(
     bank_df: pd.DataFrame, text_col: str, dates: list, *, bank_name=None,
     thresholds=None,
@@ -561,39 +632,36 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     total_herd_ctx = 0
     total_herd_ss = 0  # v3.9.0 第三轨 (银行+金科同句) 跟风篇数累计
 
-    for bank_idx, (bank_name, bank_df) in enumerate(bank_groups):
-        if len(bank_df) < 2:
-            continue
+    # 阈值敏感性 (2026-06-13): 第 0 列 = 基线 SIMILARITY_THRESHOLD, 第 1.. 列
+    # = SENS_THRESHOLDS — 同一 TF-IDF/余弦矩阵一遍式复算, 不重复向量化。
+    _all_thr = [SIMILARITY_THRESHOLD] + SENS_THRESHOLDS
 
-        # fix(herd-decay-01, metric-audit 2026-06-10): 同日文章排序须确定 (原默认 quicksort
-        # 不稳定 + 无次键 → 同日 tie 顺序 run-to-run 非确定 → 加权 llm_vote_tone_hw 漂移)。
-        # 加 kind='stable' + 内容派生次键 (标题, 内容) 使同日次序内容确定、跨运行可复现。
-        _sort_keys = ['日期'] + [c for c in ('标题', '内容') if c in bank_df.columns]
-        bank_df = bank_df.sort_values(_sort_keys, kind='stable').copy()
-        indices = bank_df.index.tolist()
-        dates = bank_df['日期'].tolist()
+    # ── 工况自适应后端 (F20, 2026-07-26): 各银行完全独立 → 大工况走 loky 进程后端 ──
+    # 与串行逐字节等价 (见 _herd_bank_worker 上方论证); IPC 只传 worker 真正用到的列
+    # (排序键 日期/标题/内容 + 三轨文本), 避免把 stage 23 的宽表整片 pickle 过去。
+    # 列裁剪在**建表时**即做: 否则 1,247 份全宽切片 (stage 23 宽表) 会在内存里再复制一份 df。
+    _need = [c for c in dict.fromkeys(
+        ['日期', '标题', '内容', full_col, 'content_ctx', 'content_ss'])
+        if c in df.columns]
+    _calc_banks = [(_n, _g[_need]) for _n, _g in bank_groups if len(_g) >= 2]
+    _n_calc_banks = len(_calc_banks)
+    _par = _parallel_kwargs(_n_calc_banks)
+    logger.info(
+        f"  跟风计数后端={_par['prefer']} (n_jobs={_par['n_jobs']}), "
+        f"可算银行 {_n_calc_banks:,d}/{n_banks:,d} (<2 篇者跳过); "
+        f"IPC 列={_need} — 与串行逐字节等价, 仅墙钟")
 
-        # full 轨计算 (bank_name 仅供降级/截断透明日志, fix(omni-g-herd-03, 2026-06-11))
-        # 阈值敏感性 (2026-06-13): 第 0 列 = 基线 SIMILARITY_THRESHOLD, 第 1.. 列
-        # = SENS_THRESHOLDS — 同一 TF-IDF/余弦矩阵一遍式复算, 不重复向量化。
-        _all_thr = [SIMILARITY_THRESHOLD] + SENS_THRESHOLDS
-        full_counts = _compute_similar_counts_for_track(
-            bank_df, full_col, dates, bank_name=bank_name, thresholds=_all_thr)
-        # ctx 轨计算 (缺失时回退 = full)
-        if has_ctx:
-            ctx_counts = _compute_similar_counts_for_track(
-                bank_df, 'content_ctx', dates, bank_name=bank_name,
-                thresholds=_all_thr)
-        else:
-            ctx_counts = full_counts  # 回退: 与 full 同值, 由 has_ctx 警告告知用户
-        # ss 轨计算 (v3.9.0 第三轨, 银行+金科同句; 缺 content_ss 时回退 = full)
-        if has_ss:
-            ss_counts = _compute_similar_counts_for_track(
-                bank_df, 'content_ss', dates, bank_name=bank_name,
-                thresholds=_all_thr)
-        else:
-            ss_counts = full_counts  # 回退: 与 full 同值, 由 has_ss 警告告知用户
+    if _par['prefer'] == 'processes':
+        from joblib import Parallel, delayed
+        _results = Parallel(**_par)(
+            delayed(_herd_bank_worker)(_g, full_col, has_ctx, has_ss, _all_thr, _n)
+            for _n, _g in _calc_banks)
+    else:
+        _results = [_herd_bank_worker(_g, full_col, has_ctx, has_ss, _all_thr, _n)
+                    for _n, _g in _calc_banks]
 
+    # 按**提交序**回收写回 (各银行 indices 两两不交 → 写回序不改任何格的值)
+    for bank_idx, (indices, full_counts, ctx_counts, ss_counts) in enumerate(_results):
         # 按银行向量化赋值 (.loc[标签列表] 与 counts 行序一致 — bank_df 排序序;
         # 替换原逐行 .at 循环, 数值等价, 多阈值下避免 (1+K)×3 列 × n 行的逐格写)
         for _tn, _counts in (('full', full_counts), ('ctx', ctx_counts),
@@ -615,7 +683,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
                 df.loc[indices, f'herd_weight_{_tn}_{_tag}'] = 1.0 / (1.0 + _cj)
 
         if (bank_idx + 1) % 50 == 0:
-            logger.info(f"  已处理 {bank_idx + 1}/{n_banks} 家银行")
+            logger.info(f"  已回写 {bank_idx + 1}/{_n_calc_banks} 家可算银行")
 
     n_total = len(df)
     logger.info(f"  三轨跟风检测完成:")
