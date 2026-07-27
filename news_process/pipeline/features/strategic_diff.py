@@ -189,6 +189,30 @@ from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+# ── F26 (2026-07-27): LDA fit 段的 BLAS 线程钉死 ────────────────────────────
+# **实测事实 (2026-07-27 真数据探针, 2007-2011, 503 个 bank-year 超级文档)**:
+#   同一个 `_compute_lda_coherence`, BLAS 线程不钉 = **775.2s**, 钉到 1 = **140.0s**
+#   —— 快 **5.5×**。sklearn LDA 的 online E-step 是大量小矩阵运算, 多线程 BLAS 的
+#   同步开销远超收益 (典型过度订阅)。
+# **更要紧的是确定性**: 同一探针证明, 不钉线程时并行臂与串行臂 **265/277 个值位模式
+#   不同** (相对误差 ~1e-13); 钉到 1 后 **277/277 逐位相同**。也就是说 —— 现状下
+#   `coh_lda*` / `strat_diff_n*_lda` / `centroid_diff_lda` 的数值**本就依赖运行机器的
+#   BLAS 线程数**, 而 fix(omni-g-strategic-16, 2026-06-11) 当初把 `n_jobs=-1` 改成 1
+#   正是为了消除这类核数依赖 —— 那次修复只堵了 sklearn 自身的 E-step 切片, 没堵住
+#   底层 BLAS, 留了半个口子。
+# **本修复**: 在 LDA fit 现场显式 `threadpool_limits(1)`, 使其**与环境无关**地取
+#   CLAUDE.md 既定 golden 重生协议 (全 BLAS 线程钉 1) 下的那个值。
+# ⚠ **这是改数动作** (量级 ~1e-13): 未钉线程的旧跑与本版会有末位差异, 方向是**向
+#   canonical 靠拢**, 非引入新噪声。受影响列族: coh_lda{,_ctx,_ss} /
+#   strat_diff_n*_lda{,_ctx,_ss} / strat_sim_max_lda* / centroid_diff_lda*。
+try:
+    from threadpoolctl import threadpool_limits as _threadpool_limits
+except ImportError:      # threadpoolctl 是 sklearn 依赖; 极端裸环境缺失则退化为无操作
+    from contextlib import nullcontext as _nullcontext
+
+    def _threadpool_limits(limits=None, user_api=None):
+        return _nullcontext()
+
 # Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -632,11 +656,15 @@ def _build_lda_jsd_matrix(texts, n_banks):
         dtm = cv.fit_transform(texts)
     # fix(omni-g-strategic-16, 2026-06-11): n_jobs=-1 → 1 (跨机器核数依赖的
     # E-step 浮点求和序破坏逐位可复现性, 见函数 docstring "确定性" 段)
+    # F26 (2026-07-27): 补钉底层 BLAS 线程 —— 上一行只堵了 sklearn 自身的 E-step 切片,
+    # 没堵住 BLAS, 数值仍随机器线程数漂 ~1e-13。钉 1 后与环境无关且实测快 5.5×。
     lda = LatentDirichletAllocation(
         n_components=K, random_state=42,
         max_iter=50, learning_method='online', n_jobs=1)
-    theta = lda.fit_transform(dtm)
-    logger.info(f"    LDA K={K}, perplexity={sig4(lda.perplexity(cv.transform(texts)))}")
+    with _threadpool_limits(limits=1):
+        theta = lda.fit_transform(dtm)
+        _perp = lda.perplexity(cv.transform(texts))   # perplexity 亦走 BLAS, 同域内算
+    logger.info(f"    LDA K={K}, perplexity={sig4(_perp)}")
 
     # 计算 pairwise JSD (对称半矩阵)
     jsd_mat = np.zeros((n_banks, n_banks))
@@ -947,6 +975,198 @@ def _compute_centroid_scores(vectors, bank_list, is_sparse=False,
 #   那就是 Fluidity 低。
 # ============================================================================
 
+# ════════════════════════════════════════════════════════════════════════════
+# F25 (2026-07-27): 「相邻期 (t, t-1)」逐年循环的进程并行驱动
+#
+# **为何 (2026-07-27 生产实弹)**: stage 40 跑满 21,600s 被父端强杀, 逐子步骤归因显示
+# 「相邻期文本连贯性」是仅次于战略差异度主循环的第二大极 —— 单轨 TF-IDF char 28 分钟
+# + word 25 分钟, 三轨 × 4 算子外推 ≈5 小时, 而全程只用 32 逻辑核中的 **1 核**。
+#
+# **为何这里是最安全的并行靶**: 本族三个函数 (_compute_fluidity /
+# _compute_tfidf_coherence / _compute_lda_coherence) 形状完全一致 ——
+#   for year in sorted(unique): 取 df_t / df_t1 → 首年或断档 continue → 本年自洽计算
+#   → 写入 {(bank, year): 值} 的**互斥键**
+# 逐年之间零共享状态、零 DB、零 API、零随机源 (LDA 已 random_state=42 + n_jobs=1),
+# 故进程并行**不改任何数值**, 只改执行顺序; 而结果按任务原序归并, 连 dict 插入序都与
+# 串行一致。
+#
+# **确定性护栏**:
+#   ① 任务切分 `_adjacent_year_tasks` 与串行循环**同序同筛选** (sorted(unique) + 同
+#      df_t1.empty 判据) —— 切分口径一旦漂移就是静默改测度;
+#   ② joblib.Parallel 按**提交序**返回, 不按完成序 → 归并序恒定;
+#   ③ 年数 < _PROC_PARALLEL_MIN_YEARS 或只配到 1 worker 时**回落串行**, 与旧码逐字节
+#      同路径 (T=2 dev / golden 小样本因此零行为变化);
+#   ④ worker 体内**零 logger 调用** —— 降级/失败告警一律回传, 由父端统一 emit,
+#      保证告警不丢也不重, 且 worker 被父进程直接调用 (串行回落) 时行为一致。
+#   ⚠ 本模块**没有**模块级 setup_logging (只 logging.getLogger), 故 loky worker import
+#      本模块不会截断生产日志 (对比 herd_decay: 2026-07-26 实弹被 A/B 脚本抹掉过日志)。
+#
+# **实测边界 (2026-07-27 真数据 A/B, 2007-2011)**: TF-IDF 连贯性 277 键 / fluidity
+# 455 键在 char 与 word 双 mode 下**全部逐位相同**, 提速 2.83× / 3.09× / 1.43× / 7.33×;
+# 唯独 `_compute_lda_coherence` 出现 265/277 个 ~1e-13 漂移 (BLAS 线程数差异) →
+# **该函数恒串行, 见其函数体内的长注释**。
+# ════════════════════════════════════════════════════════════════════════════
+
+#: 年数下限 — 低于此值进程启动开销 (loky spawn + 每 worker 一份 jieba Trie) 不划算。
+_PROC_PARALLEL_MIN_YEARS = 4
+#: worker 上限 — 与 stage 15/22/24 同档。每 worker 各持一份注入 607 词的 jieba Tokenizer
+#: + sklearn 词表; n_jobs=-1 (32 副本) 在 stage 22 已实弹 MemoryError, 此处不重蹈。
+_PROC_PARALLEL_MAX_WORKERS = 12
+
+
+def _proc_workers(n_tasks: int) -> int:
+    """并行度 = min(硬上限, 可用核-2, 任务数); 至少 1。留 2 核给父进程与系统。"""
+    try:
+        n_cpu = len(os.sched_getaffinity(0))          # Linux/容器 亲和性口径
+    except AttributeError:
+        n_cpu = os.cpu_count() or 1                   # Windows 走这条
+    return max(1, min(_PROC_PARALLEL_MAX_WORKERS, n_cpu - 2, n_tasks))
+
+
+# ⚠ 刻意**没有** `_silence_worker_logging()`: 下方三个 worker 会被**父进程直接调用**
+# (年数 < 阈值 / 只配到 1 worker 的串行回落路径, 以及 LDA 的恒串行路径)。若在 worker
+# 里降 logger 级别, 串行路径会把整个 stage 的 INFO 日志掐掉 —— 那正是 F16 那类"日志
+# 落空"缺陷的自造版本。改用**告警回传父端 emit**: worker 体内零 logger 调用。
+
+
+def _adjacent_year_tasks(agg_df):
+    """把「取 df_t / df_t1」的逐年循环切成任务单元。
+
+    ⚠ 必须与串行循环**同序同筛选**: sorted(agg_df['year'].unique()) + 同一
+    ``df_t1.empty → continue`` 判据。任一处漂移都是静默改测度 (少算/多算年份)。
+    只带出 target_bank / agg_text 两列以压 IPC (三函数的循环体只读这两列)。
+    """
+    tasks = []
+    for year in sorted(agg_df['year'].unique()):
+        df_t = agg_df[agg_df['year'] == year]
+        df_t1 = agg_df[agg_df['year'] == year - 1]
+        if df_t1.empty:
+            continue                                   # 首年无前期数据 (与串行同)
+        tasks.append((
+            int(year),
+            df_t[['target_bank', 'agg_text']].reset_index(drop=True),
+            df_t1[['target_bank', 'agg_text']].reset_index(drop=True),
+        ))
+    return tasks
+
+
+def _run_year_tasks(tasks, worker, *extra):
+    """串/并自适应执行, 结果**按提交序**返回 (joblib.Parallel 语义, 非完成序)。"""
+    if len(tasks) < _PROC_PARALLEL_MIN_YEARS:
+        return [worker(t, *extra) for t in tasks]
+    n_jobs = _proc_workers(len(tasks))
+    if n_jobs <= 1:
+        return [worker(t, *extra) for t in tasks]
+    from joblib import Parallel, delayed
+    return Parallel(n_jobs=n_jobs, prefer='processes')(
+        delayed(worker)(t, *extra) for t in tasks)
+
+
+def _fluidity_year_worker(task, mode):
+    """`_compute_fluidity` 的单年循环体 (逐字节照搬, 仅把 logger.warning 改回传)。"""
+    year, df_t, df_t1 = task
+    _mdf_flu = 1
+    kw = (dict(analyzer='char_wb', ngram_range=(2, 4),
+               max_features=5000, min_df=_mdf_flu, sublinear_tf=True)
+          if mode == 'char'
+          else dict(tokenizer=_jieba_tokenizer,
+                    token_pattern=None,
+                    max_features=5000, min_df=_mdf_flu, sublinear_tf=True))
+    degraded = False
+    try:
+        vec = TfidfVectorizer(max_df=0.95, **kw).fit(
+            pd.concat([df_t['agg_text'], df_t1['agg_text']]))
+    except ValueError:
+        degraded = True
+        vec = TfidfVectorizer(max_df=1.0, **kw).fit(
+            pd.concat([df_t['agg_text'], df_t1['agg_text']]))
+    vt = _l2_normalize(vec.transform(df_t['agg_text'].values).toarray())
+    vt1 = _l2_normalize(vec.transform(df_t1['agg_text'].values).toarray())
+
+    t1_map = {b: i for i, b in enumerate(df_t1['target_bank'].values)}
+    out = []
+    for i, bank in enumerate(df_t['target_bank'].values):
+        change = np.zeros(vt.shape[1])
+        for j, other in enumerate(df_t['target_bank'].values):
+            if other != bank and other in t1_map:
+                change += np.abs(vt[j] - vt1[t1_map[other]])
+        d = np.linalg.norm(vt[i]) * np.linalg.norm(change)
+        out.append(((bank, year),
+                    float(np.dot(vt[i], change) / d) if d > 0 else np.nan))
+    return out, degraded
+
+
+def _tfidf_coherence_year_worker(task, mode):
+    """`_compute_tfidf_coherence` 的单年循环体 (逐字节照搬)。"""
+    year, df_t, df_t1 = task
+    if mode == 'char':
+        _kw = dict(analyzer='char_wb', ngram_range=(2, 4),
+                   max_features=5000, min_df=1, sublinear_tf=True)
+    else:
+        _kw = dict(tokenizer=_jieba_tokenizer,
+                   token_pattern=None,
+                   max_features=5000, min_df=1, sublinear_tf=True)
+    pooled_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
+                             ignore_index=True)
+    degraded = False
+    try:
+        vec = TfidfVectorizer(max_df=0.95, **_kw).fit(pooled_texts)
+    except ValueError:
+        degraded = True
+        vec = TfidfVectorizer(max_df=1.0, **_kw).fit(pooled_texts)
+
+    vt = vec.transform(df_t['agg_text'].values)
+    vt1 = vec.transform(df_t1['agg_text'].values)
+
+    t1_map = {b: i for i, b in enumerate(df_t1['target_bank'].values)}
+    out = []
+    for i, bank in enumerate(df_t['target_bank'].values):
+        if bank in t1_map:
+            sim = cosine_similarity(vt[i:i + 1], vt1[t1_map[bank]:t1_map[bank] + 1])
+            out.append(((bank, year), float(np.clip(sim[0, 0], 0.0, 1.0))))
+    return out, degraded
+
+
+def _lda_coherence_year_worker(task):
+    """`_compute_lda_coherence` 的单年循环体 (逐字节照搬; LDA seed=42 + n_jobs=1 不变)。"""
+    year, df_t, df_t1 = task
+    n_t = len(df_t)
+    all_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
+                          ignore_index=True).tolist()
+    n_total = len(all_texts)
+    K = max(10, n_total // 30)
+    try:
+        cv = CountVectorizer(tokenizer=_jieba_tokenizer,
+                             token_pattern=None,
+                             max_features=5000, min_df=1, max_df=0.95)
+        try:
+            dtm = cv.fit_transform(all_texts)
+        except ValueError:
+            cv = CountVectorizer(tokenizer=_jieba_tokenizer,
+                                 token_pattern=None,
+                                 max_features=5000, min_df=1, max_df=1.0)
+            dtm = cv.fit_transform(all_texts)
+
+        lda = LatentDirichletAllocation(
+            n_components=K, random_state=42,
+            max_iter=50, learning_method='online', n_jobs=1)
+        # F26: 钉 BLAS 线程 —— 既消除对机器线程数的数值依赖 (实测: 不钉时并行/串行
+        # 265/277 键位模式不同; 钉后 277/277 相同), 又实测快 5.5×。
+        with _threadpool_limits(limits=1):
+            theta = lda.fit_transform(dtm)
+
+        t1_map = {b: idx + n_t for idx, b in
+                  enumerate(df_t1['target_bank'].values)}
+        out = []
+        for i, bank in enumerate(df_t['target_bank'].values):
+            if bank in t1_map:
+                d = jensenshannon(theta[i], theta[t1_map[bank]], base=2)
+                out.append(((bank, year), float(np.clip(1.0 - d, 0.0, 1.0))))
+        return out, None
+    except Exception as e:  # noqa: BLE001 — 与串行同: 该年整体跳过, 回传告警文本
+        return [], f"{type(e).__name__}: {e}"
+
+
 def _compute_fluidity(agg_df, mode='char'):
     """计算产品市场流动性指标。
 
@@ -965,46 +1185,17 @@ def _compute_fluidity(agg_df, mode='char'):
     Returns:
         dict: {(bank, year): fluidity_score}
     """
+    # F25 (2026-07-27): 逐年循环外提到 `_fluidity_year_worker` 进程并行 (见上方驱动段)。
+    # 循环体逐字节照搬, 仅 max_df 降级告警改由 worker 回传、父端 emit (子进程无 handler)。
+    # min_df / sublinear_tf 的既有依据 (fix omni-g-strategic-11, 2026-06-11): vectorizer
+    # 全参数与 _build_tfidf_sim_matrix / _compute_tfidf_coherence 家族统一 —— log(1+tf)
+    # 更贴近 HPP 2014 的准二值词使用向量 (Manning et al. 2008 §6.4)。
     fluidity = {}
-    for year in sorted(agg_df['year'].unique()):
-        df_t = agg_df[agg_df['year'] == year]
-        df_t1 = agg_df[agg_df['year'] == year - 1]
-        if df_t1.empty:
-            continue  # 首年无前期数据
-
-        # min_df: 跨 t 和 t-1 合并后的文档池，动态调整
-        # fix(omni-g-strategic-11, 2026-06-11): 补 sublinear_tf=True — vectorizer
-        # 全参数与 _build_tfidf_sim_matrix / _compute_tfidf_coherence 家族统一
-        # (原仅 min_df 一致而漏 sublinear_tf, 线性 tf 下高频词与长文档主导
-        # 市场变化向量 Σ|N_jt−N_jt−1|; log(1+tf) 亦更贴近 HPP 2014 的
-        # 准二值词使用向量, 见 Manning et al. 2008 §6.4)
-        _mdf_flu = 1
-        kw = (dict(analyzer='char_wb', ngram_range=(2, 4),
-                   max_features=5000, min_df=_mdf_flu, sublinear_tf=True)
-              if mode == 'char'
-              else dict(tokenizer=_jieba_tokenizer,
-                        token_pattern=None,
-                        max_features=5000, min_df=_mdf_flu, sublinear_tf=True))
-        try:
-            vec = TfidfVectorizer(max_df=0.95, **kw).fit(
-                pd.concat([df_t['agg_text'], df_t1['agg_text']]))
-        except ValueError:
+    for pairs, degraded in _run_year_tasks(
+            _adjacent_year_tasks(agg_df), _fluidity_year_worker, mode):
+        if degraded:
             logger.warning(f"    Fluidity {mode}: max_df=0.95 词表清空, 降级为 1.0")
-            vec = TfidfVectorizer(max_df=1.0, **kw).fit(
-                pd.concat([df_t['agg_text'], df_t1['agg_text']]))
-        vt = _l2_normalize(vec.transform(df_t['agg_text'].values).toarray())
-        vt1 = _l2_normalize(vec.transform(df_t1['agg_text'].values).toarray())
-
-        # 建立 t-1 期银行索引映射
-        t1_map = {b: i for i, b in enumerate(df_t1['target_bank'].values)}
-        for i, bank in enumerate(df_t['target_bank'].values):
-            # 计算市场变化向量: Σ_{j≠i} |N_j,t - N_j,t-1|
-            change = np.zeros(vt.shape[1])
-            for j, other in enumerate(df_t['target_bank'].values):
-                if other != bank and other in t1_map:
-                    change += np.abs(vt[j] - vt1[t1_map[other]])
-            d = np.linalg.norm(vt[i]) * np.linalg.norm(change)
-            fluidity[(bank, year)] = float(np.dot(vt[i], change) / d) if d > 0 else np.nan
+        fluidity.update(pairs)
     return fluidity
 
 
@@ -1064,45 +1255,19 @@ def _compute_tfidf_coherence(agg_df, mode='char'):
     Returns:
         dict: {(bank, year): coherence ∈ [0,1]}, 首年/间隙年 → 缺失
     """
+    # F25 (2026-07-27): 逐年循环外提到 `_tfidf_coherence_year_worker` 进程并行。
+    # 本函数是 2026-07-27 归因出的第二大极 (单轨 char 28 分钟 + word 25 分钟, 三轨 ≈5h,
+    # 全程仅占 1/32 核)。循环体逐字节照搬 —— 含: 池化 t/t-1 共享 IDF 权重空间、
+    # max_df=0.95 词表清空时降级 1.0、clip 至真值域 [0,1] (fix omni-g-strategic-12:
+    # TF-IDF 非负 → cos∈[0,1]; 高度相似文档 cos=1+ε 会崩诊断断言)。
     coherence = {}
-    # TF-IDF 参数与 _build_tfidf_sim_matrix 保持一致 (含 sublinear_tf=True)
-    if mode == 'char':
-        _kw = dict(analyzer='char_wb', ngram_range=(2, 4),
-                   max_features=5000, min_df=1, sublinear_tf=True)
-    else:
-        _kw = dict(tokenizer=_jieba_tokenizer,
-                   token_pattern=None,
-                   max_features=5000, min_df=1, sublinear_tf=True)
-
-    for year in sorted(agg_df['year'].unique()):
-        df_t = agg_df[agg_df['year'] == year]
-        df_t1 = agg_df[agg_df['year'] == year - 1]
-        if df_t1.empty:
-            continue  # 首年无前期数据 → 该年所有银行的连贯性为 NaN
-
-        # 池化 t 和 t-1 所有银行文本 → fit TF-IDF (共享 IDF 权重空间)
-        pooled_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
-                                  ignore_index=True)
-        try:
-            vec = TfidfVectorizer(max_df=0.95, **_kw).fit(pooled_texts)
-        except ValueError:
-            logger.warning(f"    Coherence TF-IDF {mode} {year}: "
+    _tasks = _adjacent_year_tasks(agg_df)
+    for (pairs, degraded), (_yr, _, _) in zip(
+            _run_year_tasks(_tasks, _tfidf_coherence_year_worker, mode), _tasks):
+        if degraded:
+            logger.warning(f"    Coherence TF-IDF {mode} {_yr}: "
                            f"max_df=0.95 词表清空, 降级为 max_df=1.0")
-            vec = TfidfVectorizer(max_df=1.0, **_kw).fit(pooled_texts)
-
-        vt = vec.transform(df_t['agg_text'].values)
-        vt1 = vec.transform(df_t1['agg_text'].values)
-
-        # 建立 t-1 期银行索引映射
-        t1_map = {b: i for i, b in enumerate(df_t1['target_bank'].values)}
-        for i, bank in enumerate(df_t['target_bank'].values):
-            if bank in t1_map:
-                # cosine_similarity 接受稀疏矩阵, 内部含 L2 归一化
-                sim = cosine_similarity(vt[i:i+1], vt1[t1_map[bank]:t1_map[bank]+1])
-                # fix(omni-g-strategic-12, 2026-06-11): clip 至真值域 [0,1]
-                # (TF-IDF 非负 → cos ∈ [0,1]) 仅作浮点容忍, 防高度相似文档
-                # cos=1+ε (ε~1e-7 > 断言容差 1e-10) 崩诊断断言
-                coherence[(bank, year)] = float(np.clip(sim[0, 0], 0.0, 1.0))
+        coherence.update(pairs)
 
     logger.info(f"    TF-IDF {mode} 连贯性: {len(coherence)} 个 Bank-Year 对")
     return coherence
@@ -1197,58 +1362,31 @@ def _compute_lda_coherence(agg_df):
     Returns:
         dict: {(bank, year): coherence ∈ [0,1]}, 首年/间隙年 → 缺失
     """
+    # F25+F26 (2026-07-27): 逐年循环外提到 `_lda_coherence_year_worker` 进程并行。
+    #
+    # 排查经过 (留证, 勿删): 首版 A/B (2007-2011, 277 个 bank-year 键) 抓到并行臂与串行臂
+    # **265/277 个值位模式不同** (~1e-13, 如 0.39496233027673233 vs ...76686)。根因探针
+    # 确证 = **BLAS 线程数差异** (loky worker 默认钉 1, 父进程用满线程), 非并行本身:
+    # 在全 BLAS 钉 1 环境下同一对照 **277/277 逐位相同**。同批 A/B 里 TF-IDF 连贯性与
+    # fluidity 均逐位相同 —— 稀疏/简单 numpy 路径不吃这个。
+    #
+    # 因此正解不是放弃并行, 而是 F26: 在 worker 的 LDA fit 现场 `threadpool_limits(1)`,
+    # 令其**与环境无关**地取 golden 协议下的那个值 ⟹ 父/子进程算的是同一个 canonical 值
+    # ⟹ 并行安全; 且顺带实测快 5.5×。
+    # ⚠ LDA 的 `n_jobs=1` (fix omni-g-strategic-16) **原样保留** —— 并行发生在**年之间**,
+    #   不发生在 LDA 内部, 那次修复完好无损。
     coherence = {}
-    for year in sorted(agg_df['year'].unique()):
-        df_t = agg_df[agg_df['year'] == year]
-        df_t1 = agg_df[agg_df['year'] == year - 1]
-        if df_t1.empty:
-            continue
-
-        n_t = len(df_t)
-        all_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
-                               ignore_index=True).tolist()
-        n_total = len(all_texts)
-        # 主题数: 同一 K=max(10, n_docs//30) 规则, 但基数是两年池 n_total
-        # (≈2×单年银行数, 与 _build_lda_jsd_matrix 的单年 n_banks 基数**不同**);
-        # 当前两处同被 max(10,·) 兜底为常数 10, >165 银行/年时将分叉
-        # (披露, omni-g-strategic-06, 2026-06-11; 原注释"与 _build_lda_jsd_matrix
-        # 一致"仅因兜底巧合成立)
-        K = max(10, n_total // 30)
-
-        try:
-            # CountVectorizer → DTM → LDA
-            cv = CountVectorizer(tokenizer=_jieba_tokenizer,
-                                 token_pattern=None,
-                                 max_features=5000, min_df=1, max_df=0.95)
-            try:
-                dtm = cv.fit_transform(all_texts)
-            except ValueError:
-                cv = CountVectorizer(tokenizer=_jieba_tokenizer,
-                                     token_pattern=None,
-                                     max_features=5000, min_df=1, max_df=1.0)
-                dtm = cv.fit_transform(all_texts)
-
-            # fix(omni-g-strategic-16, 2026-06-11): n_jobs=-1 → 1 (同
-            # _build_lda_jsd_matrix; 跨机器核数依赖的 E-step 浮点求和序
-            # 破坏 coh_lda* 逐位可复现性)
-            lda = LatentDirichletAllocation(
-                n_components=K, random_state=42,
-                max_iter=50, learning_method='online', n_jobs=1)
-            theta = lda.fit_transform(dtm)
-            # theta[:n_t] 对应 df_t, theta[n_t:] 对应 df_t1
-
-            t1_map = {b: idx + n_t for idx, b in
-                      enumerate(df_t1['target_bank'].values)}
-            for i, bank in enumerate(df_t['target_bank'].values):
-                if bank in t1_map:
-                    # jensenshannon 返回 √JSD ∈ [0,1] (Lin, 1991; base=2 使上界=1)
-                    d = jensenshannon(theta[i], theta[t1_map[bank]], base=2)
-                    # fix(omni-g-strategic-12, 2026-06-11): clip [0,1] 仅作浮点
-                    # 容忍 (√JSD 浮点可微越界, 断言容差 1e-10 < FP 误差)
-                    coherence[(bank, year)] = float(np.clip(1.0 - d, 0.0, 1.0))
-        except Exception as e:
-            logger.warning(f"    LDA 连贯性 {year}: {type(e).__name__}: {e}, 跳过")
-            continue
+    _tasks = _adjacent_year_tasks(agg_df)
+    for (pairs, err), (_yr, _, _) in zip(
+            _run_year_tasks(_tasks, _lda_coherence_year_worker), _tasks):
+        if err:
+            logger.warning(f"    LDA 连贯性 {_yr}: {err}, 跳过")
+        coherence.update(pairs)
+    # ⚠ 原串行循环体已整体搬进 `_lda_coherence_year_worker` (逐字节照搬), 含既有披露:
+    #   主题数 K=max(10, n_total//30) 的基数是**两年池** n_total (≈2×单年银行数), 与
+    #   `_build_lda_jsd_matrix` 的单年 n_banks 基数**不同**; 当前两处同被 max(10,·)
+    #   兜底为常数 10, >165 银行/年时将分叉 (omni-g-strategic-06, 2026-06-11 —
+    #   原注释"与 _build_lda_jsd_matrix 一致"仅因兜底巧合成立)。
 
     logger.info(f"    LDA+JSD 连贯性: {len(coherence)} 个 Bank-Year 对")
     return coherence

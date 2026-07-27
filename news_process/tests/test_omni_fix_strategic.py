@@ -378,7 +378,10 @@ class TestLDADeterminism:
         # AST 解析实际调用参数 (docstring/注释中的"原 n_jobs=-1"历史叙述不算数)
         import ast
         import textwrap
-        for fn in (sd._build_lda_jsd_matrix, sd._compute_lda_coherence):
+        # F25 (2026-07-27): `_compute_lda_coherence` 的逐年循环体已外提到
+        # `_lda_coherence_year_worker` (进程并行), LatentDirichletAllocation 调用随之
+        # 搬家 —— 本 gate 守的不变量 (n_jobs=1 + random_state=42) 未变, 只改检查位置。
+        for fn in (sd._build_lda_jsd_matrix, sd._lda_coherence_year_worker):
             tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
             calls = [node for node in ast.walk(tree)
                      if isinstance(node, ast.Call)
@@ -415,7 +418,9 @@ class TestLDADeterminism:
 class TestFluiditySublinearTf:
 
     def test_fluidity_vectorizer_has_sublinear_tf(self):
-        src = inspect.getsource(sd._compute_fluidity)
+        # F25 (2026-07-27): fluidity 的逐年循环体已外提到 `_fluidity_year_worker`
+        # (进程并行), vectorizer kwargs 随之搬家 —— 不变量未变, 只改检查位置。
+        src = inspect.getsource(sd._fluidity_year_worker)
         assert src.count('sublinear_tf=True') >= 2, \
             "char/word 两组 kwargs 均须 sublinear_tf=True (omni-g-strategic-11)"
 
