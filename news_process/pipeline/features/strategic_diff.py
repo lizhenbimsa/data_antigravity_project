@@ -1050,16 +1050,51 @@ def _adjacent_year_tasks(agg_df):
     return tasks
 
 
-def _run_year_tasks(tasks, worker, *extra):
-    """串/并自适应执行, 结果**按提交序**返回 (joblib.Parallel 语义, 非完成序)。"""
-    if len(tasks) < _PROC_PARALLEL_MIN_YEARS:
+def _run_year_tasks(tasks, worker, *extra, min_tasks=None, n_jobs=None):
+    """串/并自适应执行, 结果**按提交序**返回 (joblib.Parallel 语义, 非完成序)。
+
+    Args:
+        tasks:     任务单元列表 (由 ``_adjacent_year_tasks`` 等切分函数产出)。
+        worker:    模块级 worker 函数 (须可 pickle by reference)。
+        *extra:    透传给 worker 的额外定参。
+        min_tasks: 走并行的任务数下限; ``None`` = 用本模块的
+                   ``_PROC_PARALLEL_MIN_YEARS`` (=4)。
+        n_jobs:    并行度; ``None`` = 用 ``_proc_workers(len(tasks))``。
+
+    ⚠ **两个参数都是 2026-07-28 S4 新增的向后兼容扩展**, 默认值使既有三个调用点
+    (fluidity / tfidf_coherence / lda_coherence) 走**逐字节同一条路径**, 行为零变化。
+    加它们是因为设计评审实测出两条:
+
+      ① **阈值不能跨模块硬借**。``policy_similarity`` 的任务池是「3 轨 × N 年」扁平池,
+         只要 N≥2 就 ≥6 个任务, 直接复用 4 这个阈值会让**现存单测也走进并行分支** ——
+         而单测靠 ``monkeypatch`` 打桩, **桩不会传播进 loky 子进程** ⟹ 测试当场失真。
+         故调用方须能自设更高阈值 (如 12/20), 让 toy fixture 与 T=2 dev 一律串行。
+      ② **并行度必须可控**。方案自设的风控「首跑用 P=8 观测 RSS, 确认后再上 12」
+         在旧签名下**根本够不着** —— n_jobs 是函数内部算死的。
+
+    **OOM 兜底 (评审致命问题 #4)**: worker 被 OS 杀掉时 joblib 抛
+    ``TerminatedWorkerError``, 旧码会让整个 stage 崩掉、几小时工作归零。这里改为
+    捕获后 **loud ERROR + 整批串行重跑** —— 慢 N× 但绝不丢 run。这条兜底比任何调参
+    都重要 (2026-07-27 stage 40 已经因超时闸被强杀过一次, 教训是「宁可慢, 不可归零」)。
+    """
+    _min = _PROC_PARALLEL_MIN_YEARS if min_tasks is None else min_tasks
+    if len(tasks) < _min:
         return [worker(t, *extra) for t in tasks]
-    n_jobs = _proc_workers(len(tasks))
-    if n_jobs <= 1:
+    _n = _proc_workers(len(tasks)) if n_jobs is None else max(1, int(n_jobs))
+    if _n <= 1:
         return [worker(t, *extra) for t in tasks]
     from joblib import Parallel, delayed
-    return Parallel(n_jobs=n_jobs, prefer='processes')(
-        delayed(worker)(t, *extra) for t in tasks)
+    try:
+        return Parallel(n_jobs=_n, prefer='processes')(
+            delayed(worker)(t, *extra) for t in tasks)
+    except Exception as exc:  # noqa: BLE001 — 含 TerminatedWorkerError (OOM/被杀)
+        logger.error(
+            f"🔴 并行执行失败 ({type(exc).__name__}: {str(exc)[:160]}) — "
+            f"worker={getattr(worker, '__name__', worker)} tasks={len(tasks)} "
+            f"n_jobs={_n}; **整批回落串行重跑** (慢 ~{_n}× 但不丢 run)。"
+            f"常见成因: worker 被 OS 因内存杀掉 (每 worker 各持一份 jieba Trie + "
+            f"sklearn 词表)。若反复出现请调低 n_jobs。")
+        return [worker(t, *extra) for t in tasks]
 
 
 def _fluidity_year_worker(task, mode):
