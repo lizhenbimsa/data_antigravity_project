@@ -258,9 +258,14 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
     # 不可发生。这是 F27 的**根治点** —— 逐个 emit 点加守卫是打地鼠, 而 import 链
     # 上任何一个模块级 setup_logging 都足以毁掉整份日志 (2026-07-27 实弹: 12 个
     # loky worker 把 40_build_panel.log 抹成 99.8% NUL)。
-    # ⚠ 代价 (刻意接受): worker 体内的 logger 调用会静默 (loky 默认丢弃 worker
-    #   stdout) ⟹ F25 立下的「worker 体内零 logger 调用, 告警回传父端 emit」纪律
-    #   **仍然必须遵守**, 本闸不是它的替代品。
+    # ⚠ 代价 (刻意接受): worker 体内的 logger 调用**不再进阶段 .log**, 只走 console。
+    #   ⚠ 2026-07-28 订正: 本处原写「会静默 (loky 默认丢弃 worker stdout)」——
+    #     **该前提已被 S5 A/B 证伪**: loky worker 继承父进程 stdout/stderr, 其日志
+    #     确实会落到父进程的输出 (生产上再由 orchestrator 捕获镜像)。故不是"静默",
+    #     而是"只走 console 且行序不可预测"。
+    #   ⟹ F25 立下的「worker 体内零 logger 调用, 告警回传父端 emit」纪律**仍然必须
+    #     遵守** —— 但理由是**行序**而非可见性: 并行下 worker 的行会乱序交错, 业务
+    #     告警必须经 log_sink 回传父端按提交序回放才对得上。本闸不是它的替代品。
     if _is_spawned_child_process():
         console_only = True
 
@@ -381,27 +386,46 @@ def _attach_namespace_console(stage_name: str, handlers, level: int,
     这类 logger 的断言依赖这条传播链)。
     """
     global _NS_OWNER
+
+    def _bind(hs):
+        ns = logging.getLogger(_NS_LOGGER_NAME)
+        for h in _NS_ATTACHED:      # 幂等: 同一进程重复调用先摘旧
+            ns.removeHandler(h)
+        _NS_ATTACHED.clear()
+        for h in hs:
+            ns.addHandler(h)
+            _NS_ATTACHED.append(h)
+        # ⚠ 必须显式设级: 不设则 NOTSET → 继承 root 的 WARNING, 模块的 INFO 仍然落空
+        # (F16 只修一半)。默认取阶段级别, 可用 env 单独放宽以做归因跑
+        # (如 7h-emb 的 API/CPU 分段归因需要 embedding_engine 的 INFO)。
+        _lv = os.environ.get('NEWS_PROCESS_NS_LOG_LEVEL', '').strip().upper()
+        ns.setLevel(getattr(logging, _lv, level) if _lv else level)
+
     if console_only:
-        # 子进程 (F27 硬闸) 或调用方显式要求 console_only: 不参与 owner 竞争。
-        # 子进程里挂命名空间 handler 无意义 (loky 默认丢弃 worker stdout), 且会
-        # 让「worker 体内零 logger 调用」的纪律被误以为可以放松。
+        # 子进程 (F27 硬闸) 或调用方显式 console_only: **不参与 owner 竞争, 但仍要挂**。
+        #
+        # ⚠ 2026-07-28 订正 (S5 A/B 实测): 本分支原先直接 `return`, 理由写的是
+        #   「子进程里挂命名空间 handler 无意义 (loky 默认丢弃 worker stdout)」——
+        #   **该前提已被证伪**: S5 逐年并行的 A/B 里, loky worker 的 12 条
+        #   「分词器已注入 607 个金科词」确实落到了父进程 stdout (worker 继承父进程
+        #   的 stdout/stderr, 生产上再由 orchestrator 捕获镜像)。
+        #   前提错了, 代价是真的: 并行段内 `news_process.*` 模块日志**整段消失** ——
+        #   同一次 A/B 实测并行臂 embedding_engine 相关行 = **0**, 其中包括
+        #   缓存命中率、F18 分段计时、以及「重试 80 次仍失败 → 置 NaN」那条 ERROR。
+        #   最后一条尤其致命: 它正是 F28 的现场信号, 一旦并行化就又看不见了,
+        #   等于把 F29 刚补上的洞在并行路径上重新挖开。
+        #
+        # 不锁 owner: 子进程生命周期内只服务一个阶段, 无 owner 竞争问题 (owner 锁是
+        # 为父进程里 ≥4 次模块级 setup_logging 的错绑准备的)。
+        # ⚠ 这**不放松**「worker 体内零 logger 调用」的纪律 —— 那条纪律管的是**行序**
+        #   (worker 日志交错不可预测, 故业务告警一律经 log_sink 回传父端按序回放),
+        #   与第三方模块日志是否可见是两回事。纪律由 AST gate 强制, 不靠这里。
+        _bind(handlers)
         return
     if _NS_OWNER is not None and stage_name != _NS_OWNER:
         return                      # 已锁定 owner, 后续模块级 setup_logging 不改绑
     _NS_OWNER = stage_name
-
-    ns = logging.getLogger(_NS_LOGGER_NAME)
-    for h in _NS_ATTACHED:          # 幂等: 同一进程重复调用先摘旧
-        ns.removeHandler(h)
-    _NS_ATTACHED.clear()
-    for h in handlers:
-        ns.addHandler(h)
-        _NS_ATTACHED.append(h)
-    # ⚠ 必须显式设级: 不设则 NOTSET → 继承 root 的 WARNING, 模块的 INFO 仍然落空
-    # (F16 只修一半)。默认取阶段级别, 可用 env 单独放宽以做归因跑
-    # (如 7h-emb 的 API/CPU 分段归因需要 embedding_engine 的 INFO)。
-    _ns_level = os.environ.get('NEWS_PROCESS_NS_LOG_LEVEL', '').strip().upper()
-    ns.setLevel(getattr(logging, _ns_level, level) if _ns_level else level)
+    _bind(handlers)
 
 
 def log_and_time(logger):
