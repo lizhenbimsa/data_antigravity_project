@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 import os
 import struct
 import sys
@@ -155,3 +156,99 @@ def test_proc_workers_is_capped():
     assert sd._PROC_PARALLEL_MAX_WORKERS <= 16, (
         'worker 上限过高 — 每 worker 各持一份注入 607 词的 jieba Trie + sklearn 词表; '
         'stage 22 已实弹 n_jobs=-1 → MemoryError')
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ⑥ 流式回调 on_result (2026-07-28, S5 引入)
+# ════════════════════════════════════════════════════════════════════════════
+# **为何需要**: 老路径整批算完才返回 ⟹ 调用方只能等全部结束再打日志。实弹后果:
+# policy_similarity 生产上跑 10.57 小时, 其间 111 条 "LDA K=…" 是唯一进度信号,
+# 缓冲到最后再吐 = 十小时日志空白; 且 2026-07-27 stage 40 曾被超时闸强杀 ——
+# 那种情况下缓冲的日志连同进度**全部丢失**。
+# joblib `return_as='generator'` 仍按**提交序**产出, 故顺序保证不变。
+
+
+def _pid_worker(task):
+    """回传 (任务, PID) —— 据此判断是否真起了子进程。"""
+    return (task, os.getpid())
+
+
+def _child_only_boom_worker(task):
+    """只在**子进程**里崩 —— 模拟 "worker 被 OS 杀掉但串行能跑通"。"""
+    import multiprocessing
+    if multiprocessing.parent_process() is not None:
+        raise RuntimeError('模拟 worker 在子进程中被杀')
+    return (task, os.getpid())
+
+
+def test_on_result_streams_in_submission_order_serial():
+    seen = []
+    out = sd._run_year_tasks(list(range(3)), _pid_worker,
+                             on_result=seen.append)          # 3 < 4 → 串行
+    assert [t for t, _ in seen] == [0, 1, 2], f'串行回调序错: {seen}'
+    assert out == seen, '返回 list 与回调所见必须一致'
+
+
+def test_on_result_streams_in_submission_order_parallel():
+    seen = []
+    n = 16
+    out = sd._run_year_tasks(list(range(n)), _pid_worker, on_result=seen.append)
+    assert [t for t, _ in seen] == list(range(n)), (
+        f'并行回调**不是提交序**: {[t for t, _ in seen]} —— '
+        "return_as='generator' 必须保持提交序 (不可误用 generator_unordered), "
+        '否则日志行序与归并序都会漂。')
+    assert out == seen
+    assert len({p for _, p in seen if p != os.getpid()}) > 0, \
+        '并行臂没有真起子进程, 本测试失去意义'
+
+
+def test_on_result_called_exactly_once_per_task():
+    cnt = {}
+
+    def _tally(r):
+        cnt[r[0]] = cnt.get(r[0], 0) + 1
+
+    sd._run_year_tasks(list(range(16)), _pid_worker, on_result=_tally)
+    assert sorted(cnt) == list(range(16))
+    assert set(cnt.values()) == {1}, f'有任务被回调多次或漏回调: {cnt}'
+
+
+def test_default_path_unchanged_without_on_result():
+    """不传 on_result 时必须走老路径 (源码级: 仍有非流式的 Parallel 调用)。"""
+    src = inspect.getsource(sd._run_year_tasks)
+    assert "if on_result is None:" in src, 'on_result 缺省分支消失 — 老路径不再受保护'
+    assert "return_as='generator'" in src, '流式路径缺失'
+    out = sd._run_year_tasks(list(range(16)), _pid_worker)
+    assert [t for t, _ in out] == list(range(16))
+
+
+class _Cap(logging.Handler):
+    """⚠ 不能用 pytest 的 ``caplog``: 阶段 logger 是 ``propagate=False``
+    (F29 的刻意设计 — 阶段日志不外溢到 root), caplog 挂在 root 上什么也抓不到。
+    2026-07-28 这个坑在 F28 与本条上各踩过一次, 故显式挂 Handler。"""
+
+    def __init__(self):
+        super().__init__()
+        self.msgs: list[str] = []
+
+    def emit(self, record):
+        self.msgs.append(record.getMessage())
+
+
+def test_streaming_oom_fallback_reruns_only_remaining():
+    """流式下并行崩掉 → 只补跑剩余, 不整批重来, 且结果完整且按序。"""
+    seen = []
+    cap = _Cap()
+    sd.logger.addHandler(cap)
+    try:
+        out = sd._run_year_tasks(list(range(16)), _child_only_boom_worker,
+                                 on_result=seen.append)
+    finally:
+        sd.logger.removeHandler(cap)
+    assert [t for t, _ in out] == list(range(16)), (
+        f'兜底后结果不完整或乱序: {[t for t, _ in out]}')
+    assert all(p == os.getpid() for _, p in out), \
+        '兜底应在父进程串行完成 (子进程 worker 必崩)'
+    msgs = ' '.join(cap.msgs)
+    assert '回落串行补跑' in msgs and '已完成' in msgs, (
+        f'流式兜底未 loud ERROR 或文案退化: {msgs[:300]}')

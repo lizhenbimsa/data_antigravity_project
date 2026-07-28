@@ -607,7 +607,7 @@ def _build_tfidf_sim_matrix(texts, mode='char'):
 #   这是 TF-IDF 方法的稳健性检验 (robustness check)，看换一种方法结果是否一致。
 # ============================================================================
 
-def _build_lda_jsd_matrix(texts, n_banks):
+def _build_lda_jsd_matrix(texts, n_banks, log_sink=None):
     """jieba 词级 → LDA 主题分布 → pairwise JSD 距离。
 
     使用 Jensen-Shannon divergence (Lin 1991) 度量主题分布差异,
@@ -616,12 +616,16 @@ def _build_lda_jsd_matrix(texts, n_banks):
     主题数 K 的选取:
       - K = max(10, n_banks // 30), 确保主题数不低于 10
       - 当银行数 ~54 时 K=10, 每个主题约覆盖 5-6 家银行
-      - 披露(omni-g-strategic-06, 2026-06-11): n_banks//30 在 <300 银行/年时恒
-        <10 → K 对本样本实为**固定常数 10** (伪自适应), 无 perplexity/held-out
-        数据驱动选 K, 亦无 K∈{5,15,20} 敏感性列 (Bybee et al. / Hanley-Hoberg
-        类文本论文的标准披露项); _compute_lda_coherence 的 K 公式基数为两年池
-        n_total (与此处单年 n_banks 不同), 当前同被 max(10,·) 兜底为 10,
-        >165 银行/年时两处将分叉
+      - ⚠ **旧披露 (omni-g-strategic-06, 2026-06-11) 称 "K 对本样本实为固定常数 10
+        (伪自适应)" —— 该结论在生产规模上已被实测证伪, 2026-07-28 订正**:
+        它成立的前提是 "<300 银行/年", 而生产 T=19 语料 2017-2025 每年
+        428-584 家银行 (2022 年 584 家) ⟹ 584//30 = 19。stage 40 生产日志实测
+        K ∈ {10, 11, 14, 15, 18, 19} (三轨各 37 次 LDA fit 全部逐条核对),
+        **K 是真自适应且直接驱动本函数耗时** (LDA 成本近似线性于 K)。
+        同段旧披露 ">165 银行/年时两处将分叉" 亦已发生: `_compute_lda_coherence`
+        的 K 基数是两年池 n_total (≠ 此处单年 n_banks), 生产上两者取值不同。
+      - 仍然成立的披露: 无 perplexity/held-out 数据驱动选 K, 亦无 K∈{5,15,20}
+        敏感性列 (Bybee et al. / Hanley-Hoberg 类文本论文的标准披露项)。
 
     确定性 (fix(omni-g-strategic-16), 2026-06-11): n_jobs=1 + random_state=42。
     原 n_jobs=-1 时 sklearn online LDA E-step 按 effective_n_jobs 切片累加充分
@@ -632,6 +636,14 @@ def _build_lda_jsd_matrix(texts, n_banks):
     Args:
         texts: 文本列表
         n_banks: 银行数量
+        log_sink: 可选 ``list``; 给出时把本函数的 "LDA K=…, perplexity=…" 一行
+            **追加进该列表** (元素为 ``(level, msg)``) 而非直接 ``logger.info``。
+            ``None`` (默认) = 原样直接落日志, 与旧码逐字节同路径。
+            ⚠ 存在的唯一理由: 本函数会在 **loky worker 内**被调用
+            (policy_similarity 逐年并行, S5)。worker 体内直接 ``logger`` 会
+            (a) 打乱行序、(b) 走子进程 console 而非阶段文件 handler ——
+            与本模块 "worker 体内零 logger 调用, 告警一律回传父端 emit" 的既有
+            契约冲突 (见 ``_run_year_tasks`` 上方长注释护栏 ④)。
 
     Returns:
         tuple: (jsd_mat, theta)
@@ -664,7 +676,12 @@ def _build_lda_jsd_matrix(texts, n_banks):
     with _threadpool_limits(limits=1):
         theta = lda.fit_transform(dtm)
         _perp = lda.perplexity(cv.transform(texts))   # perplexity 亦走 BLAS, 同域内算
-    logger.info(f"    LDA K={K}, perplexity={sig4(_perp)}")
+    # 行内容与旧码逐字节一致; 仅"由谁 emit"可切换 (见 Args::log_sink)。
+    _lda_line = f"    LDA K={K}, perplexity={sig4(_perp)}"
+    if log_sink is None:
+        logger.info(_lda_line)
+    else:
+        log_sink.append((logging.INFO, _lda_line))
 
     # 计算 pairwise JSD (对称半矩阵)
     jsd_mat = np.zeros((n_banks, n_banks))
@@ -1003,8 +1020,13 @@ def _compute_centroid_scores(vectors, bank_list, is_sparse=False,
 #
 # **实测边界 (2026-07-27 真数据 A/B, 2007-2011)**: TF-IDF 连贯性 277 键 / fluidity
 # 455 键在 char 与 word 双 mode 下**全部逐位相同**, 提速 2.83× / 3.09× / 1.43× / 7.33×;
-# 唯独 `_compute_lda_coherence` 出现 265/277 个 ~1e-13 漂移 (BLAS 线程数差异) →
-# **该函数恒串行, 见其函数体内的长注释**。
+# `_compute_lda_coherence` 首版曾出现 265/277 个 ~1e-13 漂移 —— 根因是 **BLAS 线程数
+# 差异**而非并行本身 (loky worker 默认钉 1, 父进程用满线程)。
+# ⚠ **2026-07-28 订正**: 该漂移已由 F26 (LDA fit 现场 `threadpool_limits(1)`) 根治,
+#   `_compute_lda_coherence` **早已改为并行** (见其函数体, 走 `_run_year_tasks`)。
+#   本段此前遗留 "该函数恒串行" 的结论是 F26 落地时未同步更新的陈旧文案, 现已作废 ——
+#   它会直接误导 "LDA 不可并行", 而 S5 (policy_similarity, LDA 占其 39.9%) 正建立在
+#   相反的事实上: 只要 BLAS 钉 1, LDA 并行即字节安全。
 # ════════════════════════════════════════════════════════════════════════════
 
 #: 年数下限 — 低于此值进程启动开销 (loky spawn + 每 worker 一份 jieba Trie) 不划算。
@@ -1024,9 +1046,11 @@ def _proc_workers(n_tasks: int) -> int:
 
 
 # ⚠ 刻意**没有** `_silence_worker_logging()`: 下方三个 worker 会被**父进程直接调用**
-# (年数 < 阈值 / 只配到 1 worker 的串行回落路径, 以及 LDA 的恒串行路径)。若在 worker
-# 里降 logger 级别, 串行路径会把整个 stage 的 INFO 日志掐掉 —— 那正是 F16 那类"日志
-# 落空"缺陷的自造版本。改用**告警回传父端 emit**: worker 体内零 logger 调用。
+# (年数 < 阈值 / 只配到 1 worker 的串行回落路径, 以及 `_run_year_tasks` 的 OOM 兜底
+# 整批串行重跑路径)。若在 worker 里降 logger 级别, 这些串行路径会把整个 stage 的 INFO
+# 日志掐掉 —— 那正是 F16 那类"日志落空"缺陷的自造版本。改用**告警回传父端 emit**:
+# worker 体内零 logger 调用。
+# (原文此处还列了"LDA 的恒串行路径" —— F26 之后 LDA 已并行, 该项 2026-07-28 删除。)
 
 
 def _adjacent_year_tasks(agg_df):
@@ -1050,7 +1074,8 @@ def _adjacent_year_tasks(agg_df):
     return tasks
 
 
-def _run_year_tasks(tasks, worker, *extra, min_tasks=None, n_jobs=None):
+def _run_year_tasks(tasks, worker, *extra, min_tasks=None, n_jobs=None,
+                    on_result=None):
     """串/并自适应执行, 结果**按提交序**返回 (joblib.Parallel 语义, 非完成序)。
 
     Args:
@@ -1060,6 +1085,9 @@ def _run_year_tasks(tasks, worker, *extra, min_tasks=None, n_jobs=None):
         min_tasks: 走并行的任务数下限; ``None`` = 用本模块的
                    ``_PROC_PARALLEL_MIN_YEARS`` (=4)。
         n_jobs:    并行度; ``None`` = 用 ``_proc_workers(len(tasks))``。
+        on_result: 可选回调 ``f(result)``; 给出时**每个任务一完成就立刻回调**
+                   (仍按提交序), 而不是等整批算完。``None`` (默认) = 老路径,
+                   与既有三个调用点逐字节同路。返回值不受影响 (恒为完整 list)。
 
     ⚠ **两个参数都是 2026-07-28 S4 新增的向后兼容扩展**, 默认值使既有三个调用点
     (fluidity / tfidf_coherence / lda_coherence) 走**逐字节同一条路径**, 行为零变化。
@@ -1077,24 +1105,61 @@ def _run_year_tasks(tasks, worker, *extra, min_tasks=None, n_jobs=None):
     捕获后 **loud ERROR + 整批串行重跑** —— 慢 N× 但绝不丢 run。这条兜底比任何调参
     都重要 (2026-07-27 stage 40 已经因超时闸被强杀过一次, 教训是「宁可慢, 不可归零」)。
     """
+    def _serial(_ts):
+        _out = []
+        for _t in _ts:
+            _r = worker(_t, *extra)
+            if on_result is not None:
+                on_result(_r)
+            _out.append(_r)
+        return _out
+
     _min = _PROC_PARALLEL_MIN_YEARS if min_tasks is None else min_tasks
     if len(tasks) < _min:
-        return [worker(t, *extra) for t in tasks]
+        return _serial(tasks)
     _n = _proc_workers(len(tasks)) if n_jobs is None else max(1, int(n_jobs))
     if _n <= 1:
-        return [worker(t, *extra) for t in tasks]
+        return _serial(tasks)
     from joblib import Parallel, delayed
+    if on_result is None:
+        # 老路径逐字节保留 (既有三个调用点走这条)。
+        try:
+            return Parallel(n_jobs=_n, prefer='processes')(
+                delayed(worker)(t, *extra) for t in tasks)
+        except Exception as exc:  # noqa: BLE001 — 含 TerminatedWorkerError (OOM/被杀)
+            logger.error(
+                f"🔴 并行执行失败 ({type(exc).__name__}: {str(exc)[:160]}) — "
+                f"worker={getattr(worker, '__name__', worker)} tasks={len(tasks)} "
+                f"n_jobs={_n}; **整批回落串行重跑** (慢 ~{_n}× 但不丢 run)。"
+                f"常见成因: worker 被 OS 因内存杀掉 (每 worker 各持一份 jieba Trie + "
+                f"sklearn 词表)。若反复出现请调低 n_jobs。")
+            return _serial(tasks)
+
+    # ── 流式路径 (on_result 给出时) ──
+    # **为何需要**: 老路径把整批算完才返回, 调用方也就只能等全部结束再打日志。
+    # 2026-07-28 实弹: policy_similarity 生产上这一步跑 10.57 小时, 期间 111 条
+    # "LDA K=…" 是**唯一**的进度信号; 缓冲到最后再吐 ⟹ 十小时日志空白, 且一旦
+    # 像 2026-07-27 那样被超时闸强杀, **缓冲的日志连同进度全部丢失**。
+    # `return_as='generator'` (joblib ≥1.3) 仍按**提交序**产出, 只是边算边给 —— 顺序
+    # 保证不变, 故归并序/列序/日志行序与串行完全一致。
+    _done = []
     try:
-        return Parallel(n_jobs=_n, prefer='processes')(
-            delayed(worker)(t, *extra) for t in tasks)
+        for _r in Parallel(n_jobs=_n, prefer='processes', return_as='generator')(
+                delayed(worker)(t, *extra) for t in tasks):
+            on_result(_r)
+            _done.append(_r)
+        return _done
     except Exception as exc:  # noqa: BLE001 — 含 TerminatedWorkerError (OOM/被杀)
+        # 流式下已产出 len(_done) 个结果 → **只补跑剩余的**, 不整批重来。
         logger.error(
             f"🔴 并行执行失败 ({type(exc).__name__}: {str(exc)[:160]}) — "
             f"worker={getattr(worker, '__name__', worker)} tasks={len(tasks)} "
-            f"n_jobs={_n}; **整批回落串行重跑** (慢 ~{_n}× 但不丢 run)。"
+            f"n_jobs={_n}; 已完成 {len(_done)}/{len(tasks)}, "
+            f"**剩余 {len(tasks) - len(_done)} 个回落串行补跑** (不丢 run, 也不重算已完成的)。"
             f"常见成因: worker 被 OS 因内存杀掉 (每 worker 各持一份 jieba Trie + "
             f"sklearn 词表)。若反复出现请调低 n_jobs。")
-        return [worker(t, *extra) for t in tasks]
+        _done.extend(_serial(tasks[len(_done):]))
+        return _done
 
 
 def _fluidity_year_worker(task, mode):

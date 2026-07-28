@@ -40,6 +40,7 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
 ============================================================================
 """
 
+import logging  # 仅用于 log_sink 的 level 常量 (worker 回传告警), 不建 logger
 import os
 import platform
 import sys
@@ -61,6 +62,12 @@ from news_process.pipeline.features.strategic_diff import (
 )
 from news_process.pipeline.features.strategic_diff import (
     _build_tfidf_sim_matrix as _build_tfidf,
+)
+from news_process.pipeline.features.strategic_diff import (
+    # S5: 串/并自适应执行器 (含 OOM 兜底整批回落串行) — 与 strategic_diff 三个
+    # 调用点共用同一实现, 不另造轮子。本模块**单向依赖** strategic_diff (上面已
+    # import 其四个 _build_*), 故无循环 import 风险。
+    _run_year_tasks,
 )
 
 # fix(omni-g-policy-01/02, 2026-06-11): 权威语料加载/vintage 切分与 stage 15 共用
@@ -84,7 +91,8 @@ from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
 
 
-def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
+def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix,
+                          log_sink=None):
     """对单一锚点文本计算 ghost-anchor 相似度指标 (TF-IDF c/w · LDA · emb · 可选 emb_lg)。
 
     幽灵锚点 (Ghost Anchor): 将 anchor_text 作为 (N+1)-th 元素挂载至银行文本列表末尾,
@@ -101,6 +109,11 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         year: 年份 (仅日志)。
         anchor_text: 锚点文本; None → 全 NaN (vintage 前视守卫年份, 该锚点不可用)。
         track_suffix: 日志标签 (如 '_full' / '_full/allv')。
+        log_sink: 可选 ``list``; 给出时本助手 (及其调用的 ``_build_lda``) 产生的
+            日志一律**追加为 ``(level, msg)``** 而非直接 emit, 由父端顺序回放。
+            ``None`` (默认) = 直接落日志, 与旧码逐字节同路径。
+            存在理由: 本助手会在 **loky worker 内**被调用 (S5 逐年并行), 而
+            ``strategic_diff`` 既有护栏要求 "worker 体内零 logger 调用"。
 
     Returns:
         dict[str, Sequence[float]]: 键 ∈ {tfidf_c, tfidf_w, lda, emb},
@@ -110,6 +123,13 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         全 nan 早退分支与正常分支一致, 防 KeyError。
         both-or-neither: emb 与 emb_lg 任一 None 则两者同置 NaN (无单边孤儿列)。
     """
+    def _warn(msg):
+        """WARNING 出口单点: sink 存在则回传父端, 否则原样直接 emit。"""
+        if log_sink is None:
+            logger.warning(msg)
+        else:
+            log_sink.append((logging.WARNING, msg))
+
     nan_vec = [np.nan] * n_banks
     if anchor_text is None:
         _d = {'tfidf_c': list(nan_vec), 'tfidf_w': list(nan_vec),
@@ -129,10 +149,12 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
 
     # --- 方法 C: LDA 主题空间 (JSD 散度 → 1 - sqrt(JSD)) ---
     try:
-        jsd_mat, _ = _build_lda(texts_with_auth, n_total)
+        # log_sink 透传: _build_lda 内的 "LDA K=…, perplexity=…" 一行同走回传口,
+        # 否则 worker 里那行会跑到子进程 console 上, 行序错乱且不入阶段日志文件。
+        jsd_mat, _ = _build_lda(texts_with_auth, n_total, log_sink=log_sink)
         auth_lda = 1.0 - jsd_mat[:-1, -1]
     except Exception as e:
-        logger.warning(f"    LDA ({year}{track_suffix}) 失败: {type(e).__name__}")
+        _warn(f"    LDA ({year}{track_suffix}) 失败: {type(e).__name__}")
         auth_lda = list(nan_vec)
 
     # --- 方法 D: Semantic Embedding (主轨 MAIN — Qwen/Qwen3-Embedding-8B, 无后缀) ---
@@ -145,8 +167,8 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         try:
             se_mat_lg, _ = _build_emb(texts_with_auth, spec=_LARGE_SPEC)
         except Exception as _lg_exc:
-            logger.warning(f"    Embedding lg ({year}{track_suffix}) 异常: "
-                           f"{type(_lg_exc).__name__}: {_lg_exc} → emb_lg 置 NaN")
+            _warn(f"    Embedding lg ({year}{track_suffix}) 异常: "
+                  f"{type(_lg_exc).__name__}: {_lg_exc} → emb_lg 置 NaN")
             se_mat_lg = None
 
     # both-or-neither parity (家族内 MAIN/_lg 同生共死): 若 _LARGE_SPEC 开 且 MAIN(emb)
@@ -164,6 +186,156 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         _out['emb_lg'] = se_mat_lg[:-1, -1] if se_mat_lg is not None else list(nan_vec)
 
     return _out
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# S5 (2026-07-28): 逐 (轨, 年) 任务进程并行
+# ════════════════════════════════════════════════════════════════════════════
+# **为何选这里**: stage 40 生产实测 28.12h, 本函数 (步骤 7h-policy) 独占
+# **38,066s = 37.8%** —— 单一最大极。三轨墙钟 _full 19,571s / _ctx 14,760s /
+# _ss 3,727s (同为 6,224 行, 差异来自文本长度)。
+#
+# **先归因后并行 (2026-07-28 真数据实测, probe_s5_split.py, 2018/_full/478 银行)**:
+#     LDA 76.74s 39.9% · TF-IDF char 51.76s 26.9% · TF-IDF word 31.09s 16.2%
+#     Embedding MAIN 17.29s 9.0% · Embedding _lg 15.28s 7.9%
+#   把 Embedding 那 32.57s 再拆开 (靠 F18 新增的分段计时):
+#     SQLite 缓存读 8.43s · **API 段 0.0004s (0.003%)** · 其余 ~24s 是切块/JSON
+#     解码/均值池化/矩阵组装 —— 同样是 CPU。
+#   ⟹ 真实构成 ≈ **95.6% CPU / 4.4% SQLite 读 / ~0% API**。
+#
+# **这条归因决定了设计**, 而且推翻了一个很自然的担心:
+#   ① **TPM 不是风险**。生产日志佐证: 本步骤 10.57 小时**零 429**, 而相邻窗口
+#      (strategic_diff / 7h-emb) 每小时 15,282 条。原因是 `strategic_diff` 先跑并
+#      把同一批 bank-year 文本播了种, 本步骤到达时已全命中。故并行**不会**重演
+#      F28 (两次 Qwen 重试耗尽 → 面板 4 列全 NaN)。
+#   ② **内存也不binding**。实测单任务峰值 RSS Δ = **2.18 GB** (最大年 2015,
+#      307 银行 / 19,432,456 字), 本机 127.7 GB ⟹ 50% 预算下 n_jobs ≤ 29。
+#   ③ 真正该防的是**任务间 10× 的负载不均** (2007 年 29 家银行 vs 2022 年 584 家) →
+#      故用**跨轨扁平任务池 + joblib 动态分派**, 不做静态切分。
+#
+# **确定性**: LDA 曾因 BLAS 线程数差异漂 ~1e-13, 已由 F26 在 `_build_lda_jsd_matrix`
+# 的 fit 现场 `threadpool_limits(1)` 根治 —— 本函数用的正是那一个 (共享实现),
+# 故父/子进程算的是同一个 canonical 值。TF-IDF / embedding 走稀疏与简单 numpy
+# 路径, 同批 A/B 已证不吃这个。
+#
+# **护栏 (沿用 strategic_diff 既有四条)**: ① 任务切分与串行循环同序同筛选;
+# ② joblib 按提交序返回; ③ 任务数 < 阈值回落串行; ④ **worker 体内零 logger 调用**,
+# 告警与 "LDA K=…" 行一律经 log_sink 回传, 父端按提交序回放 ⟹ 日志内容与顺序
+# 与串行**逐行一致**。
+# ⚠ 阈值**刻意不复用** `strategic_diff._PROC_PARALLEL_MIN_YEARS` (=4): 本池是
+#   「3 轨 × N 年」扁平池, N≥2 就 ≥6 个任务, 用 4 会让**现存单测也走进并行分支** ——
+#   而单测靠 monkeypatch 打桩, 桩不传播进 loky 子进程 ⟹ 测试当场失真。
+#   12 这个值把 T=2 dev (3×2=6) 与 toy fixture 一律留在串行, 生产 (3×19=57) 走并行。
+_AUTH_PARALLEL_MIN_TASKS = 12
+
+#: 并行度运维旁路。stage 40 单跑 28 小时, 出事重跑代价极高 —— 留一个不改代码就能
+#: 下调的口子 (设计评审要求的 "首跑 P=8 观测 RSS, 确认后再上 12")。
+#: 未设 / 非法 → None ⟹ 走 `_proc_workers()` 默认 min(12, 核数-2, 任务数)。
+_AUTH_JOBS_ENV = 'NEWS_PROCESS_AUTH_JOBS'
+
+
+def _auth_jobs_override():
+    """读 ``NEWS_PROCESS_AUTH_JOBS``; 非正整数或未设 → None (用默认并行度)。"""
+    raw = os.environ.get(_AUTH_JOBS_ENV, '').strip()
+    if not raw:
+        return None
+    try:
+        v = int(raw)
+    except ValueError:
+        logger.warning(f"  {_AUTH_JOBS_ENV}='{raw}' 非整数, 忽略 (用默认并行度)")
+        return None
+    if v < 1:
+        logger.warning(f"  {_AUTH_JOBS_ENV}={v} < 1, 忽略 (用默认并行度)")
+        return None
+    return v
+
+
+def _auth_year_worker(task, auth_text_static, companion):
+    """单个 (轨, 年) 的 ghost-anchor 计算 —— 原逐年循环体**逐字节照搬**。
+
+    ⚠ 与串行循环唯一的差别: 所有 ``logger.*`` 改为写入本地 ``logs`` 列表回传,
+    由父端按提交序统一 emit (见上方护栏 ④)。两个早退守卫 (银行数 <3 / vintage
+    锚点为 None) **刻意留在 worker 内**而非提到父端 —— 提到父端会让守卫告警与
+    计算类日志的交错顺序偏离串行 (父端会先把所有守卫行打完再回放计算行)。
+
+    Args:
+        task: ``(track_suffix, year, banks, texts, auth_text_vin)``。
+        auth_text_static: 全年份静态锚点 (常量, 由 ``*extra`` 透传)。
+        companion: ``all_vintage_companion_enabled()`` 的取值 (常量)。
+
+    Returns:
+        ``(records, logs)`` — records 为该年的 ``dict`` 列表 (可能为空),
+        logs 为 ``(level, msg)`` 列表。
+    """
+    track_suffix, year, banks, texts, auth_text_vin = task
+    logs: list[tuple[int, str]] = []
+    records: list[dict] = []
+
+    # 如果当年的银行数过少，跳过（为保持与 Stage 25 LDA K值的最小计算稳定性一致）
+    if len(banks) < 3:
+        # fix(omni-g-policy-05, 2026-06-11): 裸 continue → 显式 warning
+        # (镜像 stage 25 同守卫), T=19 早期稀疏年份不再"静默 NaN"无迹可寻
+        logs.append((logging.WARNING,
+                     f"  年度={year}{track_suffix}: 仅 {len(banks)} 家"
+                     f"银行, 跳过 auth_sim 计算 (最低要求 3)"))
+        return records, logs
+
+    n_banks = len(banks)
+
+    # fix(omni-g-policy-02, 2026-06-11): vintage-aware 锚点 — 年度 t 只用
+    # 发布年份 ≤ t 的政策文档拼接; 无可用文档 → 该年 auth_sim_* 全 NaN (前视守卫)
+    if auth_text_vin is None:
+        logs.append((logging.WARNING,
+                     f"  年度={year}{track_suffix}: 无发布年份 ≤ "
+                     f"{year} 的政策文档 (前视守卫), auth_sim_* 置 NaN"))
+        # companion 关闭时保持原行为: 直接跳过该年 (merge 后留 NaN);
+        # companion 开启时不跳过 — 仍要用全年份静态锚点产 _allv (2014 等也出值)。
+        if not companion:
+            return records, logs
+
+    # vintage 主轨指标 (auth_text_vin=None → 全 NaN); 经助手统一同构计算
+    vin = _ghost_anchor_metrics(
+        texts, n_banks, year, auth_text_vin, track_suffix, log_sink=logs)
+    # 全年份 _allv 孪生 (companion 开启时): 用全语料静态锚点再算一遍 (下游完全一致)。
+    # 短路对称 (镜像 stage15 _cosine_for_spec non-vintage 分支 return _wrap(static,static)):
+    # 当 vintage 锚点 == 全年份静态锚点 (晚年 ≤t 已含全部政策文档 / use_vintage=False 退化时
+    # auth_text_vin==auth_text_static) → allv 与 vin byte-identical, 复用 vin 副本即可, 免重算
+    # TF-IDF/LDA/embedding (golden-safe: 同锚点同输入确定性产同值; 生产 T=19 多数年锚点真不同则正常重算)。
+    if not companion:
+        allv = None
+    elif auth_text_vin is not None and auth_text_vin == auth_text_static:
+        allv = {k: list(v) for k, v in vin.items()}
+    else:
+        allv = _ghost_anchor_metrics(
+            texts, n_banks, year, auth_text_static, f'{track_suffix}/allv',
+            log_sink=logs)
+
+    # 打包记录 (vintage 主轨 + 可选 _allv 孪生)
+    for i, bank in enumerate(banks):
+        rec = {
+            'target_bank': bank,
+            'year': year,
+            f'auth_sim_tfidf_c{track_suffix}': float(vin['tfidf_c'][i]),
+            f'auth_sim_tfidf_w{track_suffix}': float(vin['tfidf_w'][i]),
+            f'auth_sim_lda{track_suffix}': float(vin['lda'][i]),
+            f'auth_sim_emb{track_suffix}': float(vin['emb'][i]),
+        }
+        # 第三嵌入 _lg (活跃 co-primary; 键存在性由 _LARGE_SPEC 经助手单点决定 → 与早退分支一致)
+        if 'emb_lg' in vin:
+            rec[f'auth_sim_emb_lg{track_suffix}'] = float(vin['emb_lg'][i])
+        if allv is not None:
+            rec.update({
+                f'auth_sim_tfidf_c_allv{track_suffix}': float(allv['tfidf_c'][i]),
+                f'auth_sim_tfidf_w_allv{track_suffix}': float(allv['tfidf_w'][i]),
+                f'auth_sim_lda_allv{track_suffix}': float(allv['lda'][i]),
+                f'auth_sim_emb_allv{track_suffix}': float(allv['emb'][i]),
+            })
+            # _allv 是 vin 整 dict copy 或同助手再算 → emb_lg 自动随 _LARGE_SPEC 传播
+            if 'emb_lg' in allv:
+                rec[f'auth_sim_emb_lg_allv{track_suffix}'] = float(allv['emb_lg'][i])
+        records.append(rec)
+
+    return records, logs
 
 
 # ============================================================================
@@ -370,11 +542,16 @@ def compute_authoritative_similarity(df_exploded, panel):
 
     all_results = []
 
-    # 3. 逐轨、逐年计算
+    # 3. 逐轨、逐年计算 — S5 (2026-07-28): 切成 (轨, 年) 任务后进程并行。
+    #    任务切分**必须与旧串行循环同序同筛选**: 轨按 tracks 原序, 年按
+    #    sorted(unique)。任何漂移都是静默改测度 (少算/多算年份或改列序)。
+    #    ⚠ 早退守卫 (银行数<3 / vintage 锚点 None) 刻意留在 worker 内 —— 提到这里
+    #      会把守卫告警与计算日志的交错顺序打乱 (见 _auth_year_worker docstring)。
+    _tasks = []
     for track_suffix, agg_df in tracks:
         if agg_df.empty:
             continue
-            
+
         logger.info(f"  正在处理轨道 {track_suffix}...")
 
         # 该轨喂入 ghost-anchor 计算的数据规模 (仅日志, 整数计数 :,d, 算完即弃)
@@ -389,73 +566,57 @@ def compute_authoritative_similarity(df_exploded, panel):
 
         for year in sorted(agg_df['year'].unique()):
             dy = agg_df[agg_df['year'] == year]
-            banks = dy['target_bank'].tolist()
-            texts = dy['agg_text'].tolist()
-            
-            # 如果当年的银行数过少，跳过（为保持与 Stage 25 LDA K值的最小计算稳定性一致）
-            if len(banks) < 3:
-                # fix(omni-g-policy-05, 2026-06-11): 裸 continue → 显式 warning
-                # (镜像 stage 25 同守卫), T=19 早期稀疏年份不再"静默 NaN"无迹可寻
-                logger.warning(f"  年度={year}{track_suffix}: 仅 {len(banks)} 家"
-                               f"银行, 跳过 auth_sim 计算 (最低要求 3)")
-                continue
-
-            n_banks = len(banks)
-
             # fix(omni-g-policy-02, 2026-06-11): vintage-aware 锚点 — 年度 t 只用
-            # 发布年份 ≤ t 的政策文档拼接; 无可用文档 → 该年 auth_sim_* 全 NaN (前视守卫)
-            if use_vintage:
-                auth_text_vin = vintage_anchor_text(auth_docs, year)
-            else:
-                auth_text_vin = auth_text_static
-            if auth_text_vin is None:
-                logger.warning(f"  年度={year}{track_suffix}: 无发布年份 ≤ "
-                               f"{year} 的政策文档 (前视守卫), auth_sim_* 置 NaN")
-                # companion 关闭时保持原行为: 直接跳过该年 (merge 后留 NaN);
-                # companion 开启时不跳过 — 仍要用全年份静态锚点产 _allv (2014 等也出值)。
-                if not _companion:
-                    continue
+            # 发布年份 ≤ t 的政策文档拼接; 无可用文档 → None (worker 侧走前视守卫)。
+            # 锚点在父端算: 纯字符串拼接 (零日志零 IO), 且免得把 auth_docs 复制进
+            # 每个 worker。
+            _vin_anchor = (vintage_anchor_text(auth_docs, year) if use_vintage
+                           else auth_text_static)
+            _tasks.append((track_suffix, year,
+                           dy['target_bank'].tolist(),
+                           dy['agg_text'].tolist(),
+                           _vin_anchor))
 
-            # vintage 主轨指标 (auth_text_vin=None → 全 NaN); 经助手统一同构计算
-            vin = _ghost_anchor_metrics(
-                texts, n_banks, year, auth_text_vin, track_suffix)
-            # 全年份 _allv 孪生 (companion 开启时): 用全语料静态锚点再算一遍 (下游完全一致)。
-            # 短路对称 (镜像 stage15 _cosine_for_spec non-vintage 分支 return _wrap(static,static)):
-            # 当 vintage 锚点 == 全年份静态锚点 (晚年 ≤t 已含全部政策文档 / use_vintage=False 退化时
-            # auth_text_vin==auth_text_static) → allv 与 vin byte-identical, 复用 vin 副本即可, 免重算
-            # TF-IDF/LDA/embedding (golden-safe: 同锚点同输入确定性产同值; 生产 T=19 多数年锚点真不同则正常重算)。
-            if not _companion:
-                allv = None
-            elif auth_text_vin is not None and auth_text_vin == auth_text_static:
-                allv = {k: list(v) for k, v in vin.items()}
-            else:
-                allv = _ghost_anchor_metrics(
-                    texts, n_banks, year, auth_text_static, f'{track_suffix}/allv')
+    if _tasks:
+        _jobs = _auth_jobs_override()
+        _par = len(_tasks) >= _AUTH_PARALLEL_MIN_TASKS
+        logger.info(f"  逐年计算: {len(_tasks):,d} 个 (轨, 年) 任务, "
+                    f"执行方式={'进程并行' if _par else '串行'}"
+                    f"{f' (n_jobs={_jobs}, 经 {_AUTH_JOBS_ENV} 指定)' if _jobs else ''}"
+                    f"; 阈值 min_tasks={_AUTH_PARALLEL_MIN_TASKS}")
 
-            # 打包记录 (vintage 主轨 + 可选 _allv 孪生)
-            for i, bank in enumerate(banks):
-                rec = {
-                    'target_bank': bank,
-                    'year': year,
-                    f'auth_sim_tfidf_c{track_suffix}': float(vin['tfidf_c'][i]),
-                    f'auth_sim_tfidf_w{track_suffix}': float(vin['tfidf_w'][i]),
-                    f'auth_sim_lda{track_suffix}': float(vin['lda'][i]),
-                    f'auth_sim_emb{track_suffix}': float(vin['emb'][i]),
-                }
-                # 第三嵌入 _lg (活跃 co-primary; 键存在性由 _LARGE_SPEC 经助手单点决定 → 与早退分支一致)
-                if 'emb_lg' in vin:
-                    rec[f'auth_sim_emb_lg{track_suffix}'] = float(vin['emb_lg'][i])
-                if allv is not None:
-                    rec.update({
-                        f'auth_sim_tfidf_c_allv{track_suffix}': float(allv['tfidf_c'][i]),
-                        f'auth_sim_tfidf_w_allv{track_suffix}': float(allv['tfidf_w'][i]),
-                        f'auth_sim_lda_allv{track_suffix}': float(allv['lda'][i]),
-                        f'auth_sim_emb_allv{track_suffix}': float(allv['emb'][i]),
-                    })
-                    # _allv 是 vin 整 dict copy (@374) 或同助手再算 → emb_lg 自动随 _LARGE_SPEC 传播
-                    if 'emb_lg' in allv:
-                        rec[f'auth_sim_emb_lg_allv{track_suffix}'] = float(allv['emb_lg'][i])
-                all_results.append(rec)
+        def _emit(out):
+            """单任务完成即回放 —— **流式**, 不缓冲到最后。
+
+            ⚠ 流式是硬需求不是优化: 生产上本步骤跑 10.57 小时, 其间 111 条
+            "LDA K=…" 是唯一进度信号; 若缓冲到最后统一吐, 十小时日志全空白, 且一旦
+            像 2026-07-27 那样被超时闸强杀, 缓冲的日志连同进度**全部丢失**。
+            `_run_year_tasks(on_result=...)` 用 joblib `return_as='generator'`,
+            仍按**提交序**产出 ⟹ 行序/归并序与串行逐行一致。
+
+            ⚠ 必须按级别分派回 `logger.warning` / `logger.info` 这些**原调用面**,
+            不能图省事统一走 `logger.log(lvl, msg)`: 二者输出的日志行完全相同, 但
+            调用面不同 —— 既有单测 (test_omni_fix_policy) 用 Mock 断言
+            `logger.warning` 被调用, 统一走 log() 会让守卫披露的测试当场变红。
+            ⚠ 这个差异 **A/B 的"日志逐行比对"抓不到** (logging.Handler 分辨不出
+            `warning(m)` 与 `log(WARNING, m)`), 2026-07-28 是被既有单测抓到的。
+            ⚠ `logger` 在此**按名解析** (模块全局), 不提前绑定成局部变量, 否则
+            monkeypatch 打的桩就失效了。
+            """
+            _recs, _logs = out
+            for _lvl, _msg in _logs:
+                if _lvl >= logging.ERROR:
+                    logger.error(_msg)
+                elif _lvl >= logging.WARNING:
+                    logger.warning(_msg)
+                else:
+                    logger.info(_msg)
+            all_results.extend(_recs)
+
+        _run_year_tasks(_tasks, _auth_year_worker,
+                        auth_text_static, _companion,
+                        min_tasks=_AUTH_PARALLEL_MIN_TASKS,
+                        n_jobs=_jobs, on_result=_emit)
 
     # 4. 汇总挂载至 Panel
     if all_results:
