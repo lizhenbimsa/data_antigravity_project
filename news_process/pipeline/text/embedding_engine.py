@@ -57,6 +57,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 
 import numpy as np
 import tiktoken
@@ -312,6 +313,14 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     """
     import aiohttp
 
+    # ── F18 (2026-07-28): 分段计时 —— 让「这段时间到底花在 API 还是 CPU」可归因 ──
+    # 为何: 2026-07-27 生产跑里 stage 40 的「步骤 7h-emb 嵌入同业网」吃掉 20,471s
+    # (整个 stage 的 **20.31%**), 而它是 API/CPU 各占多少**至今无人知道** —— 因为
+    # 本模块用 getLogger(__name__) 且此前无 handler (F29), INFO 一条都没落过盘,
+    # 审计只能靠「数据库文件长胖了多少」反推是否在付费。这不该是审计的姿势。
+    # 三段: ①缓存查 (SQLite 读) ②API 等 (含 429 退避) ③写回+组装。
+    _t_start = time.time()
+    _t_cache_done = _t_api_done = None
     texts = [] if texts is None else list(texts)
     if len(texts) == 0:
         return np.empty((0, 0), dtype=np.float32)
@@ -378,6 +387,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         _written[_i] = True
 
     missing_texts = [texts[_i] for _i in missing_indices]
+    _t_cache_done = time.time()          # F18 分段①: 缓存查结束
 
     if len(texts) > 1:
         _n_hit = len(texts) - len(missing_texts)
@@ -632,6 +642,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                 await asyncio.gather(*[
                     _process_batch(i, b, session) for i, b in enumerate(batches)
                 ])
+                _t_api_done = time.time()      # F18 分段②: API 段结束 (仅成功路径)
             except EmbeddingRetryExhaustedError as _exhausted:
                 # 任一批瞬时失败重试 EMB_MAX_RETRIES 次仍失败 → 整个 spec/轨优雅返回 None
                 # (上游列置 NaN), 对称 tone_llms 80 次后缺席投票; 不向上冒泡 (区别于致命
@@ -640,6 +651,15 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                 logger.error(
                     f"    嵌入 API 重试 {EMB_MAX_RETRIES} 次仍失败 → 返回 None "
                     f"(该轨列将置 NaN): {_exhausted}"
+                )
+                # F18: 失败路径也要留下分段计时 —— 这条正是 F28 那次数据丢失的现场,
+                # 当时既不知道它等了多久, 也不知道 API/CPU 各占多少。
+                logger.error(
+                    f"    ⏱ 分段计时 (失败): 缓存查 "
+                    f"{sig4(_t_cache_done - _t_start)}s → API 段 "
+                    f"{sig4(time.time() - _t_cache_done)}s (重试耗尽) | "
+                    f"model={embedding_model} n_texts={len(texts):,} "
+                    f"n_missing={len(missing_texts):,}"
                 )
                 return None
 
@@ -655,6 +675,21 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         f"写行完备性异常: written={_n_written} != N={len(texts)} "
         f"(未写行号前 10: {np.flatnonzero(~_written)[:10].tolist()})"
     )
+    # ── F18 分段计时落盘 (成功路径) ──
+    # 判读: API 段占比高 ⟹ 该段是 API-bound (治法 = 并发/退避/分批, 或播种后就快了);
+    #       缓存查段占比高 ⟹ SQLite 点查是瓶颈 (治法 = 批量取代逐条);
+    #       两段都小而外层耗时大 ⟹ 时间在**调用方的 CPU** (治法 = 并行化)。
+    # 这三条判读正是 2026-07-28 归因 stage 40 时缺失的东西。
+    if len(texts) > 1:
+        _t_end = time.time()
+        _api = (_t_api_done or _t_end) - _t_cache_done
+        logger.info(
+            f"    ⏱ 分段计时: 缓存查 {sig4(_t_cache_done - _t_start)}s | "
+            f"API 段 {sig4(_api)}s ({pct4(_api / max(_t_end - _t_start, 1e-9))}) | "
+            f"合计 {sig4(_t_end - _t_start)}s | "
+            f"n_texts={len(texts):,} n_missing={len(missing_texts):,} "
+            f"model={embedding_model}"
+        )
     return out
 
 
