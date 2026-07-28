@@ -102,10 +102,18 @@ pip install -e ".[dev]"
 cp news_process/.env.example news_process/.env   # 填 YUNWU_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY
 pre-commit install
 
-# 跑 pipeline (从 repo 根 f:\WiseSearch\data_antigravity_project\)
-python run_pipeline_function.py     # 全主线
-python run_pipeline_validation.py   # 验证 pipeline
-python 21_tone_llms.py              # 单阶段调试
+# 跑 pipeline —— ⚠ 2026-07-28 订正: 旧载「从 repo 根 …\data_antigravity_project\ 跑
+#   `python run_pipeline_function.py`」是**错的**: git 根 = f:\WiseSearch\data_antigravity_project,
+#   而 9 个入口脚本**全部在 news_process\ 下**, 在根目录按裸文件名跑 = 文件不存在,
+#   python 立刻退出; 若启动时没重定向 stderr 就**连报错都看不到**, 只表现为"跑了很久
+#   什么也没发生"(2026-07-28 实弹, 白等一小时)。两种写法都对, 二选一:
+cd news_process && python run_pipeline_validation.py     # ① 进目录跑 (推荐)
+python news_process/run_pipeline_function.py             # ② 从 repo 根带包路径跑
+#   (脚本自身 bootstrap sys.path — `_PROJECT_PARENT` 插入 sys.path — 故 cwd 任意,
+#    唯一要求是**脚本路径本身正确**。)
+python news_process/21_tone_llms.py                      # 单阶段调试 (同理)
+# ⚠ 后台启动务必带 stdout/stderr 重定向, 否则路径错/import 错会静默消失:
+#   Start-Process ... -RedirectStandardOutput a.out -RedirectStandardError a.err
 
 # 测试 (必须从 repo 根跑, 否则绕过 pyproject testpaths)
 pytest                    # 全量
@@ -115,9 +123,9 @@ pytest -k "test_golden"
 
 ruff check . ; ruff check --fix .
 
-# Golden 重生 (列 schema 变更后)
-python scripts/migrate/generate_golden_snapshot.py
-pytest tests/integration/test_panel_reproducibility.py
+# Golden 重生 (列 schema 变更后) —— 路径同样相对 news_process/, 与上面的入口同理
+cd news_process && python scripts/migrate/generate_golden_snapshot.py
+pytest news_process/tests/integration/test_panel_reproducibility.py   # 从 repo 根跑
 ```
 
 ## Critical Constraints
@@ -125,7 +133,7 @@ pytest tests/integration/test_panel_reproducibility.py
 ### Git Commit Protocol
 1. **绝不 amend** (除非显式要求); pre-commit hook 失败后创建**新** commit。
 2. **按文件名 stage** (`git add <file>`), 避免 `git add .`/`-A` (防误提 secrets); 共享树并发会话尤须 by-name (排除 `*constants.json`/`eval_reports` 等并发产物)。
-3. Commit message: HEREDOC + `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>` trailer。
+3. Commit message: HEREDOC + `Co-Authored-By: <当前实际模型> <noreply@anthropic.com>` trailer。⚠ 2026-07-28 订正: 原文把型号写死为 `Claude Opus 4.8 (1M context)` —— 那是写这行时的模型, 照抄会造成**错误署名**。trailer 必须写**本次真正执行的模型**(本轮为 `Claude Opus 5`), 历史 commit 里的 4.8 是当时的事实, 不追改。
 4. **绝不 `--no-verify`** (除非显式要求)。
 
 ### Code Modification Rules
