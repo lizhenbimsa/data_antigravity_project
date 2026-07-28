@@ -1740,6 +1740,18 @@ def compute_strategic_differentiation(df_exploded, panel):
             # both-or-neither parity (v3.14.0): MAIN 与 _lg 是 co-primary, 任一嵌入
             # 失败 → 两者同族列一并 NaN (无单边孤儿列, parity test 守门)。
             if se is None or se_lg is None:
+                # F28 同型站点留痕 (2026-07-28; 本站点 2026-07-27 生产跑**未**触发 —
+                # 盘上 strat_diff_n*_emb* 全 6,224 满值 — 但用的是同一个 embed_texts /
+                # 同一个 TPM 端点, 只是没有任何一批把 80 次重试用光, 纯属运气)。
+                # 只加日志, 零数值改动。
+                logger.error(
+                    f"🔴 战略差异度 both-or-neither 塌缩 [Full 轨 year={year}]: "
+                    f"失败臂={'MAIN(Qwen)' if se is None else ''}"
+                    f"{'+' if se is None and se_lg is None else ''}"
+                    f"{'_lg(large)' if se_lg is None else ''}; "
+                    f"该年 {len(banks)} 家银行的 strat_diff_n*_emb / strat_sim_max_emb / "
+                    f"centroid_diff_emb / strat_diff_full 及其 _lg 孪生一并置 NaN"
+                )
                 se, cd_emb = None, None
                 se_lg, cd_emb_lg = None, None
 
@@ -1872,6 +1884,36 @@ def compute_strategic_differentiation(df_exploded, panel):
             # both-or-neither parity: MAIN 与 _lg coherence 任一嵌入失败 (空 dict)
             # → 两者同族 coh 列一并空, 不留单边孤儿列。
             if not coh_emb or not coh_emb_lg:
+                # 🔴 F28 留痕 (2026-07-28): 本分支在 2026-07-27 生产跑里**静默**触发了
+                # 两次 —— ctx 轨 16:40:30、ss 轨 18:24:44, 主轨 Qwen 嵌入在 429/TPM 风暴下
+                # 重试 80 次耗尽返回 None, 连坐把**已算成功的 _lg 结果一并丢弃**,
+                # 导致交付面板 coh_emb_{ctx,ss} 与 coh_emb_lg_{ctx,ss} 四列 23,693 行全 NaN
+                # (共丢 4 × 3,891 = 15,564 个应有值), 而阶段照常打印「✅ 新增 15 列」、
+                # 管道报「✓ 全部阶段执行成功」、EXIT=0 —— 28 小时无人察觉。
+                # 本块**不改任何数值语义** (值仍按 both-or-neither 同置空), 只把静默变成
+                # 可检出: ERROR 级 + 逐列点名 + 点明被丢弃的成功臂规模。配合 F29
+                # (孤儿模块 ERROR 落地), `grep -c " - ERROR - "` 这条验收判据才第一次
+                # 对本类数据丢失有效。
+                # ⚠ 「失败一臂时保留另一臂」属**改值语义**, 与 CLAUDE.md「两轨严格 parity
+                #   (both-or-neither)」铁律正面冲突, 属研究口径变更, 须用户裁定后另案实施。
+                _failed = [n for n, d in (('MAIN(Qwen)', coh_emb),
+                                          ('_lg(large)', coh_emb_lg)) if not d]
+                _kept = [(n, len(d)) for n, d in (('MAIN(Qwen)', coh_emb),
+                                                  ('_lg(large)', coh_emb_lg)) if d]
+                _cols = f'coh_emb{track_suffix}, coh_emb_lg{track_suffix}'
+                logger.error(
+                    f"🔴 嵌入连贯性 both-or-neither 塌缩 [轨道{track_suffix or '_full'}]: "
+                    f"失败臂={'+'.join(_failed)}; "
+                    f"被连坐丢弃的**已成功**结果="
+                    f"{', '.join(f'{n} {c:,d} 个值' for n, c in _kept) or '无'}; "
+                    f"受影响列 (2 列将全 NaN): {_cols}"
+                )
+                logger.error(
+                    f"   ⚠ 后果: 该轨嵌入连贯性在面板中不可用 (三轨互为稳健性梯子缺 1/3); "
+                    f"且因同批文本随后可能被成功嵌入并入缓存, **重跑会填上这两列** "
+                    f"⟹ 本次交付产物不可复现。根因通常是嵌入 API 重试耗尽 "
+                    f"(见同期 embedding_engine 的 '重试 80 次仍失败' ERROR)。"
+                )
                 coh_emb, coh_emb_lg = {}, {}
                 _coh_pairs[-1] = (f'coh_emb{track_suffix}', coh_emb)
             _coh_pairs.append((f'coh_emb_lg{track_suffix}', coh_emb_lg))
@@ -1982,6 +2024,16 @@ def compute_strategic_differentiation(df_exploded, panel):
                 # both-or-neither parity (v3.14.0): MAIN 与 _lg co-primary, 任一
                 # 嵌入失败 → 两者同族列一并 NaN (无单边孤儿列)。
                 if se is None or se_lg is None:
+                    # F28 同型站点留痕 (2026-07-28; 与 Full 轨同型, 只加日志零数值改动)
+                    logger.error(
+                        f"🔴 战略差异度 both-or-neither 塌缩 [{_tsfx} 轨 year={year}]: "
+                        f"失败臂={'MAIN(Qwen)' if se is None else ''}"
+                        f"{'+' if se is None and se_lg is None else ''}"
+                        f"{'_lg(large)' if se_lg is None else ''}; "
+                        f"该年 {len(banks)} 家银行的 strat_diff_n*_emb{_tsfx} / "
+                        f"strat_sim_max_emb{_tsfx} / centroid_diff_emb{_tsfx} "
+                        f"及其 _lg 孪生一并置 NaN"
+                    )
                     se, cd_emb = None, None
                     se_lg, cd_emb_lg = None, None
 
