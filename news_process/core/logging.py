@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import math
+import multiprocessing
 import os
 import sys
 import time
@@ -73,6 +74,48 @@ def _configure_third_party_loggers() -> None:
 def get_run_id() -> str | None:
     """返回 NEWS_PROCESS_RUN_ID 环境变量的值, 不存在返回 None。"""
     return os.environ.get(_RUN_ID_ENV)
+
+
+def _is_spawned_child_process() -> bool:
+    """判定「本进程是 multiprocessing / loky spawn 出来的**工作子进程**」。
+
+    **为何需要 (F27, 2026-07-27 生产实弹)**: stage 40 的逐年进程并行 (F25) 起 12 个
+    loky worker, 每个 worker import ``pipeline.features.strategic_diff`` → 传递触发
+    ``pipeline/panel/encode.py:48`` 的模块级 ``setup_logging("40_build_panel", …)``
+    → ``_DelayedTruncatingRotatingHandler`` 的「本进程首写即截断」把父进程已写的
+    212 KB 日志抹成 **99.8% NUL、只剩 3 行**。同型风险覆盖 stage 15/22/24/40 四个
+    已用进程并行的阶段。此前对策是**逐个 emit 点**加守卫 (``silent=`` /
+    ``parent_process() is None``, 见 ``pipeline/text/fintech_intensity.py``), 属打地鼠;
+    根治点是**不给子进程装文件 handler** —— 把 ``console_only`` 从「调用方自觉传参」
+    升级为「基建强制」。⚠ ``setup_logging`` 的 docstring 本来就写着 console_only
+    「用于子进程, 避免多进程并发写同一文件造成日志错乱」—— 机制早就有, 只是没接上。
+
+    **三谓词取并集** (缺一不可; 2026-07-28 Windows 真机探针实测):
+      P1 ``parent_process() is not None`` —— 在 ``BaseProcess._bootstrap()`` 里赋值。
+         loky 的 worker 目标是 loky 自己的 ``_process_worker``, 用户模块要到**任务
+         出队反序列化**时才 import, 那已在 ``_bootstrap`` 之后 → LokyProcess 恒 True。
+      P2 ``current_process().name != 'MainProcess'`` —— 在 ``spawn.prepare()`` 第一行
+         赋值, 早于 ``_fixup_main_from_path`` 对 ``__main__`` 的重执行。**这是 P1
+         覆盖不到的致命窗口**: stdlib ``ProcessPoolExecutor(spawn)`` 的子进程会把
+         ``__main__`` (= ``NN_*.py`` shim) 当 ``__mp_main__`` 重跑一遍, 那一刻
+         P1=False 而 P2=True。只用 parent_process() 会在这个窗口漏判。
+      P3 ``_inheriting`` —— ``spawn._main()`` 读 preparation_data **之前**置位、
+         反序列化完成后删除, 兜住 P2 赋值前的极窄窗口。
+
+    **主进程恒三谓词皆 False** —— 含 orchestrator 用 ``subprocess.Popen`` 拉起的每个
+    stage 子进程: 那是**全新解释器**, ``current_process()`` 恒为 ``_MainProcess``
+    (name='MainProcess')、``parent_process()`` 恒 None → 照常装文件 handler。
+    **主进程写盘行为零变化** —— 这是本判据的安全底线 (单向收紧: 只加静音不放宽)。
+    """
+    try:
+        proc = multiprocessing.current_process()
+        if multiprocessing.parent_process() is not None:      # P1
+            return True
+        if proc.name != "MainProcess":                        # P2
+            return True
+        return bool(getattr(proc, "_inheriting", False))      # P3
+    except Exception:  # noqa: BLE001 — 极端环境 (冻结/嵌入解释器) → 保守判为主进程
+        return False
 
 
 class _MaxLevelFilter(logging.Filter):
@@ -209,6 +252,18 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
         logging.Logger: 已配置好的 logger 实例 (幂等 — 重复调用会先清空
         现有 handler 再注册)。
     """
+    # ── F27 硬闸 (2026-07-28): spawn/loky 工作子进程一律不装文件 handler ──
+    # 单向收紧 (只加静音不放宽): 主进程行为逐字节不变; 子进程无论从哪条 import 链
+    # 触发 setup_logging, 都不可能再打开阶段 .log ⟹ 「本进程首写即截断」在结构上
+    # 不可发生。这是 F27 的**根治点** —— 逐个 emit 点加守卫是打地鼠, 而 import 链
+    # 上任何一个模块级 setup_logging 都足以毁掉整份日志 (2026-07-27 实弹: 12 个
+    # loky worker 把 40_build_panel.log 抹成 99.8% NUL)。
+    # ⚠ 代价 (刻意接受): worker 体内的 logger 调用会静默 (loky 默认丢弃 worker
+    #   stdout) ⟹ F25 立下的「worker 体内零 logger 调用, 告警回传父端 emit」纪律
+    #   **仍然必须遵守**, 本闸不是它的替代品。
+    if _is_spawned_child_process():
+        console_only = True
+
     _install_warning_filters()
     _configure_standard_streams()
     _configure_third_party_loggers()
@@ -276,7 +331,77 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
 
     logger.propagate = False
 
+    # ── F29 / F16 (2026-07-28): 让 news_process.* 模块 logger 的记录真正可见 ──
+    _attach_namespace_console(stage_name, [ch_out, ch_err], level, console_only)
+
     return logger
+
+
+#: 全项目包命名空间 = 所有 ``logging.getLogger(__name__)`` 模块 logger 的公共祖先。
+_NS_LOGGER_NAME = "news_process"
+#: 命名空间 owner 阶段名 (首次非 console_only 调用即锁定, 之后不再改) —— 见下方说明。
+_NS_OWNER: str | None = None
+#: 已挂到命名空间 logger 上的 handler (身份引用, 供幂等去重)。
+_NS_ATTACHED: list[logging.Handler] = []
+
+
+def _attach_namespace_console(stage_name: str, handlers, level: int,
+                              console_only: bool) -> None:
+    """把本次 setup_logging 造出的 **console** handler 挂到 ``news_process`` 命名空间。
+
+    **为何 (F29 + F16, 2026-07-27 实弹)**: 23 个 pipeline/core 模块用
+    ``logging.getLogger(__name__)`` (如 ``news_process.pipeline.text.embedding_engine``),
+    而 stage logger 名是 ``"40_build_panel"`` 这类**裸阶段名** —— 两条互不相交的
+    logger 链。后果: 模块日志既进不了阶段 ``.log``, 又因 root 无 handler 落到
+    ``logging.lastResort`` (裸 ``%(message)s`` 写 stderr, **levelname 丢失**)。
+    于是 embedding_engine 那条「重试 80 次仍失败 → 该轨列将置 NaN」的 ``logger.error``
+    在 orchestrator 镜像里变成 WARNING, ``grep -c " - ERROR - "`` = **0** ——
+    验收判据对真实数据丢失完全失明 (这就是 F28 被漏判 28 小时的直接原因)。
+
+    **两条刻意的设计约束** (2026-07-28 对抗审查裁决, 各换掉一个致命问题):
+
+    ① **只挂 console handler, 永不挂 file handler**。
+       否则命名空间 logger 会持有第二个 ``_DelayedTruncatingRotatingHandler`` 指向
+       同一个 ``.log`` —— 那是 F27 的**同型二次截断**风险。console 已足够: 阶段子
+       进程的 stdout/stderr 全部被 orchestrator 捕获并镜像落盘, 记录不会丢。
+
+    ② **owner 锁定, 不用 last-wins**。生产实测: 一个 stage 40 进程会调用 ≥4 次
+       ``setup_logging`` (``encode``→40_build_panel · ``llm_peer_iv``→48 ·
+       ``network_brokerage``→47 · ``network_spillover``→46, 均模块级)。若按「最后一次
+       调用赢」绑定, F29 的载荷会被路由到**错误的阶段**, 那就是自造一个 F27。
+       故取**首次非 console_only 调用**为 owner (= 该进程真正的宿主阶段), 之后
+       只做幂等校验不再改绑。
+
+    零重复落盘: 挂的是**同一批 handler 实例**; stage logger 名 (裸阶段名) 无一位于
+    ``news_process.`` 命名空间下 ⟹ 任一 LogRecord 只沿一条链走到这批 handler,
+    ``callHandlers`` 对每个 handler 只调一次。刻意**不动** ``propagate`` (保持 True):
+    生产阶段进程内 root 恒无 handler 故无二次 emit, 而 ``callHandlers`` 的
+    ``found > 0`` 顺带关掉 lastResort —— 旧的丢 levelname 裸 stderr 路径就此消失;
+    保持 True 是为了 pytest ``caplog`` (既有测试对 ``news_process.core.config``
+    这类 logger 的断言依赖这条传播链)。
+    """
+    global _NS_OWNER
+    if console_only:
+        # 子进程 (F27 硬闸) 或调用方显式要求 console_only: 不参与 owner 竞争。
+        # 子进程里挂命名空间 handler 无意义 (loky 默认丢弃 worker stdout), 且会
+        # 让「worker 体内零 logger 调用」的纪律被误以为可以放松。
+        return
+    if _NS_OWNER is not None and stage_name != _NS_OWNER:
+        return                      # 已锁定 owner, 后续模块级 setup_logging 不改绑
+    _NS_OWNER = stage_name
+
+    ns = logging.getLogger(_NS_LOGGER_NAME)
+    for h in _NS_ATTACHED:          # 幂等: 同一进程重复调用先摘旧
+        ns.removeHandler(h)
+    _NS_ATTACHED.clear()
+    for h in handlers:
+        ns.addHandler(h)
+        _NS_ATTACHED.append(h)
+    # ⚠ 必须显式设级: 不设则 NOTSET → 继承 root 的 WARNING, 模块的 INFO 仍然落空
+    # (F16 只修一半)。默认取阶段级别, 可用 env 单独放宽以做归因跑
+    # (如 7h-emb 的 API/CPU 分段归因需要 embedding_engine 的 INFO)。
+    _ns_level = os.environ.get('NEWS_PROCESS_NS_LOG_LEVEL', '').strip().upper()
+    ns.setLevel(getattr(logging, _ns_level, level) if _ns_level else level)
 
 
 def log_and_time(logger):
