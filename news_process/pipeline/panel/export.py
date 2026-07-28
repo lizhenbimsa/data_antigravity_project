@@ -288,11 +288,84 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     except Exception as _e:
         logger.warning(f"  [diag] 总判读跳过: {_e}")
 
+    # ── 🔴 S10 (2026-07-28): 三轨内"一轨有值 / 另一轨 100% NaN"守卫 ──
+    _log_track_nan_asymmetry(panel)
+
     # ── ⏱ 子步骤计时 ──
     try:
         logger.info(f"  ⏱ 步骤 8 (面板诊断) 墙钟耗时: {sig4(time.time() - _diag_t0)} 秒")
     except Exception as _e:
         logger.warning(f"  [diag] 计时输出跳过: {_e}")
+
+
+#: 三轨后缀 (与 CLAUDE.md「三轨 _full/_ctx/_ss」口径一致)。
+#: ⚠ `_lg` 是**中置**后缀 (如 `auth_sim_emb_lg_ctx`), 不在此列 —— 剥掉轨后缀后
+#: `coh_emb` 与 `coh_emb_lg` 自然分成两个独立族, 各自 3 轨, 正是我们要的粒度。
+_TRACK_SFX = ('_full', '_ctx', '_ss')
+
+
+def _log_track_nan_asymmetry(panel: pd.DataFrame) -> None:
+    """检出「同一三轨族内, 一轨有值而另一轨 100% NaN」并 **loud ERROR**。
+
+    **为何要有这条 (2026-07-27 实弹)**: stage 40 那次 28 小时跑完、全部阶段 ✓、
+    ``grep -c " - ERROR - "`` **= 0**, 但面板里 ``coh_emb_ctx`` / ``coh_emb_ss`` /
+    ``coh_emb_lg_ctx`` / ``coh_emb_lg_ss`` 四列 **100% NaN**, 丢了 15,564 个值 ——
+    成因是两次 Qwen 重试耗尽, both-or-neither 把**已经算成功的 `_lg` 臂**一并置 NaN。
+    验收判据当时完全瞎: 没有任何一条 ERROR, 也没有任何一条日志点名这四列。
+    F29 (ERROR 可落盘) + S3 (崩塌现场逐列点名) 已从**产出侧**堵上; 本函数从
+    **验收侧**再堵一道 —— 即便未来换了别的崩塌路径, 只要症状是"轨间不对称全空"
+    就会被抓到。
+
+    **为何不是"凡全 NaN 就报错"**: T=2 dev / 未播种轨上大量列合法全 NaN, 那样报
+    只会变成噪声、进而被无视 (这正是告警失效的经典路径)。而"列**存在**却整列空,
+    同族别的轨却有值"是**无歧义**的异常: 轨整体缺失时列压根不会被创建。
+
+    纯只读, 不改 panel; 全程 try/except —— 诊断绝不崩阶段。
+    """
+    try:
+        if panel is None or len(panel) == 0:
+            return
+        fams: dict[str, dict[str, int]] = {}
+        for col in panel.columns:
+            for sfx in _TRACK_SFX:
+                if col.endswith(sfx):
+                    base = col[: -len(sfx)]
+                    try:
+                        n_ok = int(panel[col].notna().sum())
+                    except Exception:      # noqa: BLE001 — 非数值/异构列跳过
+                        break
+                    fams.setdefault(base, {})[sfx] = n_ok
+                    break
+
+        bad = []
+        for base, tracks in fams.items():
+            if len(tracks) < 2:
+                continue                                   # 单轨族无从比较
+            empty = sorted(s for s, n in tracks.items() if n == 0)
+            filled = sorted((s, n) for s, n in tracks.items() if n > 0)
+            if empty and filled:
+                bad.append((base, empty, filled))
+
+        n_all_nan = sum(1 for c in panel.columns
+                        if c.endswith(_TRACK_SFX) and int(panel[c].notna().sum()) == 0)
+        logger.info(f"  🔎 三轨完整性扫描: {len(fams):,d} 个三轨族 / "
+                    f"整列全 NaN 的轨列 {n_all_nan:,d} 个 / "
+                    f"**轨间不对称全空** {len(bad):,d} 族")
+        if not bad:
+            return
+        logger.error(
+            f"🔴 检出 {len(bad)} 个三轨族「一轨有值而另一轨整列全 NaN」—— "
+            f"轨整体缺失时列不会被创建, 故这**不是**正常的轨缺失, 而是该轨在生产中"
+            f"算失败后被静默置 NaN (2026-07-27 coh_emb 四列即此症状, 丢 15,564 个值)。"
+            f"下游一切用到空轨的稳健性对照都将无声退化为「只有主轨」。")
+        for base, empty, filled in sorted(bad):
+            logger.error(
+                f"   · 族 {base}: 全空轨 = {', '.join(base + s for s in empty)}; "
+                f"有值轨 = {', '.join(f'{base}{s} ({n:,d} 值)' for s, n in filled)}")
+
+
+    except Exception as _e:  # noqa: BLE001 — 诊断绝不崩阶段
+        logger.warning(f"  [diag] 三轨完整性扫描跳过 (不影响产物): {_e}")
 
 
 # ============================================================================
