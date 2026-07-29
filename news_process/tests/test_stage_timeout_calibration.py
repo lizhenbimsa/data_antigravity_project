@@ -54,19 +54,29 @@ MEASURED_PRODUCTION_SECONDS = {
 #: 🔴 S11 (2026-07-29): **本表原先只覆盖 STAGES_MAIN, 16 个验证阶段一格没有** ——
 #: 于是同一根因第 4 次从这个缺口漏出去: 入口③ 生产真跑时阶段 72 被 10,800s 强杀,
 #: 73/74/75 连坐跳过, 整个评估验证管道判 ✗。补上验证侧实测。
+#: 🔴 **口径 = 观测最大值, 不是最近一次实测** (2026-07-30 收紧)。
+#: 实弹教训: 07-29 上午我按首测值回填 (stage 62 = 9,190s), **当天下午同一代码同一语料的
+#: 第二趟就跑出 17,730s (1.93×)** —— 差异来自 OS page cache 状态与机器争用 (第二趟前面
+#: 隔了 28h 的 stage 40 把缓存冲光)。按首测值算出的 4.7× 余量, 实际只有 2.44×。
+#: 16 个验证阶段里 **9 个**的首测值都是低估 (最大偏差 stage 64 达 4.08×)。
+#: ⟹ 新增实测后只上调不下调; 两趟差异显著者两个数都记, 供后人判断方差量级。
 MEASURED_VALIDATION_SECONDS = {
-    '60_bank_fintech_threshold.py': (50, '2026-07-29 ③ 生产 (49.33s 上取整)'),
-    '61_news_llms_human.py': (14, '2026-07-29 ③ 生产 (13.25s)'),
-    '62_dedup_threshold_sensitivity.py': (9190, '2026-07-29 ③ 生产 (多阈值 LSH 扫描, 4,097,326 文档)'),
-    '63_news_llms_evaluation.py': (5, '2026-07-29 ③ 生产 (4.5s)'),
-    '64_tone_validation.py': (259, '2026-07-29 ③ 生产'),
-    '65_radius_sensitivity.py': (1159, '2026-07-29 ③ 生产'),
-    '66_entity_masking_test.py': (2, '2026-07-29 ③ 生产 (1.33s)'),
-    '67_dict_coverage_audit.py': (66, '2026-07-29 ③ 生产'),
-    '68_media_diversity.py': (93, '2026-07-29 ③ 生产'),
-    '69_decay_sensitivity.py': (503, '2026-07-29 ③ 生产'),
-    '70_prompt_sensitivity.py': (2, '2026-07-29 ③ 生产 (1.27s)'),
-    '71_inter_track_kappa.py': (185, '2026-07-29 ③ 生产'),
+    '60_bank_fintech_threshold.py': (166, '2026-07-29 ③ 第二趟 (166.0s; 首趟 49.33s, 3.32×)'),
+    '61_news_llms_human.py': (39, '2026-07-29 ③ 第二趟 (38.55s; 首趟 13.25s, 2.75×)'),
+    '62_dedup_threshold_sensitivity.py': (
+        17730, '2026-07-29 ③ 第二趟 17,730s=4.93h (多阈值 LSH 扫描, 4,097,326 文档); '
+               '首趟 9,190s —— **同代码同语料相差 1.93×**, 冷/热 page cache 所致'),
+    '63_news_llms_evaluation.py': (7, '2026-07-29 ③ 第二趟 (6.77s; 首趟 4.5s)'),
+    '64_tone_validation.py': (1056, '2026-07-29 ③ 第二趟 (1,056s; 首趟 259s, **4.08×** — 本表最大偏差)'),
+    '65_radius_sensitivity.py': (
+        3170, '2026-07-29 ③ 第二趟 (3,170s; 首趟 1,159s, 2.74×) —— 该阶段此前**漏配显式超时**, '
+              '在吃默认 7200s, 余量仅 2.27×; 已补 timeout=14400'),
+    '66_entity_masking_test.py': (2, '2026-07-29 ③ (1.42s)'),
+    '67_dict_coverage_audit.py': (78, '2026-07-29 ③ 第二趟 (77.67s; 首趟 66s)'),
+    '68_media_diversity.py': (93, '2026-07-29 ③ (91.52–93s 两趟一致)'),
+    '69_decay_sensitivity.py': (503, '2026-07-29 ③ (501.9–503s 两趟一致)'),
+    '70_prompt_sensitivity.py': (2, '2026-07-29 ③ (1.26s)'),
+    '71_inter_track_kappa.py': (186, '2026-07-29 ③ (185.4s 两趟一致)'),
     # 🔵 72 号: 首轮 ③ 真跑被 10800s 强杀 ⟹ 当时表里填的是**微基准推算**的串行需求
     #   73,440s。S11 (上三角镜像 + 逐 cell 并行) 后**单跑实测 8,270s**, 已替换为实测值。
     #   ⚠ 我此前口头说的「S11 后期望 ≈1.3h」是拿 20.4h÷16 硬除的, 偏乐观 —— 没扣掉
@@ -76,9 +86,10 @@ MEASURED_VALIDATION_SECONDS = {
               'nmi_matrices 6340s + permutation_null 1925s)'),
     # 🔵 73/74/75: 首轮 ③ 因 72 号被强杀而**连坐跳过, 从未在生产上跑过**;
     #   72 号修好后 2026-07-29 15:09 起补跑, 3/3 EXIT=0。至此验证侧 16 阶段全部有实测。
-    '73_lexical_discriminant_validity.py': (6, '2026-07-29 补跑实测 5.64s'),
-    '74_lm_discriminant_validity.py': (5, '2026-07-29 补跑实测 4.74s (纯日志阶段, 无 parquet 产物 by-design)'),
-    '75_cross_media_alpha.py': (180, '2026-07-29 补跑实测 179.23s (三轨 × ~57s 事件检测)'),
+    '73_lexical_discriminant_validity.py': (6, '2026-07-29 补跑 5.64s / ③ 内 5.85s'),
+    '74_lm_discriminant_validity.py': (
+        5, '2026-07-29 补跑 4.74s / ③ 内 4.93s (纯日志阶段, 无 parquet 产物 by-design)'),
+    '75_cross_media_alpha.py': (189, '2026-07-29 ③ 内 189.0s (单跑 179.23s; 三轨 × ~57s 事件检测)'),
 }
 
 #: ⚠ 72 号的 timeout **不是**按上表实测值定的, 而是按 **OOM 兜底回落串行**的需求定的。
@@ -175,6 +186,26 @@ def test_timeout_covers_serial_fallback_path(script):
     assert spec.timeout >= required, (
         f'{script}: timeout={spec.timeout}s < 串行兜底需求 {required}s ({src})。'
         f'并行实测快不代表可以压闸门 —— OOM 回落串行时这条路径要跑得完。')
+
+
+def test_no_validation_stage_silently_inherits_default_timeout():
+    """验证侧同样不得靠 StageSpec 默认值兜底 —— 本 gate 此前**只有 MAIN 侧**。
+
+    🔴 2026-07-30 实弹: `65_radius_sensitivity.py` 生产实测 3,170s 却**从未配过显式超时**,
+    一直在吃默认 7,200s (余量 2.27×, 已跌破 3.0 下限)。这与 stage 15 (2026-07-24) 和
+    stage 23 (2026-07-26) 被父端强杀是**同一形态**, 而它之所以没被现有 gate 拦住, 正是
+    因为 test_no_main_stage_silently_inherits_default_timeout 只遍历 STAGES_MAIN。
+    """
+    from news_process.core.dag import STAGES_VALIDATION, StageSpec
+    default = StageSpec.__dataclass_fields__['timeout'].default
+    offenders = [
+        s.script for s in STAGES_VALIDATION
+        if s.timeout == default
+        and MEASURED_VALIDATION_SECONDS.get(s.script, (0, ''))[0] > 600
+    ]
+    assert not offenders, (
+        f'以下验证阶段实测 >600s 却仍在吃 StageSpec 默认 timeout={default}s (未显式配置): '
+        f'{offenders} —— 漏配显式超时是 stage 15/23/65 三次事故的共同根因。')
 
 
 def test_validation_table_scripts_all_exist_in_dag():

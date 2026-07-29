@@ -436,9 +436,15 @@ STAGES_VALIDATION: list[StageSpec] = [
         # 各做一次精确+近似去重;
         # MinHash 签名已优化为 5 阈值共用一次 (validation/dedup_threshold.py), 但 LSH
         # 构建 + 查询时间窗口仍逐阈值跑一遍, 全量下单遍即 ~1-1.5h → 默认 7200s (2h)
-        # 远不够 (生产 stage 00 单遍去重 ~400k 文章即预算 6h)。提到 12h 安全上限,
-        # 与最大长跑阶段对齐; 这是硬超时上限 (跑完即退), 非期望运行时长。
-        timeout=43200,
+        # 远不够 (生产 stage 00 单遍去重 ~400k 文章即预算 6h)。
+        # 🔴 2026-07-30 二次上调 43,200 → 64,800s (18h): 生产 T=19 两趟实测**相差 1.93×**
+        #   —— 07-29 上午趟 9,190s (2.55h), 同日下午趟 **17,730s (4.93h)**, 同一代码同一
+        #   语料, 差异来自 OS page cache 状态与机器争用 (下午趟前面隔了 28h 的 stage 40)。
+        #   按后者算旧闸只剩 2.44× 余量, 已跌破本仓 3.0× 下限 —— 再来一趟冷缓存就是第 5 次
+        #   "超时强杀"。新值 = 3.66× × 观测最大值。
+        #   ⚠ 教训: **单次实测不能当基线**, 超时表必须存"观测最大值"; 07-29 上午我按首测值
+        #   9,190s 回填, 当天下午即被自己的下一趟跑证伪。
+        timeout=64800,
     ),
     StageSpec(
         name="阶段63: 分类有效性评估",
@@ -449,11 +455,25 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段64: 情感三角验证",
         script="64_tone_validation.py",
         group="validation", kind="evaluation",
+        # 🔴 2026-07-30 补配显式超时 (此前漏配, 在吃 StageSpec 默认 7200s) —— 由同批新增的
+        #   test_no_validation_stage_silently_inherits_default_timeout **当场抓出**,
+        #   是继 65 号之后同一形态的第二例。
+        #   生产 T=19 两趟实测 259s → 1,056s, **跨趟方差 4.08× 为全表最大**; 按观测最大值
+        #   的 10.2× 设闸以吸收该方差 (LLM 三角验证受网关限流/缓存命中率影响大)。
+        timeout=10800,
     ),
     StageSpec(
         name="阶段65: 窗口半径敏感性检验",
         script="65_radius_sensitivity.py",
         group="validation", kind="sensitivity",
+        # 🔴 2026-07-30 补配显式超时 (此前**漏配, 在吃 StageSpec 默认 7200s**):
+        #   生产 T=19 实测 3,170s ⟹ 默认值只剩 2.27× 余量, 已跌破 3.0× 下限。
+        #   这正是 stage 15 (2026-07-24) 与 stage 23 (2026-07-26) 两次被父端强杀的**同一
+        #   形态**——「重阶段漏配显式超时, 靠默认值兜底」。此前的 gate
+        #   test_no_main_stage_silently_inherits_default_timeout 只覆盖 STAGES_MAIN,
+        #   验证侧一格没有, 于是本例从那个缺口漏出去 (gate 已同批扩到验证侧)。
+        #   14,400s = 4.54× × 实测, 兼顾 radius 梯子未来加档。
+        timeout=14400,
     ),
     StageSpec(
         name="阶段66: Entity Masking 稳健性测试",
