@@ -281,12 +281,34 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
                     tone, on=['target_bank', 'year'], how='left')
                 _bal_cols.append(col)
 
+        # ── n_media_bal_*: 由「语料级标量广播」改为**逐 bank-year 计数** ──
+        # 🔴 2026-07-29 修 (生产 T=19 首次暴露): 旧实现 `panel[col_n] = len(balanced)`
+        #   把一个语料级标量 (整个窗口内合格的平衡媒体家数) 广播到全部 23,693 行 ⟹
+        #   **全表仅 1 个取值、零方差**。实测确认: 三列 nunique 均为 1。后果:
+        #     · 作为回归元与常数项完全共线, Stata 会静默 omit (或被吸收进 FE);
+        #     · 列名 `n_media_bal_*` 读作"平衡媒体家数", 在**面板列**语境下自然被理解为
+        #       "该 bank-year 有几家平衡媒体报道", 与实际语义不符 —— 是会误导下游的命名;
+        #     · 无变异列仍占 maxvar 预算 (51 号 dta 已 4,194 列, paper master 默认 5000)。
+        #   语料级家数并未丢失 —— 它本就在下方 logger 里 (且现在写明是 corpus-level provenance)。
+        # 语义: 窗口内该 bank-year 有多少家**不同的**平衡媒体报道过它。
+        #   · 窗口内无平衡媒体报道 → **0** (计数语义; 与面板 n_articles 对零覆盖格记 0
+        #     而非 NaN 的既有约定一致 —— 面板 73.73% 的格是笛卡尔补全的零报道格);
+        #   · 窗口外年份 → **NaN** (不适用; 由 how='left' 天然产生, 不回填)。
         col_n = f'n_media_bal_{suffix}'
         if col_n in panel.columns:
             panel = panel.drop(columns=[col_n])
-        panel[col_n] = len(balanced)
-        logger.info(f"  窗口 {suffix}: {len(balanced)} 家平衡媒体, "
-                    f"3 轨道 (full/ctx/ss) + {len(_bal_cols)} 全方法列")
+        _n_media = (df_b.groupby(['target_bank', 'year'])['媒体(中文)']
+                    .nunique().reset_index(name=col_n))
+        panel = panel.merge(_n_media, on=['target_bank', 'year'], how='left')
+        _in_window = panel['year'].between(start_year, end_year)
+        panel.loc[_in_window, col_n] = panel.loc[_in_window, col_n].fillna(0)
+        _nb = panel[col_n]
+        logger.info(f"  窗口 {suffix}: {len(balanced)} 家平衡媒体 (corpus-level provenance, "
+                    f"**不再广播成面板列**), 3 轨道 (full/ctx/ss) + {len(_bal_cols)} 全方法列")
+        logger.info(f"     · {col_n} 逐 bank-year: 非空 {int(_nb.notna().sum()):,} 行 "
+                    f"(窗口外为 NaN) | 取值数 {int(_nb.nunique(dropna=True))} "
+                    f"| 均值 {_nb.mean():.4g} | max {_nb.max():.0f} "
+                    f"(取值数=1 即退化为常量, 应为多值)")
         # 日志富集 (2026-06-29, golden-safe): 该窗口平衡子集 full 轨语调分布 (仅读已并入
         # panel 的列, 结果丢弃) —— 供审稿与非平衡基准对照, 判断幸存者偏差 (survivorship)
         # 是否驱动结论。白话: 只看"全程一直在报道"的媒体, 看语调会不会和全样本不一样。

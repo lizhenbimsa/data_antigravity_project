@@ -410,6 +410,22 @@ SHORT_NAME_REPLACEMENTS = [
     ("_target_mention_count", "_tgt_mention_cnt"),
     ("mean_num_intensity_word", "mean_numint_w"),
     ("_within_doc_", "_wd_"),
+    # ── BAL 平衡媒体稳健性族 (2026-07-29 用户裁定纳入 738 测度列) ──
+    # 预算: 发射列 = {arm}_{short}_{track} = "cw_" + short + "_full" ≤ 32 ⟹ short ≤ 24。
+    # 原基名最长 34 (bal_w0725_jiang_2021_score_advonly), 71/82 个底层基名超预算。
+    # 两级压缩: ① 窗口前缀 bal_w0725_ → bw07_ (省 5); ② 词典名去掉冗余的 "_score"
+    #   (该族全部是 score 列, 保留无信息量) 并把年份并入词干。
+    # ⚠ str.replace 无锚定, 规则会作用于**所有**需缩名的基名 —— 已实测确认
+    #   "_2021_score"/"_2022_score"/"_2018_score"/"loughran_score" 四个子串在非 BAL
+    #   基名域中零出现 (负清单里的 jiang 系是 jiang_2021_cater / disag_jiang_2021 /
+    #   avg_jiang_2021_neg_ratio, 均不含 "_score"), 故无跨族误伤; D16 全局唯一断言兜底。
+    ("bal_w0725_", "bw07_"),
+    ("bal_w1025_", "bw10_"),
+    ("bal_w1125_", "bw11_"),
+    ("_2021_score", "2021"),
+    ("_2022_score", "2022"),
+    ("_2018_score", "2018"),
+    ("loughran_score", "lough"),
 ]
 
 # 负清单 _dcls → _dm 固定别名映射 (恰 6 条, 计划 WP0-5)
@@ -511,6 +527,51 @@ DEFERRED_BASENAMES = {
     "deepseekv4_sub_frac", "deepseekv4_tech_frac", "deepseekv4_collab_frac",
     "avg_boilerplate", "avg_rare_word_c2", "avg_rare_word_c5",
 }
+
+
+# ---------------------------------------------------------------- 平衡媒体稳健性族 (BAL, 2026-07-29 用户裁定纳入)
+# 🔴 **为何是新增而非负清单遗漏**: `bal_w*` = 平衡媒体面板稳健性 (Wooldridge 2010 §19.9.3
+#   样本流失; 只留窗口内**逐年**都有报道的媒体, 在该子集上重算 bank-year 均值)。
+#   `attention_media.py::compute_balanced_media_robustness` 在平衡子集为空时 `continue`,
+#   而**盘上 T=2 dev 无任何媒体满足逐年覆盖** ⟹ 该族列从未落地过, v23 负清单 (按 T=2 面板
+#   干跑定稿, CUT 410 / KEEP 294) 因此从未见过它们。2026-07-27/28 生产 T=19 全链跑通后
+#   741 列首次出现 → 穷尽性断言 (每列须 ∈ 纳入源列 ∪ 排除域) 当场崩, 入口⑧⑨ 全链中断。
+#   源码 attention_media.py:237 早已预言: "(latent: 盘上 T=2 无满足者, T=19 全量触发)"。
+#
+# 处置 = **用户 2026-07-29 裁定: 738 个测度列全部纳入**; 另 3 个 n_media_bal_* 的零变异
+#   缺陷在上游 attention_media.py 一并根治 (由语料级标量广播改逐 bank-year 计数), 修后
+#   有真实变异, 同批纳入。
+#
+# ⚠ 已知不对称 (供后续裁定, 本轮不擅自处置): 同源孪生族 `exc_*` (停刊稳健性, 246 列 =
+#   **完全相同的 82 个底层基名** × 3 轨, 非空率 25.42% vs bal 的 10.97%) 目前被
+#   EXCLUDE_RULES ① `^exc_` 判为 D15_1_PEER 排除。两族同为"媒体子样本重算"稳健性臂,
+#   纳入其一而排除其二属口径不对称。另注: D15_1_PEER 的族名是"他行/同组测度", 而此处
+#   `exc` 实指"剔除停刊媒体"而非"剔除同业银行" —— 理由码本身亦属错配。
+#
+# 基名派生自盘上列集而非硬编码: 词典×规则消融网格是数据驱动的 (82 底层基名 × 3 窗口),
+#   硬编码 246 个名字在网格变动时必然漂移。registry 的 `excluded` 区段本就随 cols40 变化
+#   且已入哈希锚, 故"随面板派生"与既有口径一致, 不新增跨环境不稳定性。
+BAL_FAMILY = "BAL"
+_BAL_MEASURE_RE = re.compile(r"^bal_w\d{4}_(.+?)_(full|ctx|ss)$")
+_BAL_COUNT_RE = re.compile(r"^n_media_bal_w\d{4}$")
+
+
+def discover_balanced_basenames(colset: set[str]) -> list[tuple[str, str]]:
+    """从 40 面板列集派生 BAL 族基名 [(family, basename), ...]。
+
+    · 测度列 `bal_w{窗口}_{底层基名}_{轨}` → 基名 `bal_w{窗口}_{底层基名}` (标准三轨);
+    · 计数列 `n_media_bal_w{窗口}`         → 基名同名 (裸名 ⟹ resolve_cols 判 track-agnostic)。
+    盘上无该族 (如 T=2 dev) 时返回空列表 —— 不 fail, 因为"列不落地"是该族在小样本下的
+    **预期行为**, 不是缺陷。
+    """
+    bases: set[str] = set()
+    for c in colset:
+        m = _BAL_MEASURE_RE.match(c)
+        if m:
+            bases.add(c[: m.start(2) - 1])   # 剥轨后缀
+        elif _BAL_COUNT_RE.match(c):
+            bases.add(c)
+    return [(BAL_FAMILY, b) for b in sorted(bases)]
 
 
 def resolve_cols(base: str, colset: set[str]) -> tuple[dict, bool]:
@@ -620,7 +681,10 @@ def classify_excluded(col: str) -> str | None:
 
 
 # ---------------------------------------------------------------- range_gate 判定 (v23: WP3 值域断言载体)
-TONE_FAMILIES = {"S1", "S2", "S3", "S4", "S1b", "S5", "DS"}
+# BAL 入 TONE_FAMILIES: 该族内**只有** bal_w{窗口}_tone 走 tone 值域闸 (下方判据要求 base
+# 含 'tone'/'_cont'), 词典分 bal_w*_*_score* 与计数 n_media_bal_* 自然落 'none' —— 恰好正确,
+# 无需为该族另立分支。
+TONE_FAMILIES = {"S1", "S2", "S3", "S4", "S1b", "S5", "DS", "BAL"}
 FRAC_FAMILIES = {"C1", "C2", "S1c", "S6"}
 
 
@@ -824,6 +888,25 @@ def main(argv=None) -> int:
             seen_keep.add(wl)
             logger.warning("白名单豁免基名 %s 不在负清单域, 按 WP0-6 ③ 先例补注册 (族 %s, emit_panel=true)",
                            wl, fam)
+
+    # BAL 平衡媒体稳健性族补注册 (2026-07-29 用户裁定纳入; 沿用 WP0-6 ③ 同一"负清单缺席即补注册"机制)
+    # v23 负清单按 T=2 面板定稿, 该族当时零列落地故从未入册; T=19 生产面板首次出现 741 列。
+    _bal_rows = [(f, b) for f, b in discover_balanced_basenames(set40)
+                 if b not in seen_keep and b not in cut_set]
+    if _bal_rows:
+        keep_bases.extend(_bal_rows)
+        seen_keep.update(b for _, b in _bal_rows)
+        _n_meas = sum(1 for _, b in _bal_rows if not b.startswith("n_media_bal"))
+        _n_cnt = len(_bal_rows) - _n_meas
+        logger.warning(
+            "BAL 平衡媒体稳健性族补注册: %d 基名 (测度 %d + 逐 bank-year 计数 %d), emit_panel=true "
+            "— v23 负清单按 T=2 面板定稿, 该族当年零列落地 (无媒体满足窗口内逐年覆盖) 故从未入册; "
+            "T=19 生产面板首次触发。⚠ 同源孪生族 exc_* (停刊稳健性, 相同 82 底层基名) 仍按 "
+            "D15_1_PEER 排除 — 口径不对称, 待裁定",
+            len(_bal_rows), _n_meas, _n_cnt)
+    else:
+        logger.info("BAL 平衡媒体稳健性族: 盘上 40 面板无 bal_w*/n_media_bal_* 列 — "
+                    "小样本下无媒体满足逐年覆盖属**预期**, 非缺陷 (attention_media.py 同款判据)")
 
     # 40 面板域条目构造 (KEEP + CUT 全在划分域; CUT 打 emit_panel=false)
     entries: list[dict] = []
