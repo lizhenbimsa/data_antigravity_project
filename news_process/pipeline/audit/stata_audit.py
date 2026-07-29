@@ -545,36 +545,74 @@ def audit_iv_variables(panel: pd.DataFrame, name: str):
     # 因此 share 列之和 <= 1.0 是**设计意图**, 不是数据错误
     # 检验标准: sum <= 1.0 + tolerance (排除 other 后不应超过 1)
     # 白话: Bartik 工具变量 = "本行初始的媒体类别构成份额 × 各类别全国趋势"
-    # 加权求和。份额是比例, 加起来理应 ≤ 1; 这里只在份额和 > 1 (溢出, 真错误)
-    # 时报 FAIL, 和 < 1 是因为刻意丢掉了 'other' 类, 属正常。
+    # 加权求和。份额是比例, 加起来理应 ≤ 1; 份额和 > 1 (溢出) 才是真错误。
+    # ⚠ 但「和 < 1 一律归因于丢掉 other 类」在生产数据上**不成立** (2026-07-29 实测):
+    #   行和实际只有 {0.0, 1.0} 两个取值 —— 在册的行精确等于 1 (other 未吃到质量),
+    #   不在册的行整行为 0。故下方改为先按「基期是否在册」分层再判, 详见分层处注释。
     bartik_groups = {}
     for col in panel.columns:
         if col.startswith('bartik_') and '_share_' in col:
             prefix = col.split('_share_')[0]
             bartik_groups.setdefault(prefix, []).append(col)
 
+    # ⚠ 2026-07-29 订正 (生产实测): 本检验原先把**两个不同总体**混在一起取均值,
+    #   于是在生产面板上报出 7 族 × 2 面板 = 14 条 WARN「份额均值=0.06175偏低,
+    #   可能other类占比过高」—— 占全部 36 条 WARN 的 39%, 而**诊断是错的**:
+    #     实测行和只有两个取值 {0.0, 1.0} (逐族 distinct=2, std≈0.40):
+    #       · 行和 == 1.0 的行 = 该 bank-year 在基期 (T0=2010) 在册, 份额**精确归一**,
+    #         'other' 类实际未吃到任何质量 ⟹ 「other 占比过高」在数据上不成立;
+    #       · 行和 == 0.0 的行 = 该 bank-year 在基期**根本不存在** (面板 1,247 家银行
+    #         里只有 77 家在 2010 年在册; 2010 年零份额占比恰为 0.000000, 且**零家**
+    #         银行出现「跨年时有时无」) ⟹ 无份额可分配, 不是归一化问题。
+    #   低均值 100% 由后者的占比驱动 (有新闻行里 80.03% 无基期覆盖)。
+    #   故改为**先分层再判**: 归一化只在「有基期份额」的行上判, 而「基期覆盖率」
+    #   单独作为一项披露 —— 后者才是真正该让人看见的数 (它决定 bartik IV 的有效样本)。
+    #   ✅ 附带核实: bartik_*_iv 在无基期覆盖行上输出的是 **NaN 而非 0**
+    #      (实测 4,981/4,981 全 NaN, 0 行为 0), 回归会正确丢弃, **不存在**
+    #      「缺失被当成零暴露混进第一阶段」的问题 —— 勿据本条反推数据有误。
     for prefix, share_cols in bartik_groups.items():
         if len(share_cols) >= 2:
             row_sums = panel[share_cols].sum(axis=1).dropna()
             if len(row_sums) > 0:
                 max_sum = row_sums.max()
                 min_sum = row_sums.min()
-                mean_sum = row_sums.mean()
-                # 关键判断: sum > 1 + tolerance 说明份额溢出 (真正的错误)
-                # sum < 1 是因为 other 类未导出 (预期行为)
+                # 分层: >0 = 基期在册 (才轮得到判归一化); ==0 = 基期不存在
+                covered = row_sums[row_sums > 0]
+                zero_frac = float((row_sums == 0).mean())
                 over_one = (row_sums > 1.01).sum()
+
+                # ① 归一化判据 —— 只看有基期份额的行
                 if over_one > 0:
                     record(cat, f'Bartik份额归一-{prefix}', 'FAIL',
                            f'{over_one}行份额和>1.01 (溢出!), max={sig4(max_sum)}')
-                elif mean_sum < 0.5:
-                    # 均值太低可能说明份额计算有问题
-                    record(cat, f'Bartik份额归一-{prefix}', 'WARN',
-                           f'份额均值={sig4(mean_sum)}偏低, 可能other类占比过高, '
-                           f'{len(share_cols)}个份额列, range=[{sig4(min_sum)}, {sig4(max_sum)}]')
+                elif len(covered) == 0:
+                    record(cat, f'Bartik份额归一-{prefix}', 'FAIL',
+                           f'{len(share_cols)}个份额列**全部行份额和为0** — 基期份额未生成或全丢失')
                 else:
-                    record(cat, f'Bartik份额归一-{prefix}', 'PASS',
-                           f'{len(share_cols)}个份额列, 均值={sig4(mean_sum)}, '
-                           f'range=[{sig4(min_sum)}, {sig4(max_sum)}]')
+                    mean_cov = covered.mean()
+                    if mean_cov < 0.5:
+                        # 到这里才是「other 类占比过高」真正成立的场合:
+                        # 有基期份额, 但导出的类别只占不到一半质量。
+                        record(cat, f'Bartik份额归一-{prefix}', 'WARN',
+                               f'有基期份额的行上均值={sig4(mean_cov)}偏低 (<0.5), '
+                               f'导出类别未覆盖多数质量, other 类占比过高; '
+                               f'{len(share_cols)}个份额列, range=[{sig4(min_sum)}, {sig4(max_sum)}]')
+                    else:
+                        record(cat, f'Bartik份额归一-{prefix}', 'PASS',
+                               f'{len(share_cols)}个份额列, 有基期份额行 {len(covered):,}/{len(row_sums):,} '
+                               f'均值={sig4(mean_cov)} (=1.0 即完全归一), '
+                               f'range=[{sig4(min_sum)}, {sig4(max_sum)}]')
+
+                # ② 基期覆盖率 —— 独立披露, 决定 bartik IV 的有效样本量
+                #    (旧版把这个数藏在一句错误的 other-类解释后面, 从未被看见)
+                if zero_frac > 0.5:
+                    record(cat, f'Bartik基期覆盖-{prefix}', 'WARN',
+                           f'{zero_frac:.2%} 的行在基期无份额 (bank 于基期年不在册) → '
+                           f'bartik IV 在这些行输出 NaN, 有效样本仅 {len(covered):,}/{len(row_sums):,}; '
+                           f'非归一化缺陷, 但显著缩小 IV 可识别样本')
+                else:
+                    record(cat, f'Bartik基期覆盖-{prefix}', 'PASS',
+                           f'基期无份额行占 {zero_frac:.2%}, 有效样本 {len(covered):,}/{len(row_sums):,}')
 
     # 4b. Leave-one-out IV 排除己检验
     n_years = panel['year'].nunique()
