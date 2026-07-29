@@ -18,20 +18,27 @@ Reproducibility lock (修 H-NEW-1):
     输入 = data/processed/21_tone_llms.parquet @ v3.4.0 commit hash 450c1aa7
     (per plan §0 Tag-over-hash anchor; 实际 anchor 由 v3.4.0-baseline-frozen git tag 决定).
 
-Performance estimate (修 F3):
-    bootstrap 1000 × matrix cells: full 3×3 ≈ 7 min / ctx 3×3 ≈ 7 min /
-    ss 3×3 ≈ 7 min (第三轨 NMI 诊断) / cross 6×6 ≈ 30 min;
-    permutation 1000 × 30 off-diagonal ≈ 25 min.
-    Total wall-time ≈ 77 min single-thread (sklearn NMI ~100 ms / call on N≈400k).
-    Recommended default for D4 day (修 F31): n_jobs=16 → ~5 min on 64-core MP machine.
+Performance (2026-07-29 S11 **生产实测**, 取代此前的估算):
+    ⚠ 本段旧文写「Total wall-time ≈ 77 min single-thread」+「n_jobs=16 → ~5 min」——
+    **两句都是估算且都被证伪**, 而 DAG timeout=10800s 正是照那 77 min 设的, 导致
+    2026-07-29 入口③ 阶段 72 被强杀、73/74/75 连坐跳过 (同一根因第 4 次: 15/23/40/72).
+    真数据微基准 (N=169,811, 比旧文假设的 400k 还**小**):
+        bootstrap  单次迭代 754 ms → 48 cell × 1000 = 10.05h
+        permutation 单次迭代 774 ms → 48 cell × 1000 = 10.32h
+        ⟹ 串行需求 **20.4h**, 约旧估算的 16 倍。
+    S11 (上三角镜像 + 逐 cell 进程并行) 后生产单跑实测 **8,270s (2.30h)**:
+        nmi_matrices 6,340s / permutation_null+classify 1,925s (10:59:25→13:17:15, EXIT=0)
+    ⟹ 8.88× 提速。DAG timeout 现为 108,000s, 按**串行兜底路径** (20.4h) 定而非
+    按 2.30h 定 —— OOM 触发 `_run_cells` 回落串行时仍须跑得完。
 
-Concurrency (修 F7 + F43):
-    本函数 single-thread 设计; SeedSequence.spawn 已 pre-allocate seeds 故 parallel 友好.
-    sklearn `normalized_mutual_info_score` 内部 sparse contingency table 构造在
-    sklearn 1.5-1.8 **基于源码 review 判断单调用线程安全** (无 sklearn 官方文档明确 claim,
-    谨慎说法). joblib `n_jobs > 1` 可加速但需用 `prefer='processes'` (避免 GIL);
-    默认实现保持 single-thread. 若 production parallel 触发 race condition 异常,
-    立即 fallback `n_jobs=1` + audit log §E.thread_race_event 记录.
+Concurrency (修 F7 + F43; 2026-07-29 S11 更新):
+    SeedSequence.spawn **预分配** seeds ⟹ 结果与迭代顺序无关, 故并行是字节安全的
+    (A/B 实测 54/54 格逐位相同)。现默认走 `prefer='processes'` 逐 cell 并行,
+    工作量 (cells × n) 低于 `_NMI_PARALLEL_MIN_WORK` 时自动串行; 旁路 `NEWS_PROCESS_NMI_JOBS`.
+    sklearn `normalized_mutual_info_score` 在 1.5-1.8 **基于源码 review 判断单调用线程安全**
+    (无官方 claim, 谨慎说法) —— 走进程并行后该风险不再承重。
+    ⚠ **bootstrap 可镜像而 permutation 绝不可**: (i,j) 打乱第 j 列、(j,i) 打乱第 i 列,
+    是两次不同的随机化 (真数据 0/5 逐位相同)。见 `test_nmi_parallel_mirror.py`。
 
 Logging 约定 (修 F13):
     与 v3.4.0 main pipeline 一致, 通过 logger.info / logger.warning 输出.

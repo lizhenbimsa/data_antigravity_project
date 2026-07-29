@@ -67,21 +67,32 @@ MEASURED_VALIDATION_SECONDS = {
     '69_decay_sensitivity.py': (503, '2026-07-29 ③ 生产'),
     '70_prompt_sensitivity.py': (2, '2026-07-29 ③ 生产 (1.27s)'),
     '71_inter_track_kappa.py': (185, '2026-07-29 ③ 生产'),
-    # ⚠ 72 号是**被杀时的下界**不是完成耗时。真实需求由真数据微基准实测得出:
-    #   bootstrap 单次 754ms × 48 cell × 1000 = 10.05h;
-    #   permutation 单次 774ms × 48 cell × 1000 = 10.32h ⟹ 串行 20.4h。
-    #   S11 (上三角镜像 + 逐 cell 并行) 后期望 ≈1.3h, 但闸门按**串行兜底路径**定。
+    # 🔵 72 号: 首轮 ③ 真跑被 10800s 强杀 ⟹ 当时表里填的是**微基准推算**的串行需求
+    #   73,440s。S11 (上三角镜像 + 逐 cell 并行) 后**单跑实测 8,270s**, 已替换为实测值。
+    #   ⚠ 我此前口头说的「S11 后期望 ≈1.3h」是拿 20.4h÷16 硬除的, 偏乐观 —— 没扣掉
+    #   NMI 本身的串行段与进程启动开销; 实测 2.30h 才是该进表的数。
     '72_construct_orthogonality.py': (
-        73440, '2026-07-29 真数据微基准实测串行需求 20.4h (旧 10800s 闸把它强杀; '
-               'S11 并行后期望 ≈1.3h, 闸按 OOM 兜底的串行路径定)'),
+        8270, '2026-07-29 S11 并行后单跑实测 2.30h (10:59:25→13:17:15, EXIT=0, 7 产物齐; '
+              'nmi_matrices 6340s + permutation_null 1925s)'),
+    # 🔵 73/74/75: 首轮 ③ 因 72 号被强杀而**连坐跳过, 从未在生产上跑过**;
+    #   72 号修好后 2026-07-29 15:09 起补跑, 3/3 EXIT=0。至此验证侧 16 阶段全部有实测。
+    '73_lexical_discriminant_validity.py': (6, '2026-07-29 补跑实测 5.64s'),
+    '74_lm_discriminant_validity.py': (5, '2026-07-29 补跑实测 4.74s (纯日志阶段, 无 parquet 产物 by-design)'),
+    '75_cross_media_alpha.py': (180, '2026-07-29 补跑实测 179.23s (三轨 × ~57s 事件检测)'),
+}
+
+#: ⚠ 72 号的 timeout **不是**按上表实测值定的, 而是按 **OOM 兜底回落串行**的需求定的。
+#: `_run_cells` 在 worker 被 OS 杀掉时会回落串行补跑, 那条路径需 20.4h —— 若有人看到
+#: "实测才 2.30h" 就把 timeout 压到 30,000s, 表面仍有 3.6× 余量, 但**串行兜底一触发就必被杀**,
+#: 且是在已经烧掉数小时之后。故本表独立断言, 与上表口径不同, 不可合并。
+SERIAL_FALLBACK_REQUIREMENT = {
+    '72_construct_orthogonality.py': (
+        73440, '真数据微基准: bootstrap 754ms × 48 cell × 1000 = 10.05h + '
+               'permutation 774ms × 48 × 1000 = 10.32h ⟹ 串行 20.4h'),
 }
 
 #: 最小安全余量 (timeout / 实测)。3× 覆盖机器争用、语料增长、缓存冷启动。
 MIN_MARGIN = 3.0
-
-#: 72 号例外: 分母取的是**串行兜底**需求 (20.4h) 而非期望值 (1.3h), 再压 3× 会到 61h,
-#: 属过度保守。按 1.47× 收 —— 这不是放宽判据, 而是分母口径不同 (期望值口径下余量是 23×)。
-MARGIN_OVERRIDES = {'72_construct_orthogonality.py': 1.4}
 
 
 def _spec(script):
@@ -145,11 +156,25 @@ def test_validation_timeout_covers_measured_runtime(script):
     measured, src = MEASURED_VALIDATION_SECONDS[script]
     spec = _spec_validation(script)
     margin = spec.timeout / measured
-    floor = MARGIN_OVERRIDES.get(script, MIN_MARGIN)
-    assert margin >= floor, (
+    assert margin >= MIN_MARGIN, (
         f'{script}: timeout={spec.timeout}s 对生产实测 {measured}s ({src}) 仅 {margin:.2f}× 余量, '
-        f'低于 {floor}× 下限 —— 阶段 72 (2026-07-29) 就是这样被强杀且连坐掉 73/74/75 的。'
+        f'低于 {MIN_MARGIN}× 下限 —— 阶段 72 (2026-07-29) 就是这样被强杀且连坐掉 73/74/75 的。'
         f'请按实测重校, 勿调低本 gate。')
+
+
+@pytest.mark.parametrize('script', sorted(SERIAL_FALLBACK_REQUIREMENT))
+def test_timeout_covers_serial_fallback_path(script):
+    """并行阶段的 timeout 必须覆盖**串行兜底**需求, 而非只覆盖并行期望值。
+
+    `_run_cells` 在 loky worker 被 OS 杀掉 (OOM) 时会回落串行补跑。若 timeout 只按
+    并行实测的 3× 设, 那条兜底路径**一触发就必被杀**, 且是在已经烧掉数小时之后 ——
+    等于把"防 OOM 的兜底"变成"OOM 时保证归零"。
+    """
+    required, src = SERIAL_FALLBACK_REQUIREMENT[script]
+    spec = _spec_validation(script)
+    assert spec.timeout >= required, (
+        f'{script}: timeout={spec.timeout}s < 串行兜底需求 {required}s ({src})。'
+        f'并行实测快不代表可以压闸门 —— OOM 回落串行时这条路径要跑得完。')
 
 
 def test_validation_table_scripts_all_exist_in_dag():
@@ -160,16 +185,14 @@ def test_validation_table_scripts_all_exist_in_dag():
 
 
 def test_validation_table_covers_every_measured_stage():
-    """凡在 2026-07-29 ③ 真跑里跑出过耗时的验证阶段, 都必须进表。
+    """验证侧 16 阶段**全部**须有生产实测 —— 2026-07-29 补跑 73/74/75 后本表已满覆盖。
 
-    73/74/75 因 72 号被杀而**从未在生产上跑过**, 故暂缺 —— 一旦补跑出实测值必须入表。
+    此前 73/74/75 因 72 号被强杀而连坐跳过、登记为 `known_unmeasured` 豁免;
+    72 号修好后已补跑 (3/3 EXIT=0), 豁免集**清空**。新增验证阶段必须带实测入表,
+    不得再往豁免集里塞 —— 那正是超时表长期只覆盖 MAIN 侧、让第 4 次事故漏出去的形态。
     """
     from news_process.core.dag import STAGES_VALIDATION
-    known_unmeasured = {
-        '73_lexical_discriminant_validity.py',
-        '74_lm_discriminant_validity.py',
-        '75_cross_media_alpha.py',
-    }
+    known_unmeasured: set[str] = set()
     scripts = {s.script for s in STAGES_VALIDATION}
     gap = scripts - set(MEASURED_VALIDATION_SECONDS) - known_unmeasured
     assert not gap, (
