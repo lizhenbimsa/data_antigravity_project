@@ -499,10 +499,23 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段72: NMI 三 construct 正交性测度 + permutation null (v3.5.0 D3)",
         script="72_construct_orthogonality.py",
         group="validation", kind="audit",
-        # 在 N≈40 万标签上做 bootstrap 1000 次 + permutation 1000 次;
-        # 单线程约 70 分钟, 64 核 MP 上 n_jobs=16 约 5 分钟
-        # (依据 plan §2.2.2 性能估算 + F31 推荐默认值)。
-        timeout=10800,  # 3 小时上限 — 覆盖最坏情况并留余量
+        # 🔴 S11 (2026-07-29): **本阶段被 10800s 强杀**, 后续 73/74/75 连坐跳过,
+        # 整个评估验证管道判 ✗。这是同一根因第 4 次复发 (stage 15 / 23 / 40 / 72):
+        # **超时按估算定, 从未按生产规模复核**。
+        # 旧注释「N≈40 万标签…单线程约 70 分钟, 64 核 MP 上 n_jobs=16 约 5 分钟
+        # (依据 plan §2.2.2 性能估算 + F31 推荐默认值)」两句都不成立:
+        #   ① 那是**估算**不是实测 —— 真数据实测 (N=169,811, 比假设的 40 万还小):
+        #      bootstrap 单次 754ms → 48 cell × 1000 次 = 10.05h;
+        #      permutation 单次 774ms → 48 cell × 1000 次 = 10.32h; **合计 20.4h**,
+        #      是「70 分钟」的约 17 倍。
+        #   ② 「n_jobs=16 约 5 分钟」指的是一条**代码里根本不存在**的并行路径 ——
+        #      模块自身 docstring 也承认「当前实现为 single-thread 串行」。
+        # S11 已把它兑现 (上三角镜像 + 逐 cell 进程并行), 期望 ≈1.3h。
+        # ⚠ 但闸门取值**不按期望值定, 按最坏路径定**: `_run_cells` 的 OOM 兜底会
+        #   整批回落串行 = 回到 20.4h。取 108000s (30h) = 实测串行需求的 1.47×,
+        #   使兜底路径也能跑完。本阶段无检查点, 被杀 = 全部归零 + 下游连坐,
+        #   而分母偏大只烧机时 —— 不对称, 故取宽 (同 stage 40 的 S8 裁定)。
+        timeout=108000,  # 生产实测串行需求 20.4h (S11 并行后期望 ≈1.3h); 兜底路径亦须跑完
     ),
     StageSpec(
         name="阶段73: A1/A3 lexical discriminant validity (HTMT + AVE + κ + α; v3.5.1)",

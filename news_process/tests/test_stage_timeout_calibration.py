@@ -51,8 +51,37 @@ MEASURED_PRODUCTION_SECONDS = {
     '51_falsification_test.py': (100, '2026-07-28 ② 全链 (99.79s 上取整)'),
 }
 
+#: 🔴 S11 (2026-07-29): **本表原先只覆盖 STAGES_MAIN, 16 个验证阶段一格没有** ——
+#: 于是同一根因第 4 次从这个缺口漏出去: 入口③ 生产真跑时阶段 72 被 10,800s 强杀,
+#: 73/74/75 连坐跳过, 整个评估验证管道判 ✗。补上验证侧实测。
+MEASURED_VALIDATION_SECONDS = {
+    '60_bank_fintech_threshold.py': (50, '2026-07-29 ③ 生产 (49.33s 上取整)'),
+    '61_news_llms_human.py': (14, '2026-07-29 ③ 生产 (13.25s)'),
+    '62_dedup_threshold_sensitivity.py': (9190, '2026-07-29 ③ 生产 (多阈值 LSH 扫描, 4,097,326 文档)'),
+    '63_news_llms_evaluation.py': (5, '2026-07-29 ③ 生产 (4.5s)'),
+    '64_tone_validation.py': (259, '2026-07-29 ③ 生产'),
+    '65_radius_sensitivity.py': (1159, '2026-07-29 ③ 生产'),
+    '66_entity_masking_test.py': (2, '2026-07-29 ③ 生产 (1.33s)'),
+    '67_dict_coverage_audit.py': (66, '2026-07-29 ③ 生产'),
+    '68_media_diversity.py': (93, '2026-07-29 ③ 生产'),
+    '69_decay_sensitivity.py': (503, '2026-07-29 ③ 生产'),
+    '70_prompt_sensitivity.py': (2, '2026-07-29 ③ 生产 (1.27s)'),
+    '71_inter_track_kappa.py': (185, '2026-07-29 ③ 生产'),
+    # ⚠ 72 号是**被杀时的下界**不是完成耗时。真实需求由真数据微基准实测得出:
+    #   bootstrap 单次 754ms × 48 cell × 1000 = 10.05h;
+    #   permutation 单次 774ms × 48 cell × 1000 = 10.32h ⟹ 串行 20.4h。
+    #   S11 (上三角镜像 + 逐 cell 并行) 后期望 ≈1.3h, 但闸门按**串行兜底路径**定。
+    '72_construct_orthogonality.py': (
+        73440, '2026-07-29 真数据微基准实测串行需求 20.4h (旧 10800s 闸把它强杀; '
+               'S11 并行后期望 ≈1.3h, 闸按 OOM 兜底的串行路径定)'),
+}
+
 #: 最小安全余量 (timeout / 实测)。3× 覆盖机器争用、语料增长、缓存冷启动。
 MIN_MARGIN = 3.0
+
+#: 72 号例外: 分母取的是**串行兜底**需求 (20.4h) 而非期望值 (1.3h), 再压 3× 会到 61h,
+#: 属过度保守。按 1.47× 收 —— 这不是放宽判据, 而是分母口径不同 (期望值口径下余量是 23×)。
+MARGIN_OVERRIDES = {'72_construct_orthogonality.py': 1.4}
 
 
 def _spec(script):
@@ -60,6 +89,14 @@ def _spec(script):
         if s.script == script:
             return s
     raise AssertionError(f'STAGES_MAIN 中找不到 {script}')
+
+
+def _spec_validation(script):
+    from news_process.core.dag import STAGES_VALIDATION
+    for s in STAGES_VALIDATION:
+        if s.script == script:
+            return s
+    raise AssertionError(f'STAGES_VALIDATION 中找不到 {script}')
 
 
 @pytest.mark.parametrize('script', sorted(MEASURED_PRODUCTION_SECONDS))
@@ -94,3 +131,47 @@ def test_measured_table_scripts_all_exist_in_dag():
     scripts = {s.script for s in STAGES_MAIN}
     missing = sorted(set(MEASURED_PRODUCTION_SECONDS) - scripts)
     assert not missing, f'实测表引用了 STAGES_MAIN 中不存在的 script: {missing}'
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# 验证侧 (STAGES_VALIDATION) —— S11 (2026-07-29) 补齐
+# ════════════════════════════════════════════════════════════════════════════
+# 本文件此前**只覆盖 STAGES_MAIN**, 16 个验证阶段一格没有。同一根因 (超时按估算/
+# T=2 定, 从未按生产规模复核) 第 4 次复发就是从这个缺口漏出去的: 2026-07-29 入口③
+# 生产真跑, 阶段 72 被 10,800s 强杀 → 73/74/75 连坐跳过 → 整个管道判 ✗。
+
+@pytest.mark.parametrize('script', sorted(MEASURED_VALIDATION_SECONDS))
+def test_validation_timeout_covers_measured_runtime(script):
+    measured, src = MEASURED_VALIDATION_SECONDS[script]
+    spec = _spec_validation(script)
+    margin = spec.timeout / measured
+    floor = MARGIN_OVERRIDES.get(script, MIN_MARGIN)
+    assert margin >= floor, (
+        f'{script}: timeout={spec.timeout}s 对生产实测 {measured}s ({src}) 仅 {margin:.2f}× 余量, '
+        f'低于 {floor}× 下限 —— 阶段 72 (2026-07-29) 就是这样被强杀且连坐掉 73/74/75 的。'
+        f'请按实测重校, 勿调低本 gate。')
+
+
+def test_validation_table_scripts_all_exist_in_dag():
+    from news_process.core.dag import STAGES_VALIDATION
+    scripts = {s.script for s in STAGES_VALIDATION}
+    missing = sorted(set(MEASURED_VALIDATION_SECONDS) - scripts)
+    assert not missing, f'验证实测表引用了 STAGES_VALIDATION 中不存在的 script: {missing}'
+
+
+def test_validation_table_covers_every_measured_stage():
+    """凡在 2026-07-29 ③ 真跑里跑出过耗时的验证阶段, 都必须进表。
+
+    73/74/75 因 72 号被杀而**从未在生产上跑过**, 故暂缺 —— 一旦补跑出实测值必须入表。
+    """
+    from news_process.core.dag import STAGES_VALIDATION
+    known_unmeasured = {
+        '73_lexical_discriminant_validity.py',
+        '74_lm_discriminant_validity.py',
+        '75_cross_media_alpha.py',
+    }
+    scripts = {s.script for s in STAGES_VALIDATION}
+    gap = scripts - set(MEASURED_VALIDATION_SECONDS) - known_unmeasured
+    assert not gap, (
+        f'以下验证阶段既无实测也未登记为"未跑过": {sorted(gap)} —— '
+        '要么补实测入表, 要么显式登记原因, 不得静默失守。')

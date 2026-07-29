@@ -1,0 +1,207 @@
+"""tests/test_nmi_parallel_mirror.py — S11 gate: NMI 上三角镜像 + 逐 cell 进程并行。
+
+**事故 (2026-07-29 入口③ 生产真跑)**: 阶段 72 `72_construct_orthogonality.py`
+**被 10,800s 超时闸强杀**, 后续阶段 73/74/75 连坐跳过, 整个评估验证管道判 ✗。
+这是同一根因第 4 次复发 (stage 15 / 23 / 40 / 72): **超时按估算或 T=2 dev 定,
+从未按生产规模复核**。
+
+本模块 docstring 原写「N≈40 万标签单线程约 77 分钟, 故 DAG timeout=10800」,
+并写着「64 核 MP 上 n_jobs=16 约 5 分钟」—— 但**代码里从来没有并行**。真数据实测:
+    单次 bootstrap 迭代 754 ms  → 单 cell(1000) 12.6 分钟 → 48 cell = 10.05h
+    单次 permutation 迭代 774 ms → 单 cell(1000) 12.9 分钟 → 48 cell = 10.32h
+    合计 **20.4 小时**, 是那句估算的约 16 倍 (且 N=169,811 比假设的 40 万还小)。
+
+本 gate 锁死五件事:
+  ① 并行阈值按 **cells × bootstrap_n** 而非 cell 数 —— 现存单测用的维度数与生产
+     **相同** (DIMS_FULL 3 维 / ALL_DIMS 6 维), 只把 bootstrap_n 调小, 按 cell 数
+     设闸会让单测一起走进并行分支 (桩不传播进 loky 子进程 ⟹ 测试失真)。
+  ② worker 体内零 logger 调用 (退化告警回传父端)。
+  ③ **bootstrap 可镜像**: NMI 实测逐位对称, 上三角算一次镜像到下三角。
+  ④ ⚠ **permutation 绝不可镜像**: (i,j) 打乱第 j 列、(j,i) 打乱第 i 列, 是两次
+     **不同的随机化**, 实测 0/5 逐位相同。这条最容易被后人"顺手优化"掉 —— 看到
+     bootstrap 减半了就以为另一半也能减半, 那是**静默改数**。
+  ⑤ 守卫 (len<100 / F40 退化 / n_pair) 仍对**全部** (i,j) 逐格执行, 不因只算上三角
+     而少写 n_pair 或少报 F40。
+"""
+from __future__ import annotations
+
+import ast
+import inspect
+import logging
+import os
+import struct
+import sys
+
+import numpy as np
+import pandas as pd
+import pytest
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.pipeline.audit import construct_orthogonality as co  # noqa: E402
+
+_D = list(co.DIMS_FULL)
+
+
+def _toy(n=400, seed=0):
+    """三维离散标签的合成样本 (足够大以过 len<100 闸, 又足够小让单测秒完)。"""
+    rng = np.random.default_rng(seed)
+    return pd.DataFrame({
+        _D[0]: rng.integers(0, 3, n),
+        _D[1]: rng.integers(0, 3, n),
+        _D[2]: rng.integers(0, 2, n),
+    })
+
+
+def _bits(v):
+    return b'NaN' if (isinstance(v, float) and np.isnan(v)) else struct.pack('<d', float(v))
+
+
+# ── ① 阈值 ──
+
+def test_parallel_threshold_is_work_based_not_cell_based():
+    assert co._NMI_PARALLEL_MIN_WORK >= 5000, (
+        f'_NMI_PARALLEL_MIN_WORK={co._NMI_PARALLEL_MIN_WORK} 过低 —— '
+        '现存单测的维度数与生产相同 (3 维/6 维), 只把 bootstrap_n 调到 20-100; '
+        '生产工作量 24×1000=24,000 而单测最大 30×30=900, 阈值必须落在两者之间。')
+    src = inspect.getsource(co._run_cells)
+    assert 'min_work' in src, '并行判据不再基于工作量 (改回按 cell 数会让单测失真)'
+
+
+def test_toy_fixture_stays_serial():
+    """toy 规模必须走串行 —— 否则 monkeypatch 桩不传播进子进程, 测试当场失真。"""
+    n_off = len(_D) * (len(_D) - 1)          # 6
+    for boot in (20, 50, 100):
+        assert (n_off // 2) * boot < co._NMI_PARALLEL_MIN_WORK, (
+            f'bootstrap_n={boot} 的 toy 工作量 {(n_off//2)*boot} 已达并行阈值')
+
+
+# ── ② worker 零 logger ──
+
+@pytest.mark.parametrize('fn', ['_boot_cell_worker', '_perm_cell_worker'])
+def test_worker_has_zero_logger_calls(fn):
+    node = ast.parse(inspect.getsource(getattr(co, fn))).body[0]
+    bad = [f'logger.{n.func.attr}' for n in ast.walk(node)
+           if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+           and isinstance(n.func.value, ast.Name) and n.func.value.id == 'logger']
+    assert not bad, (
+        f'{fn} 体内出现 logger 调用 {bad} —— worker 在 loky 子进程里跑, '
+        '行序不可预测; 且它也会被父进程直接调用于串行回落路径。告警一律回传父端。')
+
+
+# ── ③ bootstrap 镜像 ──
+
+def test_bootstrap_matrices_are_symmetric_bitwise():
+    df = _toy()
+    point, lo, hi, n_pair = co.compute_nmi_matrix(df, _D, bootstrap_n=20, seed=42)
+    for name, M in (('point', point), ('ci_low', lo), ('ci_high', hi)):
+        for i, d1 in enumerate(_D):
+            for j, d2 in enumerate(_D):
+                if j <= i:
+                    continue
+                assert _bits(M.loc[d1, d2]) == _bits(M.loc[d2, d1]), (
+                    f'{name} 上下三角不对称: [{d1},{d2}]={M.loc[d1,d2]!r} '
+                    f'vs [{d2},{d1}]={M.loc[d2,d1]!r}')
+
+
+def test_upper_triangle_only_is_computed():
+    """源码级: bootstrap 任务池只收 j>i, 且循环后有镜像回填。"""
+    src = inspect.getsource(co.compute_nmi_matrix)
+    assert 'if j < i:' in src, 'bootstrap 未跳过下三角 (镜像优化被回退)'
+    assert '_boot_tasks' in src and 'point.iloc[_j, _i]' in src, '镜像回填缺失'
+
+
+# ── ④ permutation 绝不可镜像 (最易被误优化的一条) ──
+
+def test_permutation_null_is_NOT_mirrored():
+    """(i,j) 与 (j,i) 必须是**各自独立算出**的, 不得相等。
+
+    实测依据: (i,j) 打乱第 j 列而 (j,i) 打乱第 i 列 —— 两次不同的随机化,
+    真数据 0/5 逐位相同 (值相差若干量级)。若哪天这两格相等了, 说明有人
+    "顺手"把 bootstrap 的镜像套到了 permutation 上 —— 那是静默改数。
+    """
+    df = _toy(n=600, seed=1)
+    p95, p99 = co.compute_permutation_null(df, _D, n_permutations=40, seed=43)
+    equal_pairs = []
+    for i, d1 in enumerate(_D):
+        for j, d2 in enumerate(_D):
+            if j <= i:
+                continue
+            if _bits(p95.loc[d1, d2]) == _bits(p95.loc[d2, d1]):
+                equal_pairs.append((d1, d2))
+    assert not equal_pairs, (
+        f'permutation null 出现上下三角逐位相等的格 {equal_pairs} —— '
+        '几乎必然是有人给 permutation 也套了镜像。(i,j) 打乱第 j 列、'
+        '(j,i) 打乱第 i 列, 是两次不同随机化, 相等在概率上不该发生。')
+
+
+def test_permutation_source_has_no_mirror():
+    src = inspect.getsource(co.compute_permutation_null)
+    assert 'null_p95.iloc[_j, _i]' not in src and 'null_p99.iloc[_j, _i]' not in src, \
+        'permutation 出现镜像回填 —— 静默改数'
+    assert '_perm_tasks' in src, 'permutation 未并行化'
+
+
+# ── ⑤ 守卫仍逐格执行 ──
+
+def test_n_pair_filled_for_all_cells_including_lower_triangle():
+    df = _toy()
+    _, _, _, n_pair = co.compute_nmi_matrix(df, _D, bootstrap_n=20, seed=42)
+    for d1 in _D:
+        for d2 in _D:
+            assert n_pair.loc[d1, d2] > 0, (
+                f'n_pair[{d1},{d2}] 未填 —— 只算上三角不得少写 n_pair '
+                '(该矩阵是样本量披露, 下三角同样要有值)')
+
+
+def test_degenerate_guard_still_fires_for_every_cell():
+    """常量列 → F40 logger.error 条数不因只算上三角而减少。"""
+    df = _toy()
+    df[_D[2]] = 1                       # 造一个常量列
+    cap = []
+
+    class _C(logging.Handler):
+        def emit(self, r):
+            if r.levelno >= logging.ERROR:
+                cap.append(r.getMessage())
+
+    h = _C()
+    co.logger.addHandler(h)
+    try:
+        co.compute_nmi_matrix(df, _D, bootstrap_n=10, seed=42)
+    finally:
+        co.logger.removeHandler(h)
+    degen = [m for m in cap if 'degenerate' in m]
+    # 常量列参与的格: (d2,*) 与 (*,d2) 共 2*(n-1)+1 = 5 格 (含对角)
+    assert len(degen) >= 5, (
+        f'F40 退化告警只有 {len(degen)} 条 (期望 ≥5) —— 守卫必须对全部 (i,j) 逐格执行, '
+        '不能因为只算上三角就漏报下三角')
+
+
+# ── 运维旁路 / 兜底 ──
+
+@pytest.mark.parametrize('raw,expect_le', [('4', 4), ('1', 1)])
+def test_jobs_env_override(monkeypatch, raw, expect_le):
+    monkeypatch.setenv(co._NMI_JOBS_ENV, raw)
+    assert co._nmi_workers(100) <= expect_le
+
+
+def test_jobs_env_invalid_falls_back(monkeypatch):
+    monkeypatch.setenv(co._NMI_JOBS_ENV, 'oops')
+    assert co._nmi_workers(100) >= 1
+
+
+def test_run_cells_has_oom_fallback():
+    src = inspect.getsource(co._run_cells)
+    assert '回落串行' in src and 'except Exception' in src, \
+        '_run_cells 缺 OOM 兜底 —— worker 被 OS 杀掉会让数小时工作归零'
+
+
+def test_module_does_not_import_features_layer():
+    """audit 层不得反向依赖 features 层 (故本模块自带 _run_cells 而非复用 strategic_diff)。"""
+    src = inspect.getsource(co)
+    assert 'from news_process.pipeline.features' not in src, \
+        'audit 层反向依赖了 features 层 (分层倒置)'

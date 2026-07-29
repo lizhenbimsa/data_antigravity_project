@@ -116,6 +116,120 @@ def _lazy_import_nmi():
     return normalized_mutual_info_score
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# S11 (2026-07-29): NMI bootstrap / permutation 的进程并行 + 上三角镜像
+# ════════════════════════════════════════════════════════════════════════════
+# **为何**: 2026-07-29 入口③ 生产真跑, 本阶段 (72) **被 10,800s 超时闸强杀**, 后续
+# 阶段 73/74/75 连坐跳过, 整个验证管道判 ✗。这是同一根因第 4 次复发 (stage 15 /
+# 23 / 40 / 72): **超时按 T=2 dev 或估算定, 从未按生产规模复核**。
+# 本模块 docstring 原写「N≈40 万标签单线程约 77 分钟, 故 timeout=10800」——
+# 真数据实测证伪:
+#     单次 bootstrap 迭代 754 ms  → 单 cell(1000 次) 12.6 分钟
+#     单次 permutation 迭代 774 ms → 单 cell(1000 次) 12.9 分钟
+#     48 个非对角 cell ⟹ bootstrap 10.05h + permutation 10.32h = **20.4 小时**
+# (N=169,811 listwise 完整样本, 比 docstring 假设的 40 万还小, 却是估算的 ~16×。)
+# 同 docstring 还写着「64 核 MP 上 n_jobs=16 约 5 分钟」—— 但**代码里根本没有并行**,
+# 那只是一句从未兑现的说明。本次把它兑现。
+#
+# **两条独立的加速, 各有各的证据边界**:
+#   ① **上三角镜像 (只对 bootstrap)**: NMI 数学对称, 且实测**逐位对称** ——
+#      点估计 3/3 对、bootstrap 重采样 3/3 对 (struct.pack('<d') 比较)。
+#      故 48 → 24 个 cell, 严格 2×, 零数值改动。
+#   ② ⚠ **permutation 绝不可镜像**: (i,j) 打乱第 j 列而 (j,i) 打乱第 i 列, 是
+#      **两次不同的随机化**。实测 0/5 逐位相同 (值差若干量级)。镜像它 = 静默改数。
+#      故 permutation 只并行、不减半。
+#
+# **确定性**: bootstrap/permutation 的种子都由 `SeedSequence.spawn(N)` **预先派生**,
+# 每次迭代 (以及每个 cell) 取的是同一份 `seeds[k]` ⟹ 迭代之间零耦合, 谁先谁后都
+# 得同一个值。并行只改执行顺序, 不改任何数值。
+#
+# **护栏**: worker 体内零 logger 调用 (退化计数回传父端 emit); 结果按 (i,j) 回填,
+# 与串行写入序无关; 工作量低于阈值时**逐字节走原串行路径**。
+# ⚠ 阈值按 **cells × bootstrap_n** 而非 cell 数: 现存单测用的维度数与生产相同
+#   (DIMS_FULL 3 维 / ALL_DIMS 6 维), 只把 bootstrap_n 调小到 20–100, 按 cell 数
+#   设闸会让单测一起走进并行分支。
+
+#: 走并行的**总工作量**下限 (非对角 cell 数 × bootstrap_n)。
+#: 生产 24×1000=24,000; 现存单测最大 30×30=900 ⟹ 5,000 这个值把两者干净分开。
+_NMI_PARALLEL_MIN_WORK = 5000
+#: worker 上限 (与本仓其它并行点同档; 每 worker 各持一份两列样本, 内存轻)。
+_NMI_MAX_WORKERS = 12
+#: 运维旁路: 不改代码即可下调并行度 (本阶段单跑以小时计, 出事重跑代价高)。
+_NMI_JOBS_ENV = 'NEWS_PROCESS_NMI_JOBS'
+
+
+def _nmi_workers(n_tasks: int) -> int:
+    """并行度 = min(硬上限, 可用核-2, 任务数); env 可覆盖; 至少 1。"""
+    raw = os.environ.get(_NMI_JOBS_ENV, '').strip()
+    if raw:
+        try:
+            v = int(raw)
+            if v >= 1:
+                return min(v, n_tasks)
+        except ValueError:
+            pass
+    n_cpu = os.cpu_count() or 1
+    return max(1, min(_NMI_MAX_WORKERS, n_cpu - 2, n_tasks))
+
+
+def _run_cells(tasks, worker, *extra, min_work: int, n_jobs: int | None = None):
+    """串/并自适应执行, 结果**按提交序**返回 (joblib 语义)。
+
+    与 ``strategic_diff._run_year_tasks`` 同型 (含 OOM 兜底整批回落串行), 但本模块
+    不 import 那边 —— audit 层不应反向依赖 features 层。
+    """
+    if min_work < _NMI_PARALLEL_MIN_WORK or len(tasks) < 2:
+        return [worker(t, *extra) for t in tasks]
+    n = _nmi_workers(len(tasks)) if n_jobs is None else max(1, int(n_jobs))
+    if n <= 1:
+        return [worker(t, *extra) for t in tasks]
+    from joblib import Parallel, delayed
+    try:
+        return Parallel(n_jobs=n, prefer='processes')(
+            delayed(worker)(t, *extra) for t in tasks)
+    except Exception as exc:  # noqa: BLE001 — 含 TerminatedWorkerError (OOM/被杀)
+        logger.error(
+            f"🔴 NMI 并行执行失败 ({type(exc).__name__}: {str(exc)[:150]}) — "
+            f"worker={getattr(worker, '__name__', worker)} tasks={len(tasks)} "
+            f"n_jobs={n}; **整批回落串行重跑** (慢 ~{n}× 但不丢 run)。"
+            f"若反复出现请用 {_NMI_JOBS_ENV} 调低并行度。")
+        return [worker(t, *extra) for t in tasks]
+
+
+def _boot_cell_worker(task, bootstrap_n, boot_seeds):
+    """单个 (i,j) cell 的 1000 次 bootstrap —— 原内层循环**逐字节照搬**。
+
+    ⚠ 体内零 logger: 退化计数回传父端 emit (worker 会被父进程直接调用于串行回落路径,
+    在里面动 logger 会掐掉整个阶段的日志)。
+    """
+    i, j, d1, d2, clean_pair = task
+    nmi_score = _lazy_import_nmi()
+    boot = np.full(bootstrap_n, np.nan)
+    n_degenerate = 0
+    for k, s in enumerate(boot_seeds):
+        state = int(s.generate_state(1)[0])
+        clean_boot = clean_pair.sample(frac=1, replace=True, random_state=state)
+        # 防 bootstrap resample 后 degenerate (极不平衡 label 时常见)
+        if clean_boot[d1].nunique() < 2 or clean_boot[d2].nunique() < 2:
+            n_degenerate += 1
+            continue  # leave boot[k] as NaN
+        boot[k] = nmi_score(clean_boot[d1], clean_boot[d2],
+                            average_method='arithmetic')
+    return i, j, boot, n_degenerate
+
+
+def _perm_cell_worker(task, n_permutations, perm_seeds):
+    """单个 (i,j) cell 的 1000 次 permutation —— 原内层循环逐字节照搬。零 logger。"""
+    i, j, d1_series, d2_vals = task
+    nmi_score = _lazy_import_nmi()
+    null = np.empty(n_permutations)
+    for k, s in enumerate(perm_seeds):
+        rng = np.random.default_rng(s)
+        d2_perm = rng.permutation(d2_vals)
+        null[k] = nmi_score(d1_series, d2_perm, average_method='arithmetic')
+    return i, j, null
+
+
 def compute_nmi_matrix(
     df: pd.DataFrame,
     dims: list[str],
@@ -175,6 +289,9 @@ def compute_nmi_matrix(
     seed_sequence = np.random.SeedSequence(seed)
     boot_seeds = seed_sequence.spawn(bootstrap_n)
 
+    #: S11: 上三角 (j>i) 的 bootstrap 任务; 下三角靠镜像, 对角线不进池。
+    _boot_tasks: list[tuple] = []
+
     for i, d1 in enumerate(dims):
         for j, d2 in enumerate(dims):
             if sample_strategy == 'pairwise_complete':
@@ -206,43 +323,50 @@ def compute_nmi_matrix(
                 ci_high.iloc[i, j] = 1.0
                 continue
 
+            # S11: 只算**上三角** (j > i), 下三角在循环后镜像回填。
+            # 依据: NMI 数学对称, 且真数据实测**逐位对称** (点估计 3/3 + bootstrap
+            # 重采样 3/3, struct.pack('<d') 比较) ⟹ 48 → 24 cell, 严格 2×, 零数值改动。
+            # ⚠ 上面所有守卫 (len<100 / F40 退化 / n_pair 填写 / 对角线) 仍对**全部**
+            #   (i,j) 逐格执行, 故 n_pair 矩阵与 F40 的 logger.error 条数与旧码完全一致。
+            if j < i:
+                continue
+
             point.iloc[i, j] = nmi_score(
                 clean[d1], clean[d2], average_method='arithmetic'
             )
 
             # CR-10: bootstrap 只对 [d1, d2] 两列 resample (省 listwise 共享 base
             # 的 6-列 memory; 对 N=400k × 6 cols × 1000 boot × 36 cells, 减 ~70% peak)
-            clean_pair = clean[[d1, d2]]
+            _boot_tasks.append((i, j, d1, d2, clean[[d1, d2]]))
 
-            # Bootstrap CI: integral row-pair resample (修 C1)
-            # CR-11: degenerate fallback 改 NaN + 用 nanpercentile + count
-            boot = np.full(bootstrap_n, np.nan)
-            n_degenerate = 0
-            for k, s in enumerate(boot_seeds):
-                state = int(s.generate_state(1)[0])
-                clean_boot = clean_pair.sample(frac=1, replace=True, random_state=state)
-                # 防 bootstrap resample 后 degenerate (极不平衡 label 时常见)
-                if clean_boot[d1].nunique() < 2 or clean_boot[d2].nunique() < 2:
-                    n_degenerate += 1
-                    continue  # leave boot[k] as NaN
-                boot[k] = nmi_score(
-                    clean_boot[d1], clean_boot[d2],
-                    average_method='arithmetic'
+    # ── Bootstrap CI: 逐 cell 进程并行 (修 C1 整体 row-pair resample 语义不变) ──
+    # CR-11: degenerate fallback 改 NaN + 用 nanpercentile + count
+    # ⚠ 唯一的行为差异是**日志时序**: 退化告警原本与循环交错, 现统一在本段按提交序
+    #   回放 (内容与条数不变)。数值与写入位置均由 (i,j) 决定, 与执行顺序无关。
+    for _i, _j, boot, n_degenerate in _run_cells(
+            _boot_tasks, _boot_cell_worker, bootstrap_n, boot_seeds,
+            min_work=len(_boot_tasks) * bootstrap_n):
+        _d1, _d2 = dims[_i], dims[_j]
+        # 记录 degenerate 比例 (审稿人 sanity check); >5% 触发 warning
+        if n_degenerate > 0:
+            degen_frac = n_degenerate / bootstrap_n
+            if degen_frac > 0.05:
+                logger.warning(
+                    f"  v3.5.0 D3 bootstrap ({_d1}, {_d2}): "
+                    f"{n_degenerate:,d}/{bootstrap_n:,d} = {pct4(degen_frac)} resamples degenerate; "
+                    "CI computed via nanpercentile"
                 )
-            # 记录 degenerate 比例 (审稿人 sanity check); >5% 触发 warning
-            if n_degenerate > 0:
-                degen_frac = n_degenerate / bootstrap_n
-                if degen_frac > 0.05:
-                    logger.warning(
-                        f"  v3.5.0 D3 bootstrap ({d1}, {d2}): "
-                        f"{n_degenerate:,d}/{bootstrap_n:,d} = {pct4(degen_frac)} resamples degenerate; "
-                        "CI computed via nanpercentile"
-                    )
-            # nanpercentile 自动跳过 NaN; 若 boot 全 NaN, 留 ci 为 NaN
-            valid_boot = boot[~np.isnan(boot)]
-            if len(valid_boot) > 0:
-                ci_low.iloc[i, j] = float(np.percentile(valid_boot, 2.5))
-                ci_high.iloc[i, j] = float(np.percentile(valid_boot, 97.5))
+        # nanpercentile 自动跳过 NaN; 若 boot 全 NaN, 留 ci 为 NaN
+        valid_boot = boot[~np.isnan(boot)]
+        if len(valid_boot) > 0:
+            ci_low.iloc[_i, _j] = float(np.percentile(valid_boot, 2.5))
+            ci_high.iloc[_i, _j] = float(np.percentile(valid_boot, 97.5))
+
+    # ── 下三角镜像 (S11; 仅 point/ci, n_pair 与对角线上面已逐格写好) ──
+    for _i, _j, *_ in _boot_tasks:
+        point.iloc[_j, _i] = point.iloc[_i, _j]
+        ci_low.iloc[_j, _i] = ci_low.iloc[_i, _j]
+        ci_high.iloc[_j, _i] = ci_high.iloc[_i, _j]
 
     return point, ci_low, ci_high, n_pair
 
@@ -264,7 +388,10 @@ def compute_permutation_null(
     取其 95%/99% 分位当门槛 — 观测值只有超过这个门槛才算"真有关联",
     比直接定一个固定数字更有说服力。
     """
-    nmi_score = _lazy_import_nmi()
+    # S11: 实际的 nmi 调用已下沉到 `_perm_cell_worker` (worker 侧各自 lazy import,
+    # 子进程无法继承父进程的局部绑定)。此处仍显式触发一次 lazy import: 若 sklearn
+    # 缺失/版本不符, 让它在**父进程**当场炸掉, 而不是等 12 个 worker 各炸一遍。
+    _lazy_import_nmi()
     n = len(dims)
     null_p95 = pd.DataFrame(np.full((n, n), np.nan), index=dims, columns=dims)
     null_p99 = pd.DataFrame(np.full((n, n), np.nan), index=dims, columns=dims)
@@ -289,23 +416,25 @@ def compute_permutation_null(
     seed_sequence = np.random.SeedSequence(seed)
     perm_seeds = seed_sequence.spawn(n_permutations)
 
+    # S11 (2026-07-29): 逐 cell 进程并行。
+    # ⚠ **绝不镜像**: (i,j) 打乱第 j 列而 (j,i) 打乱第 i 列 —— 是两次**不同的随机化**,
+    #   真数据实测 0/5 逐位相同 (值相差若干量级)。镜像它等于静默改数, 故这里
+    #   **全部 48 个非对角格逐一计算**, 只把它们并行起来。
+    #   (bootstrap 那半边可以镜像, 因为 NMI 本身实测逐位对称 —— 两者边界不同, 勿混。)
+    _perm_tasks: list[tuple] = []
     for i, d1 in enumerate(dims):
         for j, d2 in enumerate(dims):
             if i == j:
                 continue
             if clean[d1].nunique() < 2 or clean[d2].nunique() < 2:
                 continue
+            _perm_tasks.append((i, j, clean[d1], clean[d2].values))
 
-            null = np.empty(n_permutations)
-            d2_vals = clean[d2].values
-            for k, s in enumerate(perm_seeds):
-                rng = np.random.default_rng(s)
-                d2_perm = rng.permutation(d2_vals)
-                null[k] = nmi_score(
-                    clean[d1], d2_perm, average_method='arithmetic'
-                )
-            null_p95.iloc[i, j] = float(np.percentile(null, 95))
-            null_p99.iloc[i, j] = float(np.percentile(null, 99))
+    for _i, _j, null in _run_cells(
+            _perm_tasks, _perm_cell_worker, n_permutations, perm_seeds,
+            min_work=len(_perm_tasks) * n_permutations):
+        null_p95.iloc[_i, _j] = float(np.percentile(null, 95))
+        null_p99.iloc[_i, _j] = float(np.percentile(null, 99))
 
     return null_p95, null_p99
 
