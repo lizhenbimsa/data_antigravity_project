@@ -93,6 +93,8 @@ news_process/
 4. Dependencies: `pyproject.toml::[project].dependencies` (requirements.txt 是 fallback)
 
 **Data Flow**: `data/raw/*.xlsx` → `data/processed/NN_*.parquet` (每阶段一个) → `40_panel_yearly.parquet` (银行-年面板); 日志 `logs/<stage>.log` (扁平, 每阶段一文件, 每次运行覆盖)。
+⚠ **该约定有且仅有 2 个例外** (32 个注册阶段普查, 2026-07-29 实测; gate=`test_stage_log_filename_mapping.py` 冻结): `40_panel_export_main.py` → **`logs/40_build_panel.log`**; `62_dedup_threshold_sensitivity.py` → **`logs/62_dedup_sensitivity.log`**。二者的 `STAGE_NAME` 是刻意保留的 (`encode.py:47` 明写「保留原名」; `test_subprocess_log_isolation.py` 有 6 处按 `40_build_panel` 做命名空间断言), **勿改名**。
+🔴 **踩坑形态**: 按约定 `tail logs/40_panel_export_main.log` 得到的是**空**, 因为该文件根本不存在 —— 而「文件不存在」与「阶段一个字没写」在终端上**长得一模一样**, 极易误判成卡死 (2026-07-29 实弹, 差点把正常跑着的阶段 62 判成疑似挂起)。查日志前先 `ls logs/NN_*` 确认真实文件名。
 
 ## Development Commands
 ```bash
