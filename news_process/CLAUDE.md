@@ -170,7 +170,8 @@ pytest news_process/tests/integration/test_panel_reproducibility.py   # 从 repo
 > 注: paper ID `P1..P5` 是 portfolio 本地编号, 与其它文档/计划的 `P1/P2/..` 步骤编号是两个独立空间。
 
 ## Stata Environment
-**本机 StataNow/MP 19.5** (`C:\Program Files\StataNow19\StataMP-64.exe`, 64-core, 128GB)。**策略: Stata 19+ only, 无需向下兼容**。
+**本机 StataNow/MP 19.5** (`C:\Program Files\StataNow19\StataMP-64.exe`, **许可 64 核但机器只有 32 逻辑线程**, 128GB)。**策略: Stata 19+ only, 无需向下兼容**。
+⚠ 2026-07-29 实测订正: 原文写「64-core」是把**许可数**当成了机器核数。CPU = i9-13900K = **24 物理核 (8 P + 16 E) / 32 逻辑线程**; `c(processors_lic)=64` 而 `c(processors)=32` (被物理线程数封顶)。`c(edition_real)=MP`/`c(MP)=1` 属实 (`c(flavor)` 回 `IC` 是 legacy 兼容常量, 别据此判版本)。
 
 ### 启动约定 (防「已完成」弹框)
 - **一律 `/b` 批处理** (Windows 用斜杠 `/b` 不是 `-b`); **禁** `/e` 与裸 GUI/双击。
@@ -184,8 +185,9 @@ Start-Process -FilePath $exe -ArgumentList '/b','do','"<绝对路径\x.do>"' `
 ```
 
 ### 容量 / 模板
-- MP 硬上限远未触顶 (maxvar 120,000)。**core/aux IC 双切分已退役** (单一全列 `.dta`) — **勿**在模板硬编码「前 N 列」截断。行数瓶颈在面板深度 (T=2)。
-- 稳健性 battery (`bootstrap`/`rwolf`/`ritest`/`csdid`) 本机自动拉满 (`set processors 64`); `matsize` Stata 19 自动管理。
+- MP 硬上限远未触顶 (maxvar 120,000 — 2026-07-29 实测确认: `set maxvar 120000` rc=0 且 `c(max_k_theory)` 随之变 120000)。**core/aux IC 双切分已退役** (单一全列 `.dta`) — **勿**在模板硬编码「前 N 列」截断。行数瓶颈在面板深度 (T=2)。
+- 🔴 **绝不写 `set processors 64` —— 2026-07-29 实测 r(198) 报错**, 且在 `/b` 批处理 master 里会直接中断整条 battery。原文「本机自动拉满 (`set processors 64`)」双重失实: ① 本机上限是 **32** (许可 64 但物理只有 32 逻辑线程); ② 全仓 `.do`/`.tmpl`/`.py` **零处**写过 `set processors` (`grep` 计数 = 0), 所谓"自动拉满"从来不存在 —— Stata MP 本就默认吃满 `c(processors)=32`, 无需也不该显式设。若确需显式设, 上限写 `32` (实测 rc=0; 24 亦可)。`matsize` Stata 19 自动管理。
+  ⚠ 关联教训: `72_construct_orthogonality.py` 旧 docstring 那句「n_jobs=16 → ~5 min on **64-core** MP machine」正是被同一处「64 核」误载带偏的, 而 DAG timeout=10800s 又照它设 —— 2026-07-29 阶段 72 被强杀、73/74/75 连坐跳过的根因链就从这里起头。凡涉及本机核数的估算, 一律实测 `c(processors)` / `NumberOfLogicalProcessors`, 勿引本文件旧数。
 - **147 个 `.do.tmpl`** (`papers/_common/stata_templates/` rglob) = 主线 21 (含 `27_tableA12`/`28_tableA13`) + 8 个 paper 子目录 123 + 归档 3; prov 两篇另 15 不计入。头部分层 (2026-07-22 订正措辞): 完整四行头 (`version 19`+`clear all`+`set maxvar 32767`+`set linesize 120`) 仅根级 `00_master`; 8 个 paper master 为三行头 (`version 19`/`clear all`/`set more off`, 无 maxvar → 按默认 5000 跑, 而面板 **2026-07-28 实读已 4,183 列 / 51 号 4,194 列** (旧载 3453 作废) — 距默认 5000 仅剩 806 列余量, **补 `set maxvar` 已从「待决策」升为紧迫**); 子表仅 `version 19` (master 会话内共享状态, 刻意; 消费 `$bank_controls` 的根级模板刻意省略 `clear all`)。
 - pyreadstat 写 `.dta` 用 **format version 118** (文件格式 spec 编号, ≠ Stata 应用版本; 勿与 `version 19` 混淆)。
 
