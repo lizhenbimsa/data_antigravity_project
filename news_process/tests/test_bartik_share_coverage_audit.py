@@ -168,3 +168,77 @@ def test_all_zero_family_fails_not_passes():
     norm = [g for g in got if g[0].startswith('Bartik份额归一-')]
     assert norm and norm[0][1] == 'FAIL', \
         f'整族份额全为 0 应 FAIL (基期份额未生成/全丢失), 实得 {norm}'
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# IV 可用样本量披露 (2026-07-29 同批新增)
+# ════════════════════════════════════════════════════════════════════════════
+# 本节此前只查「相关性」与「变异性」, **从不报可用观测数** —— 于是一个只剩 656 行
+# 有效值的 IV 也能同时拿到「有变异 PASS」+「相关性 PASS」, 两条 PASS 合起来读像是
+# "该 IV 健康", 而实际 2SLS 只跑在面板的 2.77% 上。
+# 生产实测: 103 个 IV 列里 **70 个** 有效观测 < max(1000, 10%面板);
+#   bartik_* 656–1,232 (2.77%–5.20%) · llm_peer_* 750–762 · outlet_* 671–679;
+#   仅 zone_leave1out_benefit_iv 21,674 (91.48%) 健康。
+# 且 strategic_diff 的 paper_spec 声明 obs≥3000, 而它宣告的 IV
+# bartik_type_iv_full 只有 1,232 —— 这类落差必须可见。
+
+def _iv_panel(counts, n=1000):
+    """counts: {iv_col: 非空行数}; n = 面板总行数。"""
+    df = pd.DataFrame({'target_bank': [f'b{i}' for i in range(n)],
+                       'year': 2010 + np.arange(n) % 19})
+    for col, k in counts.items():
+        v = np.full(n, np.nan)
+        v[:k] = np.arange(k, dtype=float)   # 有变异, 排除"方差为零"分支干扰
+        df[col] = v
+    return df
+
+
+def test_iv_sample_size_is_disclosed_at_all():
+    got = _run(_iv_panel({'bartik_x_iv_full': 900}))
+    names = [g[0] for g in got]
+    assert 'IV可用样本量' in names, (
+        'IV 可用样本量未被披露 —— 只报"有变异/相关性"会让 656 行样本的 IV '
+        '读起来像健康的 (2026-07-29 生产实测 70/103 个 IV 低于门槛)。')
+
+
+def test_thin_iv_warns_and_names_the_worst():
+    got = _run(_iv_panel({'bartik_thin_iv_full': 27, 'zone_fat_iv': 990}))
+    rec = [g for g in got if g[0] == 'IV可用样本量']
+    assert rec and rec[0][1] == 'WARN', f'样本过薄的 IV 应 WARN, 实得 {rec}'
+    assert 'bartik_thin_iv_full' in rec[0][2], 'WARN 详情未点名最薄的 IV 列'
+    assert '27' in rec[0][2], 'WARN 详情未给出有效观测数'
+
+
+def test_healthy_ivs_pass():
+    got = _run(_iv_panel({'zone_a_iv': 990, 'zone_b_iv': 950}))
+    rec = [g for g in got if g[0] == 'IV可用样本量']
+    assert rec and rec[0][1] == 'PASS', f'样本充足时应 PASS, 实得 {rec}'
+
+
+def test_threshold_is_relative_not_absolute():
+    """判据必须尺度无关 —— 绝对下限在小面板上会空转成恒 WARN (自造噪声)。
+
+    实弹: 初版写 `max(1000, 0.10*n)`, 于是 1,000 行的面板上任何 IV 都够不到 1,000,
+    两个覆盖率 95%/99% 的健康 IV 也被判 WARN。判据缺陷, 不是测试问题。
+    """
+    src = inspect.getsource(sa)
+    idx = src.find('IV可用样本量')
+    seg = src[max(0, idx - 1200):idx + 400]
+    assert 'max(1000' not in seg, (
+        'IV 样本量判据又用回了绝对下限 —— 小面板上会恒 WARN。'
+        '请保持相对判据 (占面板比例), 绝对充分性交给研究者。')
+    # 覆盖率 99% 的 IV 在任意面板规模下都不得 WARN
+    for n_valid, n_total in ((99, 100), (990, 1000), (9900, 10000)):
+        rec = [g for g in _run(_iv_panel({'zone_x_iv': n_valid}, n=n_total))
+               if g[0] == 'IV可用样本量']
+        assert rec and rec[0][1] == 'PASS', (
+            f'覆盖率 {n_valid}/{n_total} 的 IV 被判 {rec[0][1] if rec else "无记录"} '
+            f'—— 判据随面板规模空转')
+
+
+def test_share_columns_excluded_from_iv_sample_check():
+    """份额列不是 IV, 不得混进可用样本统计 (否则 WARN 计数失真)。"""
+    src = inspect.getsource(sa)
+    idx = src.find('IV可用样本量')
+    seg = src[max(0, idx - 900):idx]
+    assert "'share' not in c" in seg, 'IV 列筛选未排除 share 列'

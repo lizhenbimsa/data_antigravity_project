@@ -662,6 +662,42 @@ def audit_iv_variables(panel: pd.DataFrame, name: str):
     else:
         record(cat, 'Bartik IV变异性', 'PASS', f'{len(iv_cols)} 个IV均有变异')
 
+    # 4e. 🔴 IV 可用样本量披露 (2026-07-29 新增)
+    # 本节此前只查「相关性」与「变异性」, **从不报可用观测数** —— 于是一个只剩
+    # 656 行有效值的 IV 也能同时拿到「有变异 PASS」+「相关性 PASS」, 两条 PASS
+    # 合起来读像是"该 IV 健康", 而实际 2SLS 只跑在面板的 2.77% 上。
+    # 生产实测 (23,693 行面板): bartik_* 族 656–1,232 (2.77%–5.20%);
+    #   llm_peer_* 750–762 (3.17%); outlet_* 671–679 (2.83%);
+    #   仅 zone_leave1out_benefit_iv 21,674 (91.48%) 健康。
+    # 根因不是缺陷 (基期不在册的行正确输出 NaN, 见 4a 分层说明), 但**样本量本身
+    # 必须可见** —— 多篇 paper_spec 声明 `obs≥3000` 目标, 而其声明的 IV 列
+    # (如 strategic_diff 的 bartik_type_iv_full = 1,232) 达不到。
+    # 与 5b-2 的 DiD 可识别性披露同一精神: 防把 all-PASS 误读成"识别设计成立"。
+    # ⚠ 判据取**相对覆盖率 (<10% 面板行)**, 刻意不用绝对下限:
+    #   绝对门槛 (如 "<1000 行") 在小面板上会**空转** —— 面板本身只有 1,000 行时,
+    #   任何 IV 都不可能达到 1,000, 于是恒 WARN, 属自造噪声。相对判据尺度无关:
+    #   生产 23,693 行 → 阈值 2,369, 恰好把 656–1,232 那批全部命中, 而
+    #   zone_leave1out_benefit_iv (21,674 = 91.48%) 正常通过。
+    #   绝对充分性 (1,232 行够不够跑 2SLS) 是研究者的判断, 审计只负责把数摆出来。
+    _all_iv = [c for c in panel.columns
+               if '_iv' in c and 'share' not in c and not c.endswith('_share')]
+    if _all_iv:
+        _n_rows = len(panel)
+        _floor = 0.10 * _n_rows
+        _counts = {c: int(panel[c].notna().sum()) for c in _all_iv}
+        _thin = sorted((n, c) for c, n in _counts.items() if n < _floor)
+        _worst = _thin[:5]
+        if _thin:
+            record(cat, 'IV可用样本量', 'WARN',
+                   f'{len(_thin)}/{len(_all_iv)} 个 IV 列有效观测 < 10% 面板 '
+                   f'({_floor:,.0f} / {_n_rows:,} 行); '
+                   f'最少 5 个: ' + '; '.join(f'{c}={n:,}({n / _n_rows:.2%})' for n, c in _worst)
+                   + ' — 非缺陷 (基期/同业不在册行正确为 NaN), 但 2SLS 实际样本即此数, '
+                     '与 paper_spec 的 obs 目标须逐篇核对, 勿据"有变异+相关性 PASS"判为健康')
+        else:
+            record(cat, 'IV可用样本量', 'PASS',
+                   f'{len(_all_iv)} 个 IV 列有效观测均 ≥ 10% 面板 ({_floor:,.0f} 行)')
+
 
 # ============================================================================
 # 5. DID 变量合规性
