@@ -24,10 +24,23 @@
   ④ 短名替换串**不误伤非 BAL 基名** (str.replace 无锚定, 会作用于所有需缩名的基名);
   ⑤ `n_media_bal_*` 必须逐 bank-year 有变异, 不得退回广播常量。
 
-⚠ 已知不对称 (待裁定, 本 gate 只记录不断言): 同源孪生族 `exc_*` (停刊稳健性,
-**完全相同的 82 个底层基名** × 3 轨 = 246 列, 非空率 25.42% vs bal 的 10.97%)
-仍被 EXCLUDE_RULES ① `^exc_` 判为 D15_1_PEER 排除。另注该理由码本身错配:
-D15_1_PEER 名为"他行/同组测度", 而此处 `exc` 实指"剔除停刊媒体"非"剔除同业银行"。
+**姊妹族 CES (2026-07-30 用户裁定一并纳入, 不对称已消除)**: `exc_*` 停刊代理稳健性族
+与 BAL **底层基名完全相同 (82 个)**, 是媒体样本选择的两个严格度档位。此前它被
+EXCLUDE_RULES ① 的 `^exc_`/`_exc$` **错归为"他行/同组测度"**排除掉 —— 该规则名为
+peer 测度, 而这里的 exc 指"剔除**疑似退出覆盖的媒体**", 与同业银行无关。两模式已移除
+(实测作用域恰为该族: `^exc_` 命中 246 列、`_exc$` 命中 1 列 n_articles_exc;
+本条其余 7 个模式共命中 154 个真正的同业列, 不受影响)。
+
+纳入后构成完整梯度 (生产实测):
+    baseline  保留 100%    非空 6,224/6,224 (100.00%)   tone 均值 0.9762
+    exc_*     保留 87.0%   非空 6,022/6,224 ( 96.75%)   tone 均值 0.9769
+    bal_w*    逐年覆盖     非空 2,599/6,224 ( 41.76%)   tone 均值 0.9565
+
+⚠ CES 的口径限制必须随构念传达 (attention_media.py 三点诚实披露):
+  (a) 排除集 189 家里仅 **8 家**经 NPPA 证实, 其余 181 家 suspected 未证实但全量入排除集;
+  (b) 测的是"退出银行金科**话题覆盖**"而非报纸停刊 —— **不可表述为严格停刊口径**;
+  (c) 相伴的 `ceased_media_frac` 与年份**机械共线** (判据 last_year < 末年-2 ⟹
+      2023–2025 按定义恒为 0; 实测逐年均值 2008 0.226 → 2020 0.031 → 2023 0.000)。
 """
 from __future__ import annotations
 
@@ -243,6 +256,126 @@ def test_source_no_longer_broadcasts_scalar():
         '零变异广播被回退 —— `panel[col_n] = len(balanced)` 把语料级标量写满全表。')
     assert "groupby(['target_bank', 'year'])['媒体(中文)']" in src, \
         'n_media_bal_* 不再逐 bank-year 计数'
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CES 停刊代理稳健性族 (2026-07-30 用户裁定纳入, 与 BAL 成对)
+# ════════════════════════════════════════════════════════════════════════════
+
+_CES_SAMPLE_COLS = {
+    'exc_tone_full', 'exc_tone_ctx', 'exc_tone_ss',
+    'exc_jiang_2021_score_advonly_full', 'exc_loughran_score_negdeg_ss',
+    'exc_du_2022_score_polw00_ctx', 'exc_fin_sent_zh_正面_hw_full',
+    'n_articles_exc', 'ceased_media_frac',      # 后者已在负清单 KEEP(族 MC), 不该被 CES 吞
+    'target_bank', 'year', 'llm_vote_tone_full',
+}
+
+
+@pytest.mark.parametrize('which', sorted(_REGISTRIES))
+class TestCessationFamily:
+
+    def test_discovers_exc_basenames(self, which):
+        m = _load(which)
+        got = {b: f for f, b in m.discover_cessation_basenames(_CES_SAMPLE_COLS)}
+        assert 'exc_tone' in got, '未从三轨列剥出 exc_ 测度基名'
+        assert 'exc_jiang_2021_score_advonly' in got, '未剥出词典消融基名'
+        assert 'n_articles_exc' in got, '样本量披露列未入册 (与 n_articles 对称)'
+        assert all(v == m.CES_FAMILY for v in got.values()), '族码不一致'
+        assert 'ceased_media_frac' not in got, (
+            'ceased_media_frac 被 CES 吞了 —— 它已在 v23 负清单 KEEP (族 MC), '
+            '重复注册会触发"基名冲突"硬断言。')
+        assert 'llm_vote_tone_full' not in got and 'target_bank' not in got
+
+    def test_empty_panel_returns_empty_not_error(self, which):
+        m = _load(which)
+        assert m.discover_cessation_basenames({'target_bank', 'year'}) == []
+
+    def test_exc_removed_from_peer_exclude_rule(self, which):
+        """`^exc_`/`_exc$` 必须已从 D15_1_PEER 移除 —— 否则该族又被当 peer 排除。"""
+        m = _load(which)
+        peer = [p for code, p in m.EXCLUDE_RULES if code == 'D15_1_PEER']
+        assert peer, '找不到 D15_1_PEER 规则'
+        pat = peer[0].pattern
+        assert '^exc_' not in pat and '_exc$' not in pat, (
+            f'D15_1_PEER 又把 exc_ 收回去了: {pat} —— 该规则名为"他行/同组测度", '
+            f'而 exc 实指"剔除疑似退出覆盖的媒体", 与同业无关, 属归族错误。')
+        # 真正的同业模式必须仍在
+        for keep in ('_leave1out_', '^lpeer_', '^llm_peer_', '^emb_peer'):
+            assert keep in pat, f'D15_1_PEER 误删了真正的同业模式 {keep}'
+
+    def test_exc_columns_are_no_longer_excluded(self, which):
+        m = _load(which)
+        for c in ('exc_tone_full', 'exc_jiang_2021_score_raw_full', 'n_articles_exc'):
+            assert m.classify_excluded(c) is None, (
+                f'{c} 仍被 classify_excluded 判为 {m.classify_excluded(c)!r} —— '
+                f'纳入后它应落在 used40 而非排除域。')
+
+    def test_genuine_peer_columns_still_excluded(self, which):
+        """移除 exc 模式不得放过真正的同业列。"""
+        m = _load(which)
+        for c in ('llm_peer_tone_iv_full', 'lpeer_attention_iv',
+                  'prov_leave1out_tone_full', 'emb_peer_tone_diag'):
+            assert m.classify_excluded(c) == 'D15_1_PEER', \
+                f'{c} 不再被判 D15_1_PEER (实得 {m.classify_excluded(c)!r})'
+
+    def test_ces_short_names_fit_budget(self, which):
+        m = _load(which)
+        bases = [f'exc_{u}' for u in (
+            'jiang_2021_score_advonly', 'jiang_2021_score_degonly',
+            'bian_2021_score_negonly', 'loughran_score_advonly',
+            'you_2018_score_negdeg', 'deepseekv4_score_hw', 'du_2022_score_polw00',
+            'fin_sent_zh_正面_hw', 'tone')]
+        bad = [(b, m.apply_short_name(b)) for b in bases
+               if max(len(f'{a}_{m.apply_short_name(b)}_{t}')
+                      for a in ('cw', 'ce') for t in m.TRACKS) > 32]
+        assert not bad, f'CES 短名超 D16 32 字符预算: {bad}'
+
+    def test_ces_and_bal_short_names_do_not_collide(self, which):
+        m = _load(which)
+        u = ('jiang_2021_score_advonly', 'loughran_score_negdeg', 'du_2022_score_polw00', 'tone')
+        names = [m.apply_short_name(f'exc_{x}') for x in u] + \
+                [m.apply_short_name(f'bal_w{w}_{x}') for w in ('0725', '1025', '1125') for x in u]
+        dup = {n for n in names if names.count(n) > 1}
+        assert not dup, f'CES 与 BAL 短名碰撞: {sorted(dup)}'
+
+    def test_ces_family_range_gate(self, which):
+        m = _load(which)
+        assert 'CES' in m.TONE_FAMILIES
+        assert m.range_gate_for('exc_tone', 'CES') == 'tone'
+        assert m.range_gate_for('exc_jiang_2021_score_raw', 'CES') == 'none'
+        assert m.range_gate_for('n_articles_exc', 'CES') == 'none'
+
+
+def test_bal_and_ces_share_the_same_underlying_basenames():
+    """两族底层基名必须完全相同 —— 这是"同一批测度的两个子样本口径"的定义。
+
+    若哪天不等了, 说明某一侧的动态发现漏了或多了, 梯度就不再可比。
+    """
+    import re
+    m = _load('listed')
+    cols = _SAMPLE_COLS | _CES_SAMPLE_COLS
+    bal = {re.sub(r'^bal_w\d{4}_', '', b)
+           for _, b in m.discover_balanced_basenames(cols) if b.startswith('bal_w')}
+    ces = {b[4:] for _, b in m.discover_cessation_basenames(cols)
+           if b.startswith('exc_')}
+    assert bal & ces, f'两族底层基名零交集 — 发现逻辑有一侧错了 (bal={sorted(bal)[:3]}, ces={sorted(ces)[:3]})'
+
+
+def test_two_registries_share_identical_ces_block():
+    """⑧⑨ 镜像管道的 CES 块须逐字节一致 (与 BAL 同要求)。"""
+    import re
+    srcs = {}
+    for which, path in _REGISTRIES.items():
+        if not os.path.exists(path):
+            pytest.skip(f'{which} registry 缺失')
+        with open(path, encoding='utf-8') as f:
+            txt = f.read()
+        mm = re.search(r'CES_FAMILY = "CES".*?return \[\(CES_FAMILY, b\) for b in sorted\(bases\)\]',
+                       txt, re.S)
+        assert mm, f'{which}: 找不到 CES 发现函数块'
+        srcs[which] = mm.group(0)
+    vals = list(srcs.values())
+    assert vals[0] == vals[1], '⑧⑨ 的 CES 块已漂移'
 
 
 def test_two_registries_share_identical_bal_block():

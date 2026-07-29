@@ -600,6 +600,53 @@ def discover_balanced_basenames(colset: set[str]) -> list[tuple[str, str]]:
     return [(BAL_FAMILY, b) for b in sorted(bases)]
 
 
+# ---------------------------------------------------------------- 停刊代理稳健性族 (CES, 2026-07-30 用户裁定纳入)
+# `exc_*` = 覆盖退出 (de-facto cessation) 代理稳健性: `detect_defacto_cessation` 按媒体
+#   last_year < 样本末年-2 且 ≥10 篇判"疑似退出覆盖", 与 NPPA 报刊名录 (注销/停办/休刊)
+#   交叉验证后, 在剩余文章上重算 bank-year 均值。生产 T=19 实测: 930 家媒体 →
+#   active 734 / suspected 181 / confirmed 8 / nppa_only 7; 排除集 189 家,
+#   剔 22,042/169,811 = 12.98% 文章行 (保留 87.0%)。
+# 学术锚点 (attention_media.py 自带): Heese, Pérez-Cavazos & Peter (2022, JFE 145(2):445-463,
+#   doi:10.1016/j.jfineco.2021.08.015) 报纸关停→地方企业监督真空→违规增加;
+#   Gao, Lee & Murphy (2020, JFE 135(2):445-467, doi:10.1016/j.jfineco.2019.06.003)
+#   关停→市政融资成本上升; Wooldridge (2010, Ch.19) attrition。
+#
+# **为何与 BAL 成对纳入 (2026-07-30 用户裁定)**: 两族**底层基名完全相同 (82 个)**, 是
+#   媒体样本选择的两个不同严格度档位, 合起来构成一条可直接用于稳健性论证的梯度:
+#       baseline  保留 100%   非空 6,224/6,224 (100.00%)   tone 均值 0.9762
+#       exc_*     保留 87.0%  非空 6,022/6,224 ( 96.75%)   tone 均值 0.9769
+#       bal_w*    (逐年覆盖)  非空 2,599/6,224 ( 41.76%)   tone 均值 0.9565
+#   只纳入 bal_w 会让中间档缺失, 梯度断掉。
+#
+# ⚠ **口径限制 (须随构念一并传达给下游, 见 attention_media.py 的三点诚实披露)**:
+#   (a) 189 家里仅 **8 家**经 NPPA 证实, 其余 181 家 suspected **未证实但全量进排除集**;
+#   (b) 测的是"退出银行金科话题覆盖"(topic exit) 而非报纸停刊 (publication cessation)
+#       —— 媒体可能仍在正常出版只是不再报该话题, **论文中不可表述为严格停刊口径**;
+#   (c) 相伴的 `ceased_media_frac` (已在负清单 KEEP, 族 MC) 与年份**机械共线**:
+#       判据是 last_year < 末年-2, 故 2023–2025 按定义恒为 0 (实测逐年均值
+#       2008 0.226 → 2020 0.031 → 2023 0.000)。拿它做时间趋势或不带年份 FE 的回归
+#       会得到构造产物而非发现。
+CES_FAMILY = "CES"
+_CES_MEASURE_RE = re.compile(r"^(exc_.+?)_(full|ctx|ss)$")
+#: 与 `n_articles` (负清单 KEEP, 族 Q) 对称的样本量披露列; 裸名 ⟹ track-agnostic。
+_CES_COUNT_BASES = ("n_articles_exc",)
+
+
+def discover_cessation_basenames(colset: set[str]) -> list[tuple[str, str]]:
+    """从 40 面板列集派生 CES 族基名 [(family, basename), ...]。
+
+    与 `discover_balanced_basenames` 同构 (两族是同一批底层测度的两个子样本口径),
+    盘上无该族时同样返回空列表而不 fail。
+    """
+    bases: set[str] = set()
+    for c in colset:
+        m = _CES_MEASURE_RE.match(c)
+        if m:
+            bases.add(m.group(1))
+    bases.update(b for b in _CES_COUNT_BASES if b in colset)
+    return [(CES_FAMILY, b) for b in sorted(bases)]
+
+
 def resolve_cols(base: str, colset: set[str]) -> tuple[dict, bool]:
     """基名 → {full/ctx/ss: 源列名或 None}, track_agnostic。不规则后缀全部显式。"""
     # C1 / QD / DS-dm 显式映射
@@ -653,8 +700,16 @@ POLICY_INVARIANT_RE = re.compile(r"^(dcep|sandbox|depins)_(treated|post)(_|$)")
 TRACK_STRIP_RE = re.compile(r"_(full|ctx|ss)(?=(_|$))")
 
 EXCLUDE_RULES: list[tuple[str, re.Pattern]] = [
-    # ① 他行/同组测度 (含 _exc 后缀补丁)
-    ("D15_1_PEER", re.compile(r"(_leave1out_|^lpeer_|^leave_one_out_|^exc_|^prox_.*km_|^peer_tone|^emb_peer|^llm_peer_|_exc$)")),
+    # ① 他行/同组测度
+    # 🔴 2026-07-30: 移除 `^exc_` 与 `_exc$` 两个模式 —— 它们**归错了族**。
+    #   本条规则名为"他行/同组测度", 而 `exc_*` 里的 exc 指的是"剔除**疑似退出覆盖的媒体**"
+    #   (cessation proxy), 与"剔除同业银行"毫无关系; 该错配把一整族媒体流失稳健性臂
+    #   当作 peer 测度排除掉了。经用户 2026-07-30 裁定, 该族改为纳入 (族码 CES),
+    #   与已纳入的 BAL 平衡媒体族成对, 构成 baseline → exc_ → bal_w 的严格度梯度。
+    #   实测确认两个模式的作用域恰好只有该族: `^exc_` 命中 246 列 (= 82 基名 × 3 轨,
+    #   全部是停刊稳健性族), `_exc$` 命中 1 列 (n_articles_exc, 样本量披露);
+    #   本条其余 7 个模式共命中 154 个**真正的**同业列, 不受影响。
+    ("D15_1_PEER", re.compile(r"(_leave1out_|^lpeer_|^leave_one_out_|^prox_.*km_|^peer_tone|^emb_peer|^llm_peer_)")),
     # ② IV 族
     ("D15_2_IV", re.compile(r"(^bartik_|^outlet_.*_iv|_iv$|_iv_)")),
     # ③ _std/_sum/_count/_skew 伴生 (先剥轨后缀, 双向正则)
@@ -710,7 +765,7 @@ def classify_excluded(col: str) -> str | None:
 # BAL 入 TONE_FAMILIES: 该族内**只有** bal_w{窗口}_tone 走 tone 值域闸 (下方判据要求 base
 # 含 'tone'/'_cont'), 词典分 bal_w*_*_score* 与计数 n_media_bal_* 自然落 'none' —— 恰好正确,
 # 无需为该族另立分支。
-TONE_FAMILIES = {"S1", "S2", "S3", "S4", "S1b", "S5", "DS", "BAL"}
+TONE_FAMILIES = {"S1", "S2", "S3", "S4", "S1b", "S5", "DS", "BAL", "CES"}
 FRAC_FAMILIES = {"C1", "C2", "S1c", "S6"}
 
 
@@ -1012,6 +1067,26 @@ def main(argv=None) -> int:
     else:
         logger.info("BAL 平衡媒体稳健性族: 盘上 40 面板无 bal_w*/n_media_bal_* 列 — "
                     "小样本下无媒体满足逐年覆盖属**预期**, 非缺陷 (attention_media.py 同款判据)")
+
+    # CES 停刊代理稳健性族补注册 (2026-07-30 用户裁定纳入; 与 BAL 同机制、成对)
+    # 此前被 D15_1_PEER 的 `^exc_`/`_exc$` **错归为"他行/同组测度"**排除掉 (exc 实指
+    # "剔除疑似退出覆盖的媒体", 与同业无关); 该两模式已同批从 D15_1_PEER 移除。
+    _ces_rows = [(f, b) for f, b in discover_cessation_basenames(set40)
+                 if b not in seen_keep and b not in cut_set]
+    if _ces_rows:
+        keep_bases.extend(_ces_rows)
+        seen_keep.update(b for _, b in _ces_rows)
+        _n_meas = sum(1 for _, b in _ces_rows if not b.startswith("n_articles"))
+        logger.warning(
+            "CES 停刊代理稳健性族补注册: %d 基名 (测度 %d + 样本量披露 %d), emit_panel=true "
+            "— 与 BAL 底层基名完全相同, 二者是媒体样本选择的两个严格度档位 "
+            "(baseline 100%% → exc_ 保留 87.0%% → bal_w 逐年覆盖), 合起来才是完整梯度。"
+            "⚠ 口径限制须随构念传达: 189 家排除集里仅 8 家经 NPPA 证实, 测的是"
+            "「退出话题覆盖」非「报纸停刊」, 论文中不可表述为严格停刊口径",
+            len(_ces_rows), _n_meas, len(_ces_rows) - _n_meas)
+    else:
+        logger.info("CES 停刊代理稳健性族: 盘上 40 面板无 exc_* 列 — "
+                    "语料未触发覆盖退出判据属预期, 非缺陷")
 
     # 40 面板域条目构造 (KEEP + CUT 全在划分域; CUT 打 emit_panel=false)
     entries: list[dict] = []
