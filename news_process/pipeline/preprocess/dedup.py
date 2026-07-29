@@ -23,7 +23,11 @@ import numpy as np
 import pandas as pd
 from datasketch import MinHash, MinHashLSH
 
-from news_process.pipeline.preprocess._constants import logger, nb_workers
+from news_process.pipeline.preprocess._constants import (
+    MEDIA_NAME_OVERRIDES,
+    logger,
+    nb_workers,
+)
 
 try:
     from tqdm import tqdm
@@ -246,6 +250,34 @@ class ArticleDeduplicator:
     def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """添加去重所需的辅助列 (媒体权重、内容长度、合并文本、日期)."""
         self.logger.info("添加辅助列...")
+        # ── 媒体名归一化 (2026-07-29 修): 下沉到去重器内部, fail-safe by construction ──
+        # **事故**: 入口③ 阶段 62 报「未匹配媒体 10 个 (162,487 行回退默认权重)」, 其中
+        #   `21世界经济报道` 一家就 155,319 行 (95.6%)。而这 10 个名字**全部**早已在
+        #   MEDIA_NAME_OVERRIDES 里 (typo 世界/世纪 · 羊城晚报三个地方版 · 法制→法治
+        #   2018 更名 · 中国保险报→中国银行保险报 · 中国工商报→中国市场监管报 ·
+        #   人民邮电报→人民邮电 · 新民晚报社区版家庭周刊→新民晚报社区版)。
+        # **根因 = 同一份语料两条加载路径, 只有一条做了归一化**:
+        #   · filter.py:297 只在**处理新 xlsx 时**应用 override → 写 _cache/<file>.parquet;
+        #     增量缓存命中时整段跳过 ⟹ 缓存里留的是原始名 (runner.py:695-697 注释已明载);
+        #   · runner.py:699 在全量读回后再兜底 replace 一次 ⟹ stage 00 生产去重**正确**;
+        #   · 而 validation/dedup_threshold.py::_load_pre_dedup_corpus 直读 _cache/*.parquet
+        #     拼接后就用, **绕过了那层兜底** ⟹ 阶段 62 拿到未归一名 → 权重全落默认 10。
+        # **修法取"下沉到去重器"而非"在 62 号补一次 replace"**: 后者是第 3 处副本, 下一个
+        #   新增的 _cache 消费者仍会再踩一遍。放这里则**任何**喂给 ArticleDeduplicator 的
+        #   语料都自动正确 —— 由 fail-open 改为 fail-safe。
+        # **幂等性 (golden 安全的前提, 已实证)**: MEDIA_NAME_OVERRIDES 中唯一"value 同时是
+        #   key"的条目是自映射 `'读者文摘 - 中文版': '读者文摘 - 中文版'` (刻意, 防被正则
+        #   误洗), 无链式改写; 在全部 76 个 key∪value 名字上 replace 一次 vs 两次逐格相同。
+        #   故 stage 00 (runner 已先 replace 过一遍) 再走这里是 no-op ⟹ 去重输入字节不变。
+        if '媒体(中文)' in df.columns:
+            _repl = df['媒体(中文)'].replace(MEDIA_NAME_OVERRIDES)
+            _n_norm = int((_repl != df['媒体(中文)']).sum())
+            if _n_norm > 0:
+                df['媒体(中文)'] = _repl
+                self.logger.info(
+                    f"媒体名归一化 (去重器内兜底): {_n_norm:,} 行改写 —— "
+                    f"上游未应用 MEDIA_NAME_OVERRIDES (典型为直读 _cache/*.parquet 的路径)"
+                )
         media_weight = pd.to_numeric(
             df['媒体(中文)'].map(self.media_weights),
             errors='coerce',
