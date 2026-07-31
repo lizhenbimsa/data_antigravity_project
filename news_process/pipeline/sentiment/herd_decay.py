@@ -368,8 +368,26 @@ def _parallel_kwargs(n_banks: int) -> dict:
 
 
 def _silence_worker_logging() -> None:
-    """子进程内彻底静音 logging (防首条日志截断父进程 <stage>.log)。幂等。"""
+    """**仅在 loky/mp 子进程内**彻底静音 logging (防首条日志截断父进程 <stage>.log)。幂等。
+
+    F42 (2026-07-31): 补一道进程身份闸。原实现无条件执行, 而
+    ``logging.disable(CRITICAL)`` 与 ``removeHandler`` 都是**进程级全局状态**, 一旦在
+    父进程里执行就**再不恢复** —— 而本函数确实会在父进程里被执行: `_herd_bank_worker`
+    在串行回落臂 (``_par['prefer'] != 'processes'``, 即可算银行 < 200 家) 是被父进程
+    **直接调用**的。后果: 该阶段自那一行起**整条日志全哑**, 后面的「已回写 N/M」
+    「三轨跟风检测完成」及三轨汇总统计一个字都不落盘。而 CLAUDE.md 已记载过
+    「文件不存在」与「阶段一个字没写」在终端上不可区分的踩坑形态 —— 这正是同一类。
+    生产 T=19 (1,247 家银行) 走并行臂不触发, 故它只在 **dev/小样/单测**里咬人,
+    也就是最需要看日志的场合。
+    ``multiprocessing.parent_process()`` 是可靠判据 (实测: 父进程与 joblib 线程臂均
+    返回 None, loky worker 返回进程对象; 阶段自身由 ``subprocess.Popen`` 拉起, 同样
+    是 None)。
+    """
     import logging as _logging
+    import multiprocessing as _mp
+
+    if _mp.parent_process() is None:
+        return  # 父进程 (含线程臂 / 串行回落臂): 绝不摘 handler, 绝不 disable
     for _h in list(logger.handlers):
         logger.removeHandler(_h)
     _logging.disable(_logging.CRITICAL)

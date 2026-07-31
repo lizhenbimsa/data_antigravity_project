@@ -37,8 +37,13 @@ Concurrency (修 F7 + F43; 2026-07-29 S11 更新):
     工作量 (cells × n) 低于 `_NMI_PARALLEL_MIN_WORK` 时自动串行; 旁路 `NEWS_PROCESS_NMI_JOBS`.
     sklearn `normalized_mutual_info_score` 在 1.5-1.8 **基于源码 review 判断单调用线程安全**
     (无官方 claim, 谨慎说法) —— 走进程并行后该风险不再承重。
-    ⚠ **bootstrap 可镜像而 permutation 绝不可**: (i,j) 打乱第 j 列、(j,i) 打乱第 i 列,
-    是两次不同的随机化 (真数据 0/5 逐位相同)。见 `test_nmi_parallel_mirror.py`。
+    ⚠ **两侧都不再镜像 (S12, 2026-07-31)**。permutation 从来不可镜像: (i,j) 打乱第 j 列、
+    (j,i) 打乱第 i 列, 是两次不同的随机化 (真数据 0/5 逐位相同)。bootstrap 侧 S11 曾按
+    "NMI 逐位对称" 镜像, 该前提已被真数据复测**证伪** —— 全 15 对 × 40 次重采样中
+    6/600 非逐位对称 (全集中在 collab_mode_full × collab_mode_ctx 一对, max|Δ|=1.11e-16)。
+    ⚠ 该 1 ulp 在矩阵级被分位数吸收 (撤销前后 A/B 0 格不同), 故撤销的定性是
+    **前提证伪 + 稳健性加固**, 非修正错数; 代价由整数编码吸收, 端到端实测净快 9.2×。
+    见 `test_nmi_parallel_mirror.py`。
 
 Logging 约定 (修 F13):
     与 v3.4.0 main pipeline 一致, 通过 logger.info / logger.warning 输出.
@@ -139,12 +144,49 @@ def _lazy_import_nmi():
 # 那只是一句从未兑现的说明。本次把它兑现。
 #
 # **两条独立的加速, 各有各的证据边界**:
-#   ① **上三角镜像 (只对 bootstrap)**: NMI 数学对称, 且实测**逐位对称** ——
-#      点估计 3/3 对、bootstrap 重采样 3/3 对 (struct.pack('<d') 比较)。
-#      故 48 → 24 个 cell, 严格 2×, 零数值改动。
+#   ① ~~上三角镜像 (只对 bootstrap)~~ —— **S12 (2026-07-31) 已撤销, 见下**。
 #   ② ⚠ **permutation 绝不可镜像**: (i,j) 打乱第 j 列而 (j,i) 打乱第 i 列, 是
 #      **两次不同的随机化**。实测 0/5 逐位相同 (值差若干量级)。镜像它 = 静默改数。
 #      故 permutation 只并行、不减半。
+#
+# ════════════════════════════════════════════════════════════════════════════
+# S12 (2026-07-31): 整数编码 (真加速) + 撤销上三角镜像 (真修正)
+# ════════════════════════════════════════════════════════════════════════════
+# **① 撤销镜像 —— S11 的立论被真数据证伪**。
+#   S11 写「点估计 3/3 对、bootstrap 重采样 3/3 对 ⟹ 严格 2×, 零数值改动」。
+#   在真实 `21_tone_llms.parquet` 六维 listwise 样本 (N=156,102) 上把抽查扩到
+#   **全 15 对 × 40 次真实 bootstrap 重采样** 后:
+#       点估计   0/15  非对称  (确实逐位对称)
+#       bootstrap 6/600 非对称 (1%), **全部集中在**
+#                 innovation_collab_mode_full × innovation_collab_mode_ctx,
+#                 该对 6/40 命中, max|Δ| = 1.11e-16 ≈ 1 ulp
+#   机理: 交换两列 = 转置列联表, 而 `contingency_matrix` 按行主序装配 ⟹ 求和序变,
+#   差 1 ulp 是正常浮点行为, 不是 bug —— **bug 是拿它当"零数值改动"的依据**。
+#   ⚠ **不要把这条说过头** (撤销时自查后订正): 迭代级的 1 ulp 非对称**并未**在矩阵级
+#   显形。同一真数据上把撤销前/后两版逐格对拆 (bootstrap_n=40):
+#   point / ci_low / ci_high / n_pair **全部 0 格不同** —— 因为 CI 端点是 40 个值的
+#   2.5%/97.5% 分位, 个别值动 1 ulp 通常选不出不同的次序统计量。
+#   ⟹ 本条的性质是 **前提证伪 + 稳健性加固**, 不是 "修正了已发布的错数"。
+#   仍然撤销的理由: ① 代码自带的审计依据是错的, 留着它下一个人会继续照信;
+#   ② "分位数会吸收掉" 不是受控保证 —— 换数据 / 换 bootstrap_n (生产是 1,000)
+#      是否仍吸收, 没有任何东西保证; ③ 代价已被 ② 的整数编码完全吸收 (见下),
+#      真数据实测撤镜像+编码合起来仍净快 **9.2×**。
+#   (教训与 F26/F41 同型: "抽查 3 个样本通过" 不等于 "逐位成立"。)
+#
+# **② 整数编码 —— 把撤销镜像的 2× 代价连本带利赚回来**。
+#   NMI 只依赖列联表, 而列联表在**保序**重标号下不变。sklearn 内部每次调用都要在
+#   原始标签上跑一遍 `np.unique`(含排序); 生产是 15.6 万行 object 列 × 每格 1,000 次,
+#   这才是真瓶颈。把这一步提到列级做一次 (`_encode_codes`, 必须用 `np.unique` 的
+#   排序序而非 `pd.factorize` 的出现序):
+#       单次 NMI  902.3 ms → 49.9 ms   (真数据实测)
+#       单次 resample 9.6 ms (不受影响)
+#       每格 1,000 次: 912 s → 59.5 s  ⟹ **15.3×**
+#   净账 (真数据端到端实测, 非推算): 同一 `compute_nmi_matrix(N=156,102, 6 维,
+#   bootstrap_n=40)` 撤销前 685.2 s → 撤销后 74.5 s = **9.2×**, 已含格数 24→48 的
+#   双倍代价。permutation 侧从不镜像, 拿到的是完整的单格倍数。
+#   逐位等价实证 (同一真数据): 点估计 15/15 · bootstrap 100/100 · permutation
+#   100/100 与原 object 路径 `struct.pack('<d')` 逐位相同, 且重采样下标序列与
+#   置换排列亦逐一相同。
 #
 # **确定性**: bootstrap/permutation 的种子都由 `SeedSequence.spawn(N)` **预先派生**,
 # 每次迭代 (以及每个 cell) 取的是同一份 `seeds[k]` ⟹ 迭代之间零耦合, 谁先谁后都
@@ -157,7 +199,8 @@ def _lazy_import_nmi():
 #   设闸会让单测一起走进并行分支。
 
 #: 走并行的**总工作量**下限 (非对角 cell 数 × bootstrap_n)。
-#: 生产 24×1000=24,000; 现存单测最大 30×30=900 ⟹ 5,000 这个值把两者干净分开。
+#: 生产 48×1000=48,000 (S12 撤镜像后 bootstrap 亦为全 48 个非对角格, 与 permutation
+#: 同量); 现存单测最大 30×30=900 ⟹ 5,000 这个值把两者干净分开。
 _NMI_PARALLEL_MIN_WORK = 5000
 #: worker 上限 (与本仓其它并行点同档; 每 worker 各持一份两列样本, 内存轻)。
 _NMI_MAX_WORKERS = 12
@@ -179,17 +222,59 @@ def _nmi_workers(n_tasks: int) -> int:
     return max(1, min(_NMI_MAX_WORKERS, n_cpu - 2, n_tasks))
 
 
-def _run_cells(tasks, worker, *extra, min_work: int, n_jobs: int | None = None):
+def _encode_codes(frame: pd.DataFrame) -> pd.DataFrame:
+    """把标签列整体换成 **int 码** (0..k-1, 按 ``np.unique`` 的排序序)。
+
+    S12 (2026-07-31): NMI 只依赖列联表 (contingency table), 而列联表在**保序**重标号
+    下完全不变 —— sklearn 内部本就用 ``np.unique(..., return_inverse=True)`` 把标签
+    压成码, 我们只是把这一步从"每次调用都做一遍"提到"整列做一次"。生产 bootstrap
+    对每个 cell 调 1,000 次 NMI, 每次都在 15.6 万行 object 列上重跑一次 unique+排序,
+    这是本阶段的真瓶颈。
+
+    ⚠ **必须用 ``np.unique`` 而不是 ``pd.factorize``**: 前者按**排序序**赋码, 与
+    sklearn 内部完全同序 ⟹ 列联表逐格同位置 ⟹ 浮点求和序不变 ⟹ 逐位等价;
+    后者按**出现序**赋码, 列联表行列会被置换, 求和序随之改变 —— 本数据上二者恰好
+    重合 (实测 elementwise 全等), 但那是数据巧合, 不可依赖。
+
+    实证 (真实 `21_tone_llms.parquet` 六维 listwise 样本 N=156,102):
+    点估计 15/15 · bootstrap 100/100 · permutation 100/100 逐位相同
+    (``struct.pack('<d')`` 比较), 且三者的重采样/置换下标序列亦逐一相同。
+    """
+    return pd.DataFrame(
+        {c: np.unique(frame[c].to_numpy(), return_inverse=True)[1]
+         for c in frame.columns},
+        index=frame.index,
+    )
+
+
+def _run_cells(tasks, worker, *extra, min_work: int, n_jobs: int | None = None,
+               label: str = 'cells'):
     """串/并自适应执行, 结果**按提交序**返回 (joblib 语义)。
 
     与 ``strategic_diff._run_year_tasks`` 同型 (含 OOM 兜底整批回落串行), 但本模块
     不 import 那边 —— audit 层不应反向依赖 features 层。
+
+    S12 (2026-07-31) 补一行**选臂披露**: 原实现静默二选一, 日志里看不出这一批究竟
+    走了串行还是并行, 于是 "阈值是否卡在了不该卡的地方" 无从事后判断 (两个调用点
+    共用 `_NMI_PARALLEL_MIN_WORK` 一个常量, 而 bootstrap 的单位工作量比 permutation
+    重得多)。这一行让口径可核: 生产 bootstrap 与 permutation 均为 48×1000=48,000
+    (S12 撤镜像后两侧格数一致), 都应显示 parallel; 单测 (≤900) 都应显示 serial。
     """
-    if min_work < _NMI_PARALLEL_MIN_WORK or len(tasks) < 2:
+    _serial_reason = None
+    if min_work < _NMI_PARALLEL_MIN_WORK:
+        _serial_reason = f'min_work {min_work:,d} < {_NMI_PARALLEL_MIN_WORK:,d}'
+    elif len(tasks) < 2:
+        _serial_reason = f'tasks {len(tasks)} < 2'
+    if _serial_reason is not None:
+        logger.info(f"  {label}: 串行臂 ({_serial_reason}), tasks={len(tasks):,d}")
         return [worker(t, *extra) for t in tasks]
     n = _nmi_workers(len(tasks)) if n_jobs is None else max(1, int(n_jobs))
     if n <= 1:
+        logger.info(f"  {label}: 串行臂 (并行度解析为 {n}), tasks={len(tasks):,d}")
         return [worker(t, *extra) for t in tasks]
+    logger.info(
+        f"  {label}: 并行臂 n_jobs={n}, tasks={len(tasks):,d}, "
+        f"min_work={min_work:,d} (闸值 {_NMI_PARALLEL_MIN_WORK:,d})")
     from joblib import Parallel, delayed
     try:
         return Parallel(n_jobs=n, prefer='processes')(
@@ -296,7 +381,12 @@ def compute_nmi_matrix(
     seed_sequence = np.random.SeedSequence(seed)
     boot_seeds = seed_sequence.spawn(bootstrap_n)
 
-    #: S11: 上三角 (j>i) 的 bootstrap 任务; 下三角靠镜像, 对角线不进池。
+    # S12 (2026-07-31): 标签 → int 码 (排序序), 逐位等价, 见 `_encode_codes`。
+    # listwise 口径整表编码一次; pairwise 口径在循环内逐对编码 (各对样本域不同)。
+    if clean_base is not None:
+        clean_base = _encode_codes(clean_base)
+
+    #: S12 起: **全部非对角格**的 bootstrap 任务 (不再只装上三角), 对角线不进池。
     _boot_tasks: list[tuple] = []
 
     for i, d1 in enumerate(dims):
@@ -305,7 +395,7 @@ def compute_nmi_matrix(
                 # d1==d2 时去重列名, 避免重名列
                 # (DataFrame[[d1,d1]] 会返回 DataFrame 切片而非 Series)。
                 cols = [d1] if d1 == d2 else [d1, d2]
-                clean = df[cols].dropna()
+                clean = _encode_codes(df[cols].dropna())
             else:
                 clean = clean_base
 
@@ -330,13 +420,26 @@ def compute_nmi_matrix(
                 ci_high.iloc[i, j] = 1.0
                 continue
 
-            # S11: 只算**上三角** (j > i), 下三角在循环后镜像回填。
-            # 依据: NMI 数学对称, 且真数据实测**逐位对称** (点估计 3/3 + bootstrap
-            # 重采样 3/3, struct.pack('<d') 比较) ⟹ 48 → 24 cell, 严格 2×, 零数值改动。
-            # ⚠ 上面所有守卫 (len<100 / F40 退化 / n_pair 填写 / 对角线) 仍对**全部**
-            #   (i,j) 逐格执行, 故 n_pair 矩阵与 F40 的 logger.error 条数与旧码完全一致。
-            if j < i:
-                continue
+            # ── S11 的下三角镜像已于 S12 (2026-07-31) **撤销**, 此处不再跳过 j<i ──
+            # S11 把 48 格砍到 24 格, 立论是「NMI 数学对称, 且真数据实测**逐位对称**
+            # (点估计 3/3 + bootstrap 重采样 3/3) ⟹ 严格 2×, 零数值改动」。
+            # 数学对称无疑; **逐位**对称被证伪 —— 交换两列会转置列联表 (sklearn 的
+            # `contingency_matrix` 按行主序装配), 求和序随之改变, 差一个 ulp 是正常的
+            # 浮点行为, 原依据只是 3 个样本的抽查, 抽中了对称的那些。
+            # 真数据复测 (`21_tone_llms.parquet` 六维 listwise N=156,102, 全 15 对
+            # × 40 次真实 bootstrap 重采样, `struct.pack('<d')` 比较):
+            #   · 点估计   0/15  非对称 (确实逐位对称)
+            #   · bootstrap 6/600 非对称, **全部集中在**
+            #     (innovation_collab_mode_full, innovation_collab_mode_ctx) 这一对,
+            #     该对 6/40 命中, max|Δ| = 1.11e-16 (≈1 ulp)。
+            # ⟹ S11 "零数值改动" 的依据不成立。⚠ 但也别说过头: 撤销前/后两版在同一
+            # 真数据上逐格对拆 (bootstrap_n=40), point/ci_low/ci_high/n_pair **0 格不同**
+            # —— 1 ulp 被分位数步骤吸收了。故本条是**前提证伪 + 稳健性加固**, 不是
+            # "修正已发布的错数"。撤销的理由是"分位数会吸收"不是受控保证 (生产
+            # bootstrap_n=1,000, 数据也不同), 而代价已被整数编码吸收: 端到端实测
+            # 685.2 s → 74.5 s = 9.2×。
+            # ⚠ 上面所有守卫 (len<100 / F40 退化 / n_pair 填写 / 对角线) 本就对**全部**
+            #   (i,j) 逐格执行, 故 n_pair 矩阵与 F40 的 logger.error 条数不受本改动影响。
 
             point.iloc[i, j] = nmi_score(
                 clean[d1], clean[d2], average_method='arithmetic'
@@ -352,7 +455,8 @@ def compute_nmi_matrix(
     #   回放 (内容与条数不变)。数值与写入位置均由 (i,j) 决定, 与执行顺序无关。
     for _i, _j, boot, n_degenerate in _run_cells(
             _boot_tasks, _boot_cell_worker, bootstrap_n, boot_seeds,
-            min_work=len(_boot_tasks) * bootstrap_n):
+            min_work=len(_boot_tasks) * bootstrap_n,
+            label=f'bootstrap-CI ({bootstrap_n:,d} 次/格, 全非对角格)'):
         _d1, _d2 = dims[_i], dims[_j]
         # 记录 degenerate 比例 (审稿人 sanity check); >5% 触发 warning
         if n_degenerate > 0:
@@ -369,11 +473,9 @@ def compute_nmi_matrix(
             ci_low.iloc[_i, _j] = float(np.percentile(valid_boot, 2.5))
             ci_high.iloc[_i, _j] = float(np.percentile(valid_boot, 97.5))
 
-    # ── 下三角镜像 (S11; 仅 point/ci, n_pair 与对角线上面已逐格写好) ──
-    for _i, _j, *_ in _boot_tasks:
-        point.iloc[_j, _i] = point.iloc[_i, _j]
-        ci_low.iloc[_j, _i] = ci_low.iloc[_i, _j]
-        ci_high.iloc[_j, _i] = ci_high.iloc[_i, _j]
+    # ── S11 的下三角镜像回填已随 S12 撤销 (理由见上方主循环内的长注释) ──
+    # 现在 point / ci_low / ci_high 的每一个非对角格都由它自己的 (i,j) 任务算出,
+    # 不存在"用 (i,j) 去盖 (j,i)"这回事。
 
     return point, ci_low, ci_high, n_pair
 
@@ -423,11 +525,20 @@ def compute_permutation_null(
     seed_sequence = np.random.SeedSequence(seed)
     perm_seeds = seed_sequence.spawn(n_permutations)
 
+    # S12 (2026-07-31): 同 `compute_nmi_matrix`, 标签整表换 int 码 (逐位等价, 见
+    # `_encode_codes`)。⚠ 顺序要紧: 编码必须在 `len(clean) < 100` 守卫**之后**、
+    # 建任务池**之前** —— 放守卫之前会让 `len()` 判据看一个新建对象, 徒增拷贝;
+    # 放任务池之后则 worker 拿到的仍是 object 列, 白改。
+    # ⚠ 置换是对 `clean[d2].values` 打乱, int 码与原标签**同下标序** ⟹
+    #   `rng.permutation` 产生的排列一致 (真数据实测 100/100 排列逐一相同)。
+    clean = _encode_codes(clean)
+
     # S11 (2026-07-29): 逐 cell 进程并行。
     # ⚠ **绝不镜像**: (i,j) 打乱第 j 列而 (j,i) 打乱第 i 列 —— 是两次**不同的随机化**,
     #   真数据实测 0/5 逐位相同 (值相差若干量级)。镜像它等于静默改数, 故这里
     #   **全部 48 个非对角格逐一计算**, 只把它们并行起来。
-    #   (bootstrap 那半边可以镜像, 因为 NMI 本身实测逐位对称 —— 两者边界不同, 勿混。)
+    #   (S11 时期 bootstrap 那半边曾镜像, 依据是 "NMI 实测逐位对称"; 该依据已被
+    #    S12 的真数据复测证伪 6/600, bootstrap 侧现在也逐格全算 —— 两侧口径已统一。)
     _perm_tasks: list[tuple] = []
     for i, d1 in enumerate(dims):
         for j, d2 in enumerate(dims):
@@ -439,7 +550,8 @@ def compute_permutation_null(
 
     for _i, _j, null in _run_cells(
             _perm_tasks, _perm_cell_worker, n_permutations, perm_seeds,
-            min_work=len(_perm_tasks) * n_permutations):
+            min_work=len(_perm_tasks) * n_permutations,
+            label=f'permutation-null ({n_permutations:,d} 次/格)'):
         null_p95.iloc[_i, _j] = float(np.percentile(null, 95))
         null_p99.iloc[_i, _j] = float(np.percentile(null, 99))
 

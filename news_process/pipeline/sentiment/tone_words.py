@@ -1404,7 +1404,19 @@ def _parallel_kwargs(num_batches: int) -> dict:
 
 
 def _silence_worker_logging() -> None:
-    """子进程内彻底静音 logging (防首条日志截断父进程 <stage>.log)。幂等。"""
+    """**仅在 loky/mp 子进程内**彻底静音 logging (防首条日志截断父进程 <stage>.log)。幂等。
+
+    F42 (2026-07-31): 同 `herd_decay._silence_worker_logging` 的进程身份闸, 此处更险 ——
+    本模块的小工况臂是 ``{'n_jobs': -1, 'prefer': 'threads'}`` (见 `_parallel_kwargs`),
+    joblib 线程后端**就在父进程里**跑 worker ⟹ 无条件版会在父进程执行
+    ``logging.disable(CRITICAL)`` + 摘掉 logger 的全部 handler, 且**永不恢复**,
+    从此整个阶段 22 日志全哑。触发条件 = 批数 < 8 (batch_size=5000 ⟹ < ~4 万篇),
+    即所有单测与 dev 小样。生产 (~164 万篇) 走进程臂, 故这条从未在生产暴露。
+    """
+    import multiprocessing as _mp
+
+    if _mp.parent_process() is None:
+        return  # 父进程 (含 prefer='threads' 线程臂): 绝不摘 handler, 绝不 disable
     for _h in list(logger.handlers):
         logger.removeHandler(_h)
     logging.disable(logging.CRITICAL)

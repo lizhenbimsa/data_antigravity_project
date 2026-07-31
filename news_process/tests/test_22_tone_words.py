@@ -195,21 +195,60 @@ def test_worker_helpers_are_module_level_picklable():
         assert pickle.loads(pickle.dumps(fn)) is fn
 
 
-def test_silence_worker_logging_removes_handlers():
-    """worker 必须彻底静音: setup_logging 的 delay+首开截断语义下, 子进程首条日志
-    会把父进程 <stage>.log 从头截断 (2026-07-24 'worker 横幅毁日志头' 实弹先例)。"""
+def _probe_silence_in_worker(_ignored):
+    """在 loky 子进程内跑 `_silence_worker_logging`, 回传静音是否真的生效。
+
+    模块级定义 (供 loky pickle-by-ref)。返回 (handler 数, disable 级别)。
+    """
+    import logging as _logging
+
+    from news_process.pipeline.sentiment import tone_words as _tw
+    _tw.logger.addHandler(_logging.NullHandler())
+    _tw._silence_worker_logging()
+    return len(_tw.logger.handlers), _logging.root.manager.disable
+
+
+def test_silence_worker_logging_is_noop_in_parent():
+    """F42: 在**父进程**里必须是彻底的 no-op。
+
+    `logging.disable(CRITICAL)` 与 `removeHandler` 都是进程级全局状态且不会自动恢复。
+    而本函数确实会在父进程被执行 —— `_parallel_kwargs` 的小工况臂是
+    ``prefer='threads'``, joblib 线程后端就在父进程里跑 worker。无条件静音会让
+    整个阶段 22 从那一行起日志全哑 (触发条件 = 批数 < 8, 即所有单测与 dev 小样)。
+    """
     import logging as _logging
     lg = tone.logger
     saved = list(lg.handlers)
     saved_disable = _logging.root.manager.disable
     try:
         lg.addHandler(_logging.NullHandler())
+        _n_before = len(lg.handlers)
         tone._silence_worker_logging()
-        assert lg.handlers == [], 'worker 静音后 logger 不得残留任何 handler'
-        assert _logging.root.manager.disable >= _logging.CRITICAL
+        assert len(lg.handlers) == _n_before, (
+            '父进程里 handler 被摘掉了 —— 线程臂会让整阶段日志全哑')
+        assert _logging.root.manager.disable == saved_disable, (
+            '父进程里 logging 被全局 disable —— 且永不恢复')
     finally:
         _logging.disable(saved_disable)
         lg.handlers = saved
+
+
+@pytest.mark.integration
+def test_silence_worker_logging_still_silences_in_real_loky_worker():
+    """F42 的另一半: 在真 loky 子进程里必须**照旧彻底静音**。
+
+    只验"父进程 no-op"是不够的 —— 那样一个空函数也能通过。这里真起一个 loky
+    子进程, 让它自报静音后的状态, 才能把"闸加对了"与"闸把功能废了"区分开。
+    """
+    import logging as _logging
+
+    from joblib import Parallel, delayed
+    # ⚠ n_jobs 必须 ≥2: joblib 对 n_jobs=1 短路成 SequentialBackend, 直接在父进程
+    # 里跑 —— 那样测到的是"父进程 no-op"分支, 与本用例意图正相反 (实弹踩过)。
+    (n_handlers, disable_level), = Parallel(n_jobs=2, prefer='processes')(
+        delayed(_probe_silence_in_worker)(i) for i in range(1))
+    assert n_handlers == 0, 'loky worker 内 handler 未摘干净 (会截断父进程 log 头)'
+    assert disable_level >= _logging.CRITICAL, 'loky worker 内未全局静音'
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -247,9 +286,23 @@ def test_herd_worker_is_module_level_picklable():
     assert pickle.loads(pickle.dumps(H._herd_bank_worker)) is H._herd_bank_worker
 
 
-def test_herd_worker_silences_logging():
-    """⚠ herd_decay 在**模块级**调 setup_logging → 子进程首条日志会截断父进程
-    24_herd_decay_processor.log (2026-07-24 实弹先例)。worker 必须先静音。"""
+def _probe_herd_silence_in_worker(_ignored):
+    """loky 子进程内的 herd_decay 静音探针 (模块级, pickle-by-ref)。"""
+    import logging as _logging
+
+    from news_process.pipeline.sentiment import herd_decay as _H
+    _H.logger.addHandler(_logging.NullHandler())
+    _H._silence_worker_logging()
+    return len(_H.logger.handlers), _logging.root.manager.disable
+
+
+def test_herd_silence_is_noop_in_parent():
+    """F42 (herd_decay 侧): 父进程 no-op。
+
+    此处的父进程路径是**串行回落臂** —— `_herd_bank_worker` 在可算银行 < 200 家时
+    由父进程直接调用 (`herd_decay.py` 的 else 分支是普通列表推导)。无条件静音会让
+    其后的「已回写 N/M」「三轨跟风检测完成」及三轨汇总一个字都不落盘。
+    """
     import logging as _logging
 
     from news_process.pipeline.sentiment import herd_decay as H
@@ -257,9 +310,25 @@ def test_herd_worker_silences_logging():
     saved, saved_disable = list(lg.handlers), _logging.root.manager.disable
     try:
         lg.addHandler(_logging.NullHandler())
+        _n_before = len(lg.handlers)
         H._silence_worker_logging()
-        assert lg.handlers == [], 'worker 静音后不得残留 handler'
-        assert _logging.root.manager.disable >= _logging.CRITICAL
+        assert len(lg.handlers) == _n_before, '父进程里 handler 被摘 (串行臂会失明)'
+        assert _logging.root.manager.disable == saved_disable, \
+            '父进程里 logging 被全局 disable'
     finally:
         _logging.disable(saved_disable)
         lg.handlers = saved
+
+
+@pytest.mark.integration
+def test_herd_worker_still_silences_in_real_loky_worker():
+    """⚠ herd_decay 在**模块级**调 setup_logging → 子进程首条日志会截断父进程
+    24_herd_decay_processor.log (2026-07-24 实弹先例)。真子进程内必须照旧静音。"""
+    import logging as _logging
+
+    from joblib import Parallel, delayed
+    # ⚠ n_jobs 必须 ≥2 (同上, n_jobs=1 会退化成父进程内执行)。
+    (n_handlers, disable_level), = Parallel(n_jobs=2, prefer='processes')(
+        delayed(_probe_herd_silence_in_worker)(i) for i in range(1))
+    assert n_handlers == 0, 'loky worker 内 handler 未摘干净'
+    assert disable_level >= _logging.CRITICAL, 'loky worker 内未全局静音'

@@ -225,6 +225,16 @@ class LLMCache:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         # WAL 模式: 支持并发读，写入不阻塞读取
         self._conn.execute("PRAGMA journal_mode=WAL")
+        # F43 (2026-07-31): 把写锁等待从驱动默认的 5 s 提到 30 s。
+        # ⚠ 措辞订正: 这**不是**"原本没有超时"—— Python `sqlite3.connect` 的 timeout
+        # 参数默认 5.0 s, 实测本连接 `PRAGMA busy_timeout` 初值就是 5000。故本条是
+        # **加固**而非缺陷修复。加它的理由是工况: 本库已达 147 GB / 359.6 万条
+        # (2026-07-28 实测), 且 stage 15/16/21/25/26/27 会多进程并发写同一库; WAL
+        # checkpoint 撞上大批量 `put_batch` 时, 单次写锁等待突破 5 s 是现实可能,
+        # 而后果是 `sqlite3.OperationalError: database is locked` 直接崩掉一个以
+        # 小时计的付费阶段。30 s 只改"等多久才放弃", 不改任何取值/写入语义 ⟹
+        # 对产物逐位无影响 (golden-safe by construction)。
+        self._conn.execute("PRAGMA busy_timeout=30000")
         # cache_key 为 TEXT PRIMARY KEY → SQLite 自动建唯一 B-tree 索引, 故
         # get() 的 ``WHERE cache_key = ?`` 是索引点查 (O(log n)), 不随库增大
         # 而变慢、永不全表扫描 (详见模块 docstring "查询复杂度与生命周期")。

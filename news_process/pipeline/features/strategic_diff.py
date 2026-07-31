@@ -753,7 +753,22 @@ def _build_embedding_sim_matrix(texts, spec=None):
     if emb is None:
         return None, None
 
-    sim = cosine_similarity(emb)
+    # F41 (2026-07-31): 钉 BLAS 线程 —— 与 F26 (LDA fit 现场) 同一手法, 补的是**另一个
+    # 口子**。`cosine_similarity(emb)` 对 dense float32 走 BLAS `gemm`, 其归约序随线程数
+    # 变 ⟹ 输出逐位随机器/并行度漂移。实测 (500×4096 float32): 1 线程 vs 8/16 线程
+    # `np.array_equal`=False, maxdiff **1.19e-7** (float32 嵌入, 比 LDA 的 1e-13 大 6 个
+    # 量级)。而 emb 正是 `_embed_texts_with_chunk_pooling` 的 float32 输出。
+    # **为何非补不可**: 本函数被 `policy_similarity._auth_year_worker` (S5 逐年 loky 并行)
+    # 调用, 而 joblib `LokyBackend._prepare_worker_env` 给 worker 的线程数是
+    # `os.environ.get(var, cpu_count() // n_jobs)` —— 父进程**未钉** BLAS 环境变量时,
+    # worker 得到 `32 // n_jobs`, 于是 `NEWS_PROCESS_AUTH_JOBS` 这个**纯运维旋钮**会
+    # 静默改变 `auth_sim_emb*` / `auth_sim_emb_lg*` 的产出值; 串行回落臂 (父进程 32 线程)
+    # 与并行臂也算不出同一个数。钉 1 后三者收敛到同一个 canonical 值。
+    # **golden-safe (已实证)**: 在 CLAUDE.md 既定重生协议 (MKL/OPENBLAS/NUMEXPR/OMP
+    # 四个环境变量全 =1) 下, 本 with 块是逐位 no-op (同探针 `np.array_equal`=True) ⟹
+    # 不可能移动 golden。受影响的是**未钉环境**下的旧跑, 方向同 F26: 向 canonical 靠拢。
+    with _threadpool_limits(limits=1):
+        sim = cosine_similarity(emb)
     np.fill_diagonal(sim, np.nan)
     # fix(omni-g-strategic-02, 2026-06-11): emb 余弦真值域 [-1,1] (非 [0,1]) —
     # 消费端 _compute_nn_scores 须传 sim_bounds=(-1,1), 勿按 [0,1] 删失
@@ -1185,14 +1200,23 @@ def _fluidity_year_worker(task, mode):
 
     t1_map = {b: i for i, b in enumerate(df_t1['target_bank'].values)}
     out = []
-    for i, bank in enumerate(df_t['target_bank'].values):
-        change = np.zeros(vt.shape[1])
-        for j, other in enumerate(df_t['target_bank'].values):
-            if other != bank and other in t1_map:
-                change += np.abs(vt[j] - vt1[t1_map[other]])
-        d = np.linalg.norm(vt[i]) * np.linalg.norm(change)
-        out.append(((bank, year),
-                    float(np.dot(vt[i], change) / d) if d > 0 else np.nan))
+    # F41 (2026-07-31): 钉 BLAS 线程 —— `vt` 是 `.toarray()` 后的 **dense** 矩阵,
+    # 故 `np.dot(vt[i], change)` 走 BLAS `ddot` (n = max_features ≤ 5000), 其归约序
+    # **随线程数变**。控制组实测 (n=5000): 同线程数重复两次逐位相同, 而 1/2/4/8/16/24
+    # 六档线程数只产出 **3 个不同值** (1 vs 16 差 4.26e-14)。本 worker 自 F25 起就在
+    # loky 里跑, 而 joblib 给 worker 的线程数是 `cpu_count() // n_jobs` ⟹ `strat_fluidity*`
+    # 的值此前一直**随并行度漂移**, 且与串行回落臂 (父进程满线程) 不同。钉 1 后收敛到
+    # 与 F26/F41 同一个 canonical 值。golden-safe 同 F41: 重生协议下四个 BLAS 环境变量
+    # 已 =1, 本 with 块为逐位 no-op。
+    with _threadpool_limits(limits=1):
+        for i, bank in enumerate(df_t['target_bank'].values):
+            change = np.zeros(vt.shape[1])
+            for j, other in enumerate(df_t['target_bank'].values):
+                if other != bank and other in t1_map:
+                    change += np.abs(vt[j] - vt1[t1_map[other]])
+            d = np.linalg.norm(vt[i]) * np.linalg.norm(change)
+            out.append(((bank, year),
+                        float(np.dot(vt[i], change) / d) if d > 0 else np.nan))
     return out, degraded
 
 
