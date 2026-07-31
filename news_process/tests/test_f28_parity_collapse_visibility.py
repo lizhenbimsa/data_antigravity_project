@@ -116,11 +116,15 @@ def test_coherence_collapse_emits_error_naming_the_lost_columns(
 
 
 # ── ② 源码级: 三个同型塌缩站点都不许再静默 ──
-# 注: 三处塌缩 (连贯性 1 处 + Full 轨 N-NN 1 处 + Ctx/Ss 轨 N-NN 1 处) 全部位于同一个
-#     巨函数 compute_strategic_differentiation 内 (L1523 起), 故只需扫它一个。
-
+# ⚠ 2026-08-01 订正: 原注释写「三处塌缩全部位于同一个巨函数 compute_strategic_differentiation
+#   内, 故只需扫它一个」—— 该前提已被 S13 (4d826679) 打破: N-NN 的两处 (Full 轨 +
+#   Ctx/Ss 轨) 被搬进模块级 worker `_strat_year_worker`, 于是本闸的覆盖面从 3 个分支
+#   **静默缩到 1 个**, 而测试照样全绿 (`assert flags and all(flags)` 在 [True] 上成立)。
+#   这正是本闸自己要防的那类"看不见的退化", 故把 worker 补进站点表, 并把判据放宽到
+#   认得 log_sink 回传写法 (worker 里不能直呼 logger, 只能 `logs.append((logging.ERROR, ...))`)。
 _COLLAPSE_SITES = [
-    ('all_three', 'compute_strategic_differentiation', 'coh_emb/strat_diff'),
+    ('coherence', 'compute_strategic_differentiation', 'coh_emb'),
+    ('nn_worker', '_strat_year_worker', 'strat_diff_*_emb'),
 ]
 
 
@@ -142,10 +146,19 @@ def _collapse_branches_with_logging(func) -> list[bool]:
             for n in node.body)
         if not assigns_none:
             continue
+        # 判据一: 直呼 `logger.error(...)` (父进程内的站点)
         has_error = any(
             isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
             and n.func.attr == 'error'
             for n in ast.walk(node))
+        # 判据二 (2026-08-01 新增): worker 里**不许**直呼 logger (会掐掉串行回落路径的
+        # 整个 stage 日志), 只能把 (level, msg) 回传父端。故 `logging.ERROR` 常量出现在
+        # 分支内同样算"出声"。缺这一条会让 worker 站点被判假红, 逼后人把它从站点表里删掉。
+        if not has_error:
+            has_error = any(
+                isinstance(n, ast.Attribute) and n.attr == 'ERROR'
+                and isinstance(n.value, ast.Name) and n.value.id == 'logging'
+                for n in ast.walk(node))
         out.append(has_error)
     return out
 

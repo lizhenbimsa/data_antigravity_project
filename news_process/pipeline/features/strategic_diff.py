@@ -763,7 +763,11 @@ def _build_embedding_sim_matrix(texts, spec=None):
     # `os.environ.get(var, cpu_count() // n_jobs)` —— 父进程**未钉** BLAS 环境变量时,
     # worker 得到 `32 // n_jobs`, 于是 `NEWS_PROCESS_AUTH_JOBS` 这个**纯运维旋钮**会
     # 静默改变 `auth_sim_emb*` / `auth_sim_emb_lg*` 的产出值; 串行回落臂 (父进程 32 线程)
-    # 与并行臂也算不出同一个数。钉 1 后三者收敛到同一个 canonical 值。
+    # 与并行臂也算不出同一个数。钉 1 后三者的**这一步**收敛到同一个 canonical 值。
+    # ⚠ 措辞订正 (2026-08-01 终审): 本条只钉住 cosine 这一步, **钉不住喂给它的 `emb`**
+    # —— 多块池化里的 `np.linalg.norm(pooled)` (dim=4096) 同样随线程数漂, 已由 F44
+    # 在 `embedding_engine` 现场补齐。两条合起来 `auth_sim_emb*`/`strat_diff_*_emb*`
+    # 才真正与并行度无关。
     # **golden-safe (已实证)**: 在 CLAUDE.md 既定重生协议 (MKL/OPENBLAS/NUMEXPR/OMP
     # 四个环境变量全 =1) 下, 本 with 块是逐位 no-op (同探针 `np.array_equal`=True) ⟹
     # 不可能移动 golden。受影响的是**未钉环境**下的旧跑, 方向同 F26: 向 canonical 靠拢。
@@ -1068,30 +1072,42 @@ def _proc_workers(n_tasks: int) -> int:
 # 里 strategic_diff 窗口的大头。
 #
 # 🔴 **并行它之前必须先解决一个别处没有的阻断项**: 本循环体内会调 `embed_texts`,
-# 而 `embedding_engine.EMB_API_CONCURRENCY` 默认 **250** (每次调用内部
-# `asyncio.Semaphore(min(250, n_batches))`)。若直接 fan-out 到 P 个 loky worker,
-# 对同一端点的并发上界就变成 **P × 250** —— 而 250 这个值本身就是 2026-07-24
-# stage 16 首播撞硅基流动 TPM 限流后**降下来**的结果, 再乘 12 必然重演 F28
-# (重试耗尽 → `strat_diff_n*_emb*` / `centroid_diff_emb*` 整族静默 NaN)。
+# 而 `embedding_engine.EMB_API_CONCURRENCY` 是**每次调用各开一个**
+# `asyncio.Semaphore(min(EMB_API_CONCURRENCY, n_batches))`。若直接 fan-out 到 P 个
+# loky worker, 对同一端点的并发上界就变成 **P × 该值**; 而 2026-07-24 stage 16 首播
+# 已实弹证明这个端点的 TPM 是硬约束 (并发打满 → 大面积 429 → 尾批 80×10s 重试耗尽
+# → 整轨 None→NaN, 即 F28)。
 #
-# **解法 (`_scale_worker_emb_concurrency`)**: fan-out 前把 `NEWS_PROCESS_EMB_CONCURRENCY`
-# 按 worker 数**等比缩小**写进环境, loky worker 重新 import 时读到的就是 `250 // P`,
-# 于是**总并发回到 250 —— 与今天的串行行为一致**。
-#   · 为什么有效: 该常量在模块 import 时求值, 而 loky worker 是新进程、必然重新 import;
-#     父进程自己的常量已在更早的 import 固化, 不受影响 (作用域天然只覆盖新 worker)。
-#   · 为什么不选"父进程串行预播种": 那要把嵌入读+解码做两遍 (实测占单任务 ~17%),
-#     且会改变阶段日志结构; 本方案零额外工作、日志结构不变。
-#   · 用户已显式设过该变量时**一律不覆盖** (运维意图优先)。
+# **解法 (`_worker_emb_concurrency`, 2026-08-01 重做)**: 把 per-worker 并发算成
+# **总预算 ÷ worker 数**, 作为**显式参数**随任务传进 worker, 由 worker 在自己的进程里
+# 直接改 `embedding_engine.EMB_API_CONCURRENCY` 模块属性。总并发因此恒等于总预算,
+# 与串行行为一致。
+#   ⚠ **初版用的是"写 os.environ 让新 worker import 时读到"**, 已被终审推翻, 三个理由:
+#     ① **把运维给的值当成了 per-worker 预算**: 初版在"用户已显式设过"时直接不缩放,
+#        于是运维设 6 反而变成 12×6=72 —— 恰好制造它声称要防的东西。运维给的是**总**
+#        预算, 尊重意图 = 保持总量不变, 而不是让它乘 P。
+#     ② **loky 会复用同 n_jobs 的常驻 worker**: 对已存在的 executor 改 os.environ 是
+#        彻底的 no-op。初版只是靠"本循环恰好是 stage 40 里第一个 n_jobs=12 的 fan-out"
+#        侥幸成立, 一旦有人在它之前插入任何进程并行, 保护静默失效而日志照打"≈240"。
+#     ③ **env 写入永不还原**, 会泄漏给同进程后续步骤 (runner.py:1837 本函数 → :1846
+#        `compute_authoritative_similarity`), 把 S5 的并发静默改掉且零披露。
+#     显式传参对这三条**天然免疫**: 不依赖进程创建时机、不依赖池是否复用、不留全局残留。
+#   ⚠ worker 内的赋值必须**只在子进程做**: 串行臂与 OOM 兜底都会让父进程直接调 worker,
+#     在那里改模块属性就会污染父进程 (与 F42 同一类陷阱), 故用 `mp.parent_process()` 判定。
 #
 # **确定性**: 并发只影响墙钟不影响产出字节 (embedding_engine 按 batch_idx 重组, 见其
-# 模块注释); 循环体内的 dense-BLAS 现场已由 F26 (LDA fit) 与 F41 (emb cosine) 钉死;
-# `_compute_centroid_scores` 的三处归约 (`sum(axis=0)` / `einsum('ij,ij->i')` /
-# `norm(axis=1)`) 实测**线程无关** (1/2/8/16/24 五档 × emb/tfidf/theta 三形态全同,
-# 含同线程数重复两次的控制组) ⟹ 不需要额外钉。
-_STRAT_PARALLEL_MIN_YEARS = 12   #: 3 轨 × N 年扁平池; T=2 dev (6) 与单测一律留串行
+# 模块注释); 循环体内的 dense-BLAS 现场已由 F26 (LDA fit)、F41 (emb cosine) 与
+# F44 (多块池化的 norm) 钉死; `_compute_centroid_scores` 的三处归约 (`sum(axis=0)` /
+# `einsum('ij,ij->i')` / `norm(axis=1)`) 实测**线程无关** (1/2/8/16/24 五档 ×
+# emb/tfidf/theta 三形态全同, 含同线程数重复两次的控制组) ⟹ 不需要额外钉。
+#: ⚠ 三条轨是**三次独立提交**, 每次任务数 = 该轨的年数 N (不是 3N)。T=2 dev 每轨仅
+#: 2 个任务 ⟹ 恒串行; 生产 T=19 每轨 19 个任务 ⟹ 并行。(初版注释写成"3 轨 × N 年
+#: 扁平池 / T=2 dev (6)", 与实现不符, 2026-08-01 订正。)
+_STRAT_PARALLEL_MIN_YEARS = 12
 _STRAT_JOBS_ENV = 'NEWS_PROCESS_STRAT_JOBS'      #: 运维旁路 (同 S5 的 AUTH_JOBS)
 _EMB_CONCURRENCY_ENV = 'NEWS_PROCESS_EMB_CONCURRENCY'
-_EMB_CONCURRENCY_BASELINE = 250  #: 与 embedding_engine 默认值一致 (总并发预算)
+#: 端点**总**并发预算 (与 embedding_engine 默认值一致); 运维经 env 覆盖的也是总预算。
+_EMB_CONCURRENCY_BASELINE = 250
 
 
 def _strat_jobs_override():
@@ -1110,34 +1126,27 @@ def _strat_jobs_override():
     return v
 
 
-#: 本进程是否已由 `_scale_worker_emb_concurrency` 写过并发环境变量。
-#: ⚠ 需要这个标记而不能只看"变量是否已设": 三条轨会各调一次, 第 2/3 次看到的是
-#: **我们自己**上一次写的值, 若照"已设 ⟹ 运维意图优先"分支去报, 日志就是假的。
-_EMB_CONCURRENCY_SCALED_BY_US = False
+def _emb_total_budget() -> int:
+    """端点**总**并发预算: 运维经 env 给的值优先, 否则用基线 250。
 
-
-def _scale_worker_emb_concurrency(n_jobs: int) -> None:
-    """把嵌入 API 并发按 worker 数等比缩小写进环境, 使**总**并发回到基线 250。
-
-    只对**之后新建的** loky worker 生效 (它们重新 import `embedding_engine`);
-    父进程自身的常量早已固化, 不受影响。用户显式设过该变量时不覆盖。
+    ⚠ env 给的是**总**预算不是 per-worker 预算 —— 这正是初版搞反的地方 (见上方长注释 ①)。
     """
-    global _EMB_CONCURRENCY_SCALED_BY_US
-    _cur = os.environ.get(_EMB_CONCURRENCY_ENV, '').strip()
-    if _cur and not _EMB_CONCURRENCY_SCALED_BY_US:
-        logger.info(
-            f"  嵌入 API 并发: 沿用已设的 {_EMB_CONCURRENCY_ENV}={_cur} "
-            f"(运维意图优先, 不按 worker 数缩放)")
-        return
-    per_worker = max(1, _EMB_CONCURRENCY_BASELINE // max(1, n_jobs))
-    if _cur == str(per_worker):
-        return                      # 同轨同并行度重复调用: 静默幂等, 不刷重复日志
-    os.environ[_EMB_CONCURRENCY_ENV] = str(per_worker)
-    _EMB_CONCURRENCY_SCALED_BY_US = True
-    logger.info(
-        f"  嵌入 API 并发: 每 worker {per_worker} × {n_jobs} worker "
-        f"≈ {per_worker * n_jobs} (基线 {_EMB_CONCURRENCY_BASELINE}) —— "
-        f"防 P×250 打爆 TPM 重演 F28")
+    raw = os.environ.get(_EMB_CONCURRENCY_ENV, '').strip()
+    if raw:
+        try:
+            v = int(raw)
+            if v >= 1:
+                return v
+        except ValueError:
+            logger.warning(
+                f"  {_EMB_CONCURRENCY_ENV}='{raw}' 非整数, 按基线 "
+                f"{_EMB_CONCURRENCY_BASELINE} 处理")
+    return _EMB_CONCURRENCY_BASELINE
+
+
+def _worker_emb_concurrency(n_jobs: int) -> int:
+    """并行臂下每个 worker 该用的嵌入 API 并发 = 总预算 ÷ worker 数 (至少 1)。"""
+    return max(1, _emb_total_budget() // max(1, n_jobs))
 
 
 # ⚠ 刻意**没有** `_silence_worker_logging()`: 下方三个 worker 会被**父进程直接调用**
@@ -1149,13 +1158,19 @@ def _scale_worker_emb_concurrency(n_jobs: int) -> None:
 
 
 def _strat_year_worker(task, n_list_cw, n_list_other, few_banks_warn,
-                       lda_fail_tmpl, bon_tail_tmpl):
+                       lda_fail_tmpl, bon_tail_tmpl, emb_concurrency=None):
     """单 (轨, 年) 的五方法计算 —— 原逐年循环体的**计算段**逐字节照搬。
 
-    ⚠ 与串行循环唯一的差别: 所有 ``logger.*`` 改为写进本地 ``logs`` 回传, 由父端按
-    提交序统一 emit (与 S5 `_auth_year_worker` 同一护栏)。两个早退守卫 (<3 家银行 /
+    ⚠ 与串行循环唯一的差别: 本函数体内所有 ``logger.*`` 改为写进本地 ``logs`` 回传,
+    由父端按提交序 emit (与 S5 `_auth_year_worker` 同一护栏)。两个早退守卫 (<3 家银行 /
     both-or-neither 塌缩) **刻意留在 worker 内**, 提到父端会让守卫告警与计算类日志的
     交错顺序偏离串行。
+    ⚠ **"零 logger" 只覆盖本函数体, 不覆盖被调函数** (2026-08-01 终审订正措辞): 传递
+    调用链上仍有三处直呼 `logger` —— `_build_tfidf_sim_matrix`(词表清空降级)、
+    `_build_lda_jsd_matrix`(同) 与 `_embed_texts_with_chunk_pooling`(`_lg` twin 致命降级),
+    并行臂下它们不进阶段日志文件 (F27: 子进程不装 file handler)。这是 S5 时代就存在的
+    同款缺口 (`_auth_year_worker` 可达完全相同的三处, 基线逐字节相同), **非本次引入**,
+    故不在本批扩大改动面; 但 docstring 不得再声称"所有 logger 都已回传"。
 
     ⚠ **行装配刻意不在这里**: 列名 (`strat_diff_n{N}{sfx}` 等几十个) 全部留在父端
     原地不动 —— 移动几十个 f-string 列名是本改动风险最高、收益最低的部分, 而它们
@@ -1169,12 +1184,21 @@ def _strat_year_worker(task, n_list_cw, n_list_other, few_banks_warn,
         few_banks_warn: <3 家银行时是否发告警 (Full 轨 True; 子轨原为裸 continue)。
         lda_fail_tmpl:  LDA 失败告警模板 (含 ``{year}`` / ``{exc}`` 占位)。
         bon_tail_tmpl:  both-or-neither 告警的列名尾串模板 (含 ``{n}``)。
+        emb_concurrency: 本 worker 该用的嵌入 API 并发 (= 总预算 ÷ worker 数);
+            ``None`` = 不动 (串行臂)。⚠ **只在子进程内生效**: 串行臂与 OOM 兜底会让
+            父进程直接调本函数, 在那里改模块属性会污染父进程 (同 F42 的陷阱)。
 
     Returns:
         ``(payload | None, logs)`` — payload 为各方法结果字典; None 表示该年跳过。
     """
     track_label, track_suffix, year, banks, texts = task
     logs: list[tuple[int, str]] = []
+
+    # S13: 端点总并发 = per-worker × worker 数。只在**子进程**里改, 见 Args::emb_concurrency。
+    if emb_concurrency is not None:
+        import multiprocessing as _mp
+        if _mp.parent_process() is not None:
+            _eng.EMB_API_CONCURRENCY = int(emb_concurrency)
 
     if len(banks) < 3:
         if few_banks_warn:
@@ -1241,19 +1265,46 @@ def _strat_year_worker(task, n_list_cw, n_list_other, few_banks_warn,
 
 
 def _run_strat_year_tasks(tasks, n_list_cw, n_list_other, few_banks_warn,
-                          lda_fail_tmpl, bon_tail_tmpl):
-    """S13 驱动器: 决定并行度 → 缩放嵌入 API 并发 → 复用 `_run_year_tasks` 执行。
+                          lda_fail_tmpl, bon_tail_tmpl, on_result=None):
+    """S13 驱动器: 决定并行度 → 定 per-worker 嵌入并发 → 复用 `_run_year_tasks` 执行。
+
+    ⚠ **必须走流式 (`on_result`)** —— 2026-08-01 终审订正。初版没传它, 于是一整轨的
+    逐年日志 (「年度=YYYY, 银行数=N」/「LDA K=…」/ **both-or-neither 塌缩 ERROR**)
+    全被缓冲到该轨算完才一次性 emit。实测对照 (同 worker/同 n_jobs=4/12 任务, 唯一变量
+    是 on_result): 非流式首条日志出现在总时长的 **100%** 处, 流式在 **33%** 处。
+    后果不是行序变化 (三臂行序完全相同), 而是**时机**: 生产 T=19 一轨可跑很久, 期间
+    阶段日志对本循环零进度; 一旦像 2026-07-27 那样被超时闸 SIGKILL, 该轨已算出的
+    F28 塌缩 ERROR —— 那是这个站点**唯一**的现场信号 —— 一条都不会落盘。
+    同模块 `_run_year_tasks` 的 docstring 与 `policy_similarity._emit` 都早写明
+    "流式是硬需求不是优化", S13 初版恰恰在最大的那条循环上退回了老路径。
 
     并行度 = `NEWS_PROCESS_STRAT_JOBS` 覆盖值, 否则 `_proc_workers(len(tasks))`。
-    走串行臂时**不动**嵌入并发环境变量 (串行本就只有一个 250 的预算)。
+    串行臂传 ``emb_concurrency=None`` (串行本就只占一份总预算, 无需也不该改)。
+
+    Args:
+        on_result: 透传给 `_run_year_tasks` 的**流式**回调; 给出时每个 (轨,年) 一算完
+            就立刻回调 (仍按提交序)。⚠ 这个参数不是可选的优化 —— 见下方长注释。
     """
     _n = _strat_jobs_override()
     _eff = _n if _n is not None else _proc_workers(len(tasks))
+    _budget = _emb_total_budget()
+    # ⚠ 预算比 worker 数还小时**压并行度**, 而不是让每个 worker 至少拿 1 个把总量顶上去。
+    #   `max(1, budget // n_jobs)` 的下界 1 会使总在飞 = n_jobs > budget —— 运维把预算
+    #   调到 6 正是因为端点吃不住更多, 这时候开 12 个 worker 各 1 个仍是 12。
+    #   压并行度才是真正尊重"总预算"这个语义 (代价只是墙钟, 不改任何产出)。
+    if _budget < _eff:
+        logger.info(
+            f"  嵌入 API 总预算 {_budget} < 并行度 {_eff} ⟹ 并行度压到 {_budget} "
+            f"(预算是端点硬约束, 宁可慢也不超发)")
+        _eff = max(1, _budget)
+    _emb_k = None
     if len(tasks) >= _STRAT_PARALLEL_MIN_YEARS and _eff > 1:
-        _scale_worker_emb_concurrency(_eff)
+        _emb_k = _worker_emb_concurrency(_eff)
         logger.info(
             f"  逐年并行: {len(tasks)} 个 (轨,年) 任务 → n_jobs={_eff} "
-            f"(阈值 {_STRAT_PARALLEL_MIN_YEARS}; 旁路 {_STRAT_JOBS_ENV})")
+            f"(阈值 {_STRAT_PARALLEL_MIN_YEARS}; 旁路 {_STRAT_JOBS_ENV}); "
+            f"嵌入 API 并发 每 worker {_emb_k} × {_eff} = {_emb_k * _eff} "
+            f"(总预算 {_budget}) —— 显式传参, 不走 env")
     else:
         logger.info(
             f"  逐年串行: {len(tasks)} 个 (轨,年) 任务 "
@@ -1261,7 +1312,30 @@ def _run_strat_year_tasks(tasks, n_list_cw, n_list_other, few_banks_warn,
     return _run_year_tasks(
         tasks, _strat_year_worker,
         n_list_cw, n_list_other, few_banks_warn, lda_fail_tmpl, bon_tail_tmpl,
-        min_tasks=_STRAT_PARALLEL_MIN_YEARS, n_jobs=_n)
+        _emb_k,
+        min_tasks=_STRAT_PARALLEL_MIN_YEARS, n_jobs=_eff, on_result=on_result)
+
+
+def _emit_strat_logs(out):
+    """S13 流式回调: 一个 (轨,年) 一算完, 立刻把它的日志按**原调用面** emit。
+
+    ⚠ 必须按级别分派回 ``logger.warning`` / ``logger.info`` / ``logger.error``,
+    **不能**图省事统一走 ``logger.log(lvl, msg)``。二者输出的日志行完全相同, 但调用面
+    不同: `logger.log()` 走 `Logger._log()`, **绕过** `Logger.warning`, 于是任何
+    `monkeypatch.setattr(logger, 'warning', ...)` 的 Mock 断言都抓不到 (本次实测确认)。
+    本仓 2026-07-28 已在 `policy_similarity._emit` 上踩过这个坑并立了闸
+    (`test_parent_replays_on_original_logger_methods`), 其注释还特别记着:
+    **这个差异 A/B 的"日志逐行比对"抓不到** —— Handler 分辨不出 `warning(m)` 与
+    `log(WARNING, m)`, 是既有单测补上了 A/B 的盲区。S13 初版又踩了一次, 2026-08-01 订正。
+    """
+    _payload, _logs = out
+    for _lvl, _msg in _logs:
+        if _lvl >= logging.ERROR:
+            logger.error(_msg)
+        elif _lvl >= logging.WARNING:
+            logger.warning(_msg)
+        else:
+            logger.info(_msg)
 
 
 def _strat_year_tasks(agg, track_label, track_suffix):
@@ -2031,10 +2105,10 @@ def compute_strategic_differentiation(df_exploded, panel):
     for (_payload, _logs), _task in zip(
             _run_strat_year_tasks(
                 _tasks_full, N_LIST, LDA_EMB_N_LIST, True,
-                "    LDA+JSD 失败 ({exc}), 跳过", _bon_tail_full),
+                "    LDA+JSD 失败 ({exc}), 跳过", _bon_tail_full,
+                on_result=_emit_strat_logs),
             _tasks_full):
-        for _lvl, _msg in _logs:
-            logger.log(_lvl, _msg)
+        # 日志已由 `_emit_strat_logs` 在该年算完的当场 emit (流式), 此处只装配行。
         if _payload is None:
             continue
         banks = _task[3]
@@ -2276,10 +2350,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 _run_strat_year_tasks(
                     _tasks_sub, LDA_EMB_N_LIST, LDA_EMB_N_LIST, False,
                     "    " + _tsfx + " 轨 year={year} LDA+JSD 失败 ({exc}), 跳过",
-                    _bon_tail_sub),
+                    _bon_tail_sub, on_result=_emit_strat_logs),
                 _tasks_sub):
-            for _lvl, _msg in _logs:
-                logger.log(_lvl, _msg)
+            # 日志已由 `_emit_strat_logs` 流式 emit; 此处只装配行。
             if _payload is None:
                 continue
             banks = _task[3]

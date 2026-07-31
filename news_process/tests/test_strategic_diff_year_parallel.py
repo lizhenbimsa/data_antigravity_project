@@ -267,24 +267,137 @@ def test_streaming_oom_fallback_reruns_only_remaining():
 #   ④ 任务切分与串行循环同序同筛选, 且 <3 家银行的年份**照样进池** (由 worker 内
 #      守卫早退) —— 在切分处提前筛掉会让告警时序偏离串行。
 
-def test_s13_emb_concurrency_scaled_by_worker_count(monkeypatch):
-    """① 总并发 = 每 worker 并发 × worker 数 ≈ 基线, 不得是 P × 250。"""
-    monkeypatch.delenv(sd._EMB_CONCURRENCY_ENV, raising=False)
-    monkeypatch.setattr(sd, '_EMB_CONCURRENCY_SCALED_BY_US', False)
-    sd._scale_worker_emb_concurrency(12)
-    per = int(os.environ[sd._EMB_CONCURRENCY_ENV])
-    assert per * 12 <= sd._EMB_CONCURRENCY_BASELINE * 1.05, (
-        f'每 worker {per} × 12 = {per * 12} 远超基线 '
-        f'{sd._EMB_CONCURRENCY_BASELINE} —— 会重演 F28 的 TPM 重试耗尽')
-    assert per >= 1
+@pytest.mark.parametrize('n_jobs', [2, 8, 12])
+def test_s13_total_emb_concurrency_never_exceeds_budget(monkeypatch, n_jobs):
+    """① 端点**总**并发 = per-worker × worker 数 ≤ 预算, 绝不能是 P × 预算。
+
+    ⚠ 2026-08-01 重写: 初版用「写 os.environ 让新 worker import 时读到」并且在
+    "运维已显式设过"时**不缩放** —— 那把运维给的**总**预算当成了 per-worker 预算,
+    运维设 6 反而变成 12×6=72, 恰好制造它声称要防的 F28。现改为显式传参 +
+    总预算语义, 两条分支 (未设 / 已设) 都必须满足总量上界。
+    """
+    for raw in (None, '6', '250'):
+        if raw is None:
+            monkeypatch.delenv(sd._EMB_CONCURRENCY_ENV, raising=False)
+            budget = sd._EMB_CONCURRENCY_BASELINE
+        else:
+            monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, raw)
+            budget = int(raw)
+        per = sd._worker_emb_concurrency(n_jobs)
+        assert per >= 1
+        # ⚠ 口径: "总量 ≤ 预算" 是**驱动器**的不变量 (它会在预算 < 并行度时压 n_jobs),
+        #   不是本函数单独能保证的 —— 本函数只负责 "预算够用时按 worker 数均分"。
+        #   驱动器侧的封顶由 `test_s13_parallelism_capped_by_emb_budget` 锁。
+        if n_jobs <= budget:
+            assert per * n_jobs <= budget, (
+                f'env={raw} n_jobs={n_jobs}: 总并发 {per}×{n_jobs}={per * n_jobs} '
+                f'超出预算 {budget} —— 这正是 F28 的成因')
+            assert per == budget // n_jobs, '预算够用时应按 worker 数均分'
+        else:
+            assert per == 1, '预算不足时每 worker 保底 1 (总量由驱动器压 n_jobs 兜住)'
 
 
-def test_s13_emb_concurrency_respects_operator_override(monkeypatch):
-    """① 之二: 用户显式设过该变量时**不得**覆盖 (运维意图优先)。"""
-    monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, '7')
-    monkeypatch.setattr(sd, '_EMB_CONCURRENCY_SCALED_BY_US', False)
-    sd._scale_worker_emb_concurrency(12)
-    assert os.environ[sd._EMB_CONCURRENCY_ENV] == '7', '覆盖了运维显式设置'
+def test_s13_operator_env_is_treated_as_total_budget(monkeypatch):
+    """① 之二: 运维经 env 给的是**总**预算, 不是 per-worker 预算。"""
+    monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, '6')
+    assert sd._emb_total_budget() == 6
+    assert sd._worker_emb_concurrency(12) == 1, (
+        '运维设 6 + 12 worker 应得 per-worker=1 (总 12→被 max(1,·) 抬到 12), '
+        '绝不能让每个 worker 各开 6 (总 72)')
+    monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, 'oops')
+    assert sd._emb_total_budget() == sd._EMB_CONCURRENCY_BASELINE, '非整数应回落基线'
+
+
+def test_s13_no_env_mutation_anywhere(monkeypatch):
+    """① 之三: 整条路径**不得**再写 os.environ (初版靠它传参, 三重脆弱)。
+
+    ⓐ 把运维值当 per-worker; ⓑ loky 复用常驻 worker 时对已存在的 executor 是 no-op;
+    ⓒ 永不还原, 泄漏给同进程后续步骤 (runner:1846 的 compute_authoritative_similarity)。
+    """
+    src = inspect.getsource(sd)
+    assert 'os.environ[sd._EMB_CONCURRENCY_ENV]' not in src
+    assert f"os.environ[_EMB_CONCURRENCY_ENV]" not in src, (
+        '又出现了对嵌入并发 env 的写入 —— 显式传参才是本项的正解')
+    before = os.environ.get(sd._EMB_CONCURRENCY_ENV)
+    sd._worker_emb_concurrency(12)
+    sd._emb_total_budget()
+    assert os.environ.get(sd._EMB_CONCURRENCY_ENV) == before, '函数改了进程环境'
+
+
+def test_s13_worker_only_sets_concurrency_in_child_process():
+    """① 之四: worker 内改 `EMB_API_CONCURRENCY` 必须**只在子进程**做。
+
+    串行臂与 OOM 兜底会让父进程直接调 worker; 在那里改模块属性就污染了父进程
+    (与 F42 的 `logging.disable` 同一类陷阱)。
+    """
+    from news_process.pipeline.text import embedding_engine as _e
+    before = _e.EMB_API_CONCURRENCY
+    task = ('Full', '', 2010, ['a', 'b'], ['x', 'y'])   # <3 家银行 → 立即早退
+    sd._strat_year_worker(task, [5], [5], True, 'x{year}{exc}', '{n}',
+                          emb_concurrency=3)
+    assert before == _e.EMB_API_CONCURRENCY, (
+        'worker 在父进程里改了 EMB_API_CONCURRENCY —— 串行臂/OOM 兜底会污染父进程')
+    src = inspect.getsource(sd._strat_year_worker)
+    assert 'parent_process()' in src, 'worker 缺进程身份闸'
+
+
+def test_s13_driver_uses_streaming_callback():
+    """② 驱动器必须走**流式**回放, 否则整轨日志缓冲到轨末。
+
+    实测对照 (同 worker/同 n_jobs, 唯一变量是 on_result): 非流式首条日志出现在总时长
+    的 100% 处, 流式在 33% 处。后果不是行序变化而是**时机**: 被超时闸 SIGKILL 时,
+    该轨已算出的 F28 塌缩 ERROR (该站点唯一现场信号) 一条都不会落盘。
+    """
+    src = inspect.getsource(sd._run_strat_year_tasks)
+    assert 'on_result=on_result' in src, (
+        '_run_strat_year_tasks 没把 on_result 透传给 _run_year_tasks —— '
+        '退回缓冲路径, 见同模块 _run_year_tasks docstring 的实弹记载')
+    body = inspect.getsource(sd.compute_strategic_differentiation)
+    assert body.count('on_result=_emit_strat_logs') == 2, (
+        '两处调用点 (Full 轨 + ctx/ss 子轨) 都必须传流式回调')
+
+
+def test_s13_replay_dispatches_to_original_logger_methods():
+    """② 之二: 回放必须按级别分派回 warning/info/error, 不得统一 logger.log()。
+
+    2026-07-28 在 policy_similarity 上已实弹一次: 统一走 `logger.log(lvl, msg)` 输出的
+    日志行完全相同, 但 Mock 断言 `logger.warning` 的守卫测试当场变红 ——
+    而**日志逐行 A/B 抓不到这个** (Handler 分辨不出两者)。S13 初版又踩了一次。
+    """
+    src = inspect.getsource(sd._emit_strat_logs)
+    assert 'logger.warning(_msg)' in src and 'logger.info(_msg)' in src         and 'logger.error(_msg)' in src, '回放未按级别分派回原调用面'
+    # ⚠ 判据必须是 **AST 而非文本**: docstring 里为了讲清这条禁令, 必然要写到
+    #   `logger.log(`, 于是任何 `in src` 式断言都会被自己的解释文本命中而假红
+    #   (本次实弹踩到两次: 先是裸 `in src`, 再是按行首字符过滤 docstring 也没滤干净)。
+    #   AST 只看真实调用节点, 与注释/文档字符串无关。
+    node = ast.parse(src.lstrip()).body[0]
+    bad = [n_.func.attr for n_ in ast.walk(node)
+           if isinstance(n_, ast.Call) and isinstance(n_.func, ast.Attribute)
+           and isinstance(n_.func.value, ast.Name) and n_.func.value.id == 'logger'
+           and n_.func.attr == 'log']
+    assert not bad, (
+        '回放退回了统一 logger.log() —— 会绕过 Logger.warning, 让 Mock 断言失效')
+
+
+def test_s13_parallelism_capped_by_emb_budget(monkeypatch, caplog):
+    """① 之五: 嵌入总预算 < 并行度时, 必须**压并行度**而不是超发。
+
+    `max(1, budget // n_jobs)` 的下界 1 会让总在飞 = n_jobs; 运维把预算调到 6 正是
+    因为端点吃不住更多, 这时开 12 个 worker 各 1 个仍是 12 —— 仍然超发 2×。
+    """
+    monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, '4')
+    seen = {}
+
+    def _fake_run(tasks, worker, *extra, min_tasks=None, n_jobs=None, on_result=None):
+        seen['n_jobs'] = n_jobs
+        seen['emb_k'] = extra[-1]
+        return []
+
+    monkeypatch.setattr(sd, '_run_year_tasks', _fake_run)
+    sd._run_strat_year_tasks(list(range(19)), [5], [5], True, 'x{year}{exc}', '{n}')
+    assert seen['n_jobs'] <= 4, (
+        f"总预算 4 但并行度 {seen['n_jobs']} —— 未按预算封顶, 端点会被超发")
+    assert seen['emb_k'] * seen['n_jobs'] <= 4, '总在飞超预算'
 
 
 def test_s13_threshold_keeps_toy_and_t2_serial():

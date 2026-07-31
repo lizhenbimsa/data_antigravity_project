@@ -234,6 +234,12 @@ class LLMCache:
         # 而后果是 `sqlite3.OperationalError: database is locked` 直接崩掉一个以
         # 小时计的付费阶段。30 s 只改"等多久才放弃", 不改任何取值/写入语义 ⟹
         # 对产物逐位无影响 (golden-safe by construction)。
+        # ⚠ **覆盖范围别放大** (2026-08-01 终审补): 本条只覆盖**纯写等锁**。仓内
+        # 2026-07-25 审计 (NINE_ENTRYPOINT_…_2026-07-25 §F6) 已**实测**另一条主因不吃
+        # busy_timeout: `get()` 用 `fetchone()` 取单行、语句未走完 ⟹ 该连接残留未耗尽的
+        # 读事务, 其后 `put_batch` 的 INSERT 构成"读事务升级为写", SQLite 为避免死锁
+        # **刻意不调 busy handler**, 直接返回 SQLITE_BUSY —— 那条路径**调到 600 s 也照样
+        # 秒级 `database is locked`**。故不要因为有了这 30 s 就放心扩大并发写者数量。
         self._conn.execute("PRAGMA busy_timeout=30000")
         # cache_key 为 TEXT PRIMARY KEY → SQLite 自动建唯一 B-tree 索引, 故
         # get() 的 ``WHERE cache_key = ?`` 是索引点查 (O(log n)), 不随库增大

@@ -986,7 +986,7 @@ v2 处方不可执行 · v3 收益乐观 2.4× · v4/v5 状态判定三次误判
 
 | # | 计划原文 | 实测 | 处置 |
 |---|---------|------|------|
-| ⑴ | **P0-9 补丁打在 `policy_similarity._auth_year_worker` 内** | 打在 worker 内只能让**并行臂**收敛; 串行回落臂在父进程仍用满线程 ⟹ 两臂**算不出同一个数**。真正的 dense-BLAS 现场是**串并共用**的 `strategic_diff._build_embedding_sim_matrix::cosine_similarity(emb)` | **改补丁位置**到共用计算现场 (与 F26 钉 LDA fit 现场同一手法) |
+| ⑴ | **P0-9 补丁打在 `policy_similarity._auth_year_worker` 内** | 真正的 dense-BLAS 现场是**串并共用**的 `strategic_diff._build_embedding_sim_matrix::cosine_similarity(emb)`, 打在那里可一次覆盖两个消费者 (S5 与后来的 S13) | **改补丁位置**到共用计算现场 (与 F26 钉 LDA fit 现场同一手法)。⚠ **我给的理由是错的**, 见 §21.11-A |
 | ⑵ | P0-8 "缓存库无 busy_timeout ⟹ 并发写立即 SQLITE_BUSY" | Python `sqlite3.connect` 的 `timeout` 默认 5.0 s, 实测本连接 `PRAGMA busy_timeout` **初值就是 5000** | **前提订正**: 由"缺陷修复"降级为"加固"(5 s→30 s), commit message 与注释同步改写 |
 | ⑶ | (计划未收录) | `_fluidity_year_worker` 的 `np.dot(vt[i], change)` 作用在 `.toarray()` 后的 **dense** 矩阵上 (n≤5000), 走 BLAS `ddot`, **随线程数改值**; 而该 worker 自 F25 起就在 loky 里跑 ⟹ `strat_fluidity*` 一直随并行度漂移 | **新增修复 F41b**, 与 ⑴ 同批 |
 | ⑷ | S11 "bootstrap 重采样 3/3 逐位对称 ⟹ 镜像零数值改动" | 把抽查扩到全 15 对 × 40 次真实重采样: **6/600 非逐位对称**, 全部集中在 `collab_mode_full × collab_mode_ctx`, max\|Δ\|=1.11e-16 | **撤销 bootstrap 侧镜像**, 逐格全算; 2× 代价由整数编码吸收 (端到端实测净快 9.2×)。⚠ 定性见 §21.6 |
@@ -1131,13 +1131,88 @@ worker)。零额外工作、日志结构不变、用户显式设过该变量时�
 本项目里"源码文本断言"用得很多 (F26/F28/S11/S13 的防回退锚都是这一类), 所以这个坑
 在本仓比一般项目更容易踩。规矩: 全量 sweep 期间**冻结工作区**, 或改用爆炸半径定向跑。
 
-复验后的最终归属 (逐条查过, 无一涉及我改的 6 个文件):
+复验后的最终归属。⚠ **本表 2026-08-01 重算过一次** —— 初版按文件名分桶只覆盖了 38 条
+里的 32 条, 且 commit message 里的三桶计数 6+7+14=27 也对不上 38 (把 `test_stata_labels_zh`
+的 3 项当 1 项算了)。一张归属表**不闭合**, 恰恰是这条 commit 的唯一交付物, 故重算:
 
-| 类别 | 用例 | 归属 |
-|------|------|------|
-| 我的编辑污染 | `test_f28_parity_collapse_visibility` · `test_omni_fix_strategic` (共 6 项) | **复验全绿**, 非真红 |
-| 并发会话在途 | `test_company_{bank,tax_bank}_cooc_registry` · `*_altagg` · `test_codebook_family_map` (`bal_w0725_*` 741 列) | 另一会话未提交的 yaml 改动 |
-| 既有慢性红 | `test_citation_gate_hardening` (8) · `test_benefit_society_dual_track` cohort (2) · `test_omni_fix_herd::test_stable_sort_fix_intact` · `test_stata_labels_zh` · `test_qwen_semantic_validity` (需 API) · `test_omni_fix_attention` | HEAD 上即红, 与本轮无关 |
+| 类别 | 条数 | 用例 | 归属 |
+|------|-----:|------|------|
+| 我的编辑污染 | **11** | `test_omni_fix_strategic` (4) · `test_strategic_diff_year_parallel` (5) · `test_f28_parity_collapse_visibility` (2) | sweep 运行期间我正在改写 `strategic_diff.py`, 这些用例读源码文本 ⟹ 读到半改完的文件。**逐个复验全绿** |
+| 并发会话在途 | **10** | `test_company_bank_cooc_registry` (3) · `test_company_tax_bank_cooc_registry` (3) · `test_company_bank_altagg` (1) · `test_company_tax_bank_altagg` (1) · `test_codebook_family_map` (2) | 另一会话未提交的 `bal_w0725_*` 741 列 yaml 改动 |
+| 既有慢性红 | **16** | `test_citation_gate_hardening` (8) · `test_benefit_society_dual_track` cohort (2) · `test_stata_labels_zh` (3) · `test_omni_fix_herd::test_stable_sort_fix_intact` (1) · `test_qwen_semantic_validity` (1, 需 API) · `test_omni_fix_attention` (1) | HEAD 上即红 |
+| 环境耦合 | **1** | `test_subprocess_log_isolation::test_ns_level_env_override` | 环境变量跨用例污染, 与本轮无关 |
+| **合计** | **38** | | 与 `grep -c '^FAILED'` 一致 ✅ |
 
 这也再次说明 §21.8 的判断是对的: **有配对基线才谈得上"全量对拆"**; 没有基线时,
 爆炸半径 (import + 源码文本断言两类全覆盖) 才是对因果完备、且不会被污染误导的判据。
+
+### §21.11 第八/九轮 = 终审 (14-agent 工作流 + 亲验), 以及它推翻的东西
+
+用 5 维独立评审 (S13 重构语义等价 / dense-BLAS 完备性普查 / S12 / 事实核对 / 横切)
++ 逐条**对抗式证伪** (默认判假, 须亲跑证据才放行) 复审已推送的三个 commit。
+14 agent · 174 万 token · 8 条进证伪 → **5 条成立 / 3 条被证伪**。
+
+#### A. 我自己写错的论证 (最该记的一条)
+
+§21.2 ⑴ 与 commit `34622080` 的 message 里写: 「P0-9 打在 worker 内**只能让并行臂收敛**,
+串行回落臂在父进程仍用满线程 ⟹ 两臂算不出同一个数」。**这句是错的**:
+`_run_year_tasks._serial` 调的是**同一个 worker 函数**, 所以在 worker 体首行钉线程,
+三条串行回落路径 (min_tasks 未达 / `_n<=1` / OOM 兜底) **同样**会被钉到 1。
+更讽刺的是: 本计划自己 §4 的 P0-9 行 (line 870) 早就写对了 ——
+「因 `_run_year_tasks._serial` 调同一 worker, 可使并行臂与三条串行回落臂同时钉到 1」。
+我在 §21.2 复述时把它写反了, 然后又把这个反的版本抄进了 commit message。
+**选定的补丁位置 (共用计算现场) 仍然是对的**, 因为它一次覆盖 S5 与 S13 两个消费者;
+错的只是我给的理由。commit 已推送不可改, 故在此留档。
+
+#### B. 5 条成立的发现 → 全部已修
+
+| 编号 | 缺陷 | 处置 |
+|------|------|------|
+| **S13-1** (major) | 驱动器走了 `_run_year_tasks` 的**非流式**路径, 一整轨的逐年日志 (含 F28 塌缩 ERROR) 缓冲到轨末才 emit。实测: 非流式首条日志在总时长 **100%** 处, 流式在 **33%** 处。被超时闸 SIGKILL 时该轨的塌缩 ERROR **一条都不落盘** | 透传 `on_result=_emit_strat_logs`, 两处调用点均改流式 |
+| **S13-2** (major) | S13 把 2 个 both-or-neither 塌缩站点搬进 worker 后, F28 回归闸的覆盖面从 **3 个静默缩到 1 个**, 测试照样全绿; 且其判据只认 `logger.error(...)`, 不认 worker 的 `logs.append((logging.ERROR,...))` | `_COLLAPSE_SITES` 补 worker 站点 + 判据认 log_sink 写法。**已反向验证有区分力**: ERROR→WARNING 与删 append 两个反例都会变红 |
+| **S12-1** (minor) | 我把陈旧的「24×1000」订正成「48×1000=48,000」时又写错了 —— 那是**四次调用的格数总和**, 而 `min_work` 是**逐调用**的。实测每次 6,000 / 30,000, 真实余量 **1.2×** 不是 9.6× | 4 处口径 (2 处注释 + 2 处测试文案) 全部改为逐调用值, 并把 1.2× 这个薄余量写进闸值旁 |
+| **S12-2** (minor) | `test_toy_fixture_stays_serial` 仍用镜像时期的 `(n_off//2)*boot`, 撤镜像后系统性低估 2× | 改 `n_off*boot` |
+| **§21.10** (minor) | 归属表只覆盖 38 条里的 32 条, commit message 计数 6+7+14=27≠38 | 重算并闭合 (见上表) |
+
+#### C. 3 条被证伪 (记下来, 免得下次重复立案)
+
+| 编号 | 原断言 | 为何不成立 |
+|------|--------|-----------|
+| **S13-4/X3** | worker 传递调用链上有 3 处直呼 `logger`, 并行臂下不落盘 | **既有行为, 非本批引入**: 基线的 `_auth_year_worker` 已可达完全相同的 :592/:663/:737 三处, 且这三行在基线与 HEAD 上**行号相同、逐字节相同**。只保留 docstring 措辞订正 (不再声称"所有 logger 都已回传") |
+| **X1** | 「运维已设 env 时不缩放」⟹ 生产口径 4–6 会变成 12×6=72 | 机制属实, 但「生产口径是 4–6」被日志证伪 —— 仓内唯一记录真实编排跑的日志显示该 env **未设**。降级为 nit; 不过**修法照做**, 因为语义确实搞反了 |
+| **BLAS-01** | `embedding_engine` 多块池化的 `norm(pooled)` (dim=4096) 未钉线程 | 机制属实 (84/300 逐位不同) 但 `embedding_engine.py` **不在本批 diff 内**, 基线的 S5 已同样可达 ⟹ 非本批引入。**仍然修** (F44), 因为 S13 扩大了它的暴露面, 且 F41 注释因此过度声称 |
+
+#### D. 顺带做掉的设计重做: 嵌入并发不再走 env
+
+X1/X2/S13-3 指向同一处: 用 `os.environ` 跨进程传参有三重脆弱 ——
+① 把运维给的**总**预算当成 per-worker 预算 (设 6 反而变 72);
+② loky **复用**同 n_jobs 的常驻 worker 时, 改 env 对已存在的 executor 是彻底的 no-op,
+   初版只是靠"本循环恰好是 stage 40 第一个 n_jobs=12 的 fan-out"侥幸成立;
+③ env 写入**永不还原**, 泄漏给同进程后续的 `compute_authoritative_similarity`。
+改为**显式传参**: per-worker 并发随 task 传进 worker, worker 在自己进程里改
+`embedding_engine.EMB_API_CONCURRENCY` 模块属性 (且用 `mp.parent_process()` 保证
+**只在子进程**改, 否则串行臂/OOM 兜底会污染父进程 —— 与 F42 同一类陷阱)。
+另补一条新不变量: **总预算 < 并行度时压并行度**, 而不是让每 worker 保底 1 把总量顶上去
+(运维把预算调到 6 正是因为端点吃不住更多, 开 12 个各 1 个仍是 12)。
+
+#### E. 本轮验收
+
+· S13 串/并逐位等价 **重跑仍 166/166** (改动后复验, 两臂各自走对: 并行 n_jobs=12 /
+  嵌入并发 20×12=240; 串行 并行度=1)
+· 新增/改写 gate 全部**反向验证过有区分力**, 不是永真断言
+· 爆炸半径复跑见 §21.12
+
+### §21.12 终审整改后的验收
+
+| 项 | 结果 |
+|----|------|
+| 爆炸半径 (import 或对改动文件做源码文本断言的**全部**测试文件, 23 个) | **455 项, 0 失败** |
+| S13 串/并逐位等价 (改动后重跑) | **166/166 列哈希相同**; 日志证明并行臂 n_jobs=12、串行臂并行度=1, 两臂确实分开 |
+| F28 闸扩展后的区分力 (反向验证) | 现状 `[True]` · `ERROR→WARNING` → `[False]` · 删 `logs.append` → `[False]` ⟹ 不是永真断言 |
+| 新增 S13 gate 的区分力 | 写这些 gate 的过程中它们**先红了 3 次**并逼出两处真实设计缺陷 (预算<并行度时超发; 断言被自己的 docstring 命中) —— 红过才算数 |
+| lint / 计数不变量 / DAG | `ruff` 全通过; `test_dag_predicates` + `test_pipeline_shims` + `test_stage_timeout_calibration` 全绿 |
+
+⚠ 仍未做、且**不该在本机做**的: 生产语料上的真实验证。S13 的逐位等价是在**桩掉嵌入的
+合成数据**上验的 (真嵌入付费且本机 T=2 走不进并行臂); F44 的钉线程在钉线程协议下是
+逐位 no-op 故 golden 安全, 但"未钉环境下的旧跑与本版有末位差异"这一点对 stage 40
+的**存量产物**成立 —— 下次生产重跑即收敛到 canonical 值, 该重跑需过 M0 门。

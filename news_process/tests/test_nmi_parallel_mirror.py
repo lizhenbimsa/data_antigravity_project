@@ -76,18 +76,27 @@ def test_parallel_threshold_is_work_based_not_cell_based():
     assert co._NMI_PARALLEL_MIN_WORK >= 5000, (
         f'_NMI_PARALLEL_MIN_WORK={co._NMI_PARALLEL_MIN_WORK} 过低 —— '
         '现存单测的维度数与生产相同 (3 维/6 维), 只把 bootstrap_n 调到 20-100; '
-        '生产工作量 48×1000=48,000 (S12 撤镜像后 bootstrap 亦为全 48 格) '
-        '而单测最大 30×30=900, 阈值必须落在两者之间。')
+        '生产侧**单次调用**的工作量最小是 6,000 (3 维轨 6 格 × 1000), 最大 30,000 '
+        '(6 维 cross 30 格 × 1000); 单测最大 30×30=900 —— 阈值必须落在两者之间, '
+        '且距 6,000 只有 1.2× 余量 (2026-08-01 订正: 旧文写 48,000 是把四次调用的'
+        '格数总和当成了单次 min_work)。')
     src = inspect.getsource(co._run_cells)
     assert 'min_work' in src, '并行判据不再基于工作量 (改回按 cell 数会让单测失真)'
 
 
 def test_toy_fixture_stays_serial():
-    """toy 规模必须走串行 —— 否则 monkeypatch 桩不传播进子进程, 测试当场失真。"""
-    n_off = len(_D) * (len(_D) - 1)          # 6
+    """toy 规模必须走串行 —— 否则 monkeypatch 桩不传播进子进程, 测试当场失真。
+
+    ⚠ 2026-08-01 订正: 原式是 `(n_off // 2) * boot` —— 那是 **S11 镜像时期**的口径
+    (只算上三角, 格数减半)。S12 撤销镜像后任务池装的是**全部**非对角格, 真实工作量
+    是 `n_off * boot`, 旧式把它系统性低估 2×。低估意味着这条 gate 的守护带宽只有名义
+    的一半: 若哪天把 toy 的 bootstrap_n 提到 900, 旧式算 2,700 < 5,000 判"安全",
+    而真实工作量 5,400 ≥ 5,000, 单测会**静默走进 loky 并行分支** —— 正是本 gate 要防的失真。
+    """
+    n_off = len(_D) * (len(_D) - 1)          # 6 (全部非对角格, 撤镜像后不再减半)
     for boot in (20, 50, 100):
-        assert (n_off // 2) * boot < co._NMI_PARALLEL_MIN_WORK, (
-            f'bootstrap_n={boot} 的 toy 工作量 {(n_off//2)*boot} 已达并行阈值')
+        assert n_off * boot < co._NMI_PARALLEL_MIN_WORK, (
+            f'bootstrap_n={boot} 的 toy 工作量 {n_off * boot} 已达并行阈值')
 
 
 # ── ② worker 零 logger ──
@@ -134,6 +143,35 @@ def test_bootstrap_mirror_is_removed():
     assert 'ci_low.iloc[_j, _i]' not in src and 'ci_high.iloc[_j, _i]' not in src, \
         'CI 侧出现镜像回填 —— 同上'
     assert '_boot_tasks' in src, 'bootstrap 任务池缺失 (并行化被回退)'
+
+
+def test_boot_task_pool_covers_all_offdiagonal_cells():
+    """**行为级**锁: bootstrap 任务池必须装全部非对角格 (镜像时只会装一半)。
+
+    ⚠ 为什么要它: `test_bootstrap_mirror_is_removed` 是纯源码字符串匹配, 一次无害的
+    局部重命名 (`for _a, _b, *_ in _boot_tasks: point.iloc[_b, _a] = ...`) 或
+    `iloc → iat/values` 重构就能把镜像加回去而不触发那条字面量断言; 而全部**行为级**
+    用例对镜像都不敏感 (镜像同样会把下三角填满、n_pair 与 F40 本就逐格跑)。
+    ⟹ 撤镜像这条不变量此前只有一根字符串锚在守。这里补一根拿得住的: 直接数任务池。
+    """
+    seen = []
+    orig = co._run_cells
+
+    def _spy(tasks, worker, *extra, min_work, n_jobs=None, label='cells'):
+        seen.append((label.split()[0], len(tasks)))
+        return orig(tasks, worker, *extra, min_work=min_work, n_jobs=n_jobs,
+                    label=label)
+
+    co._run_cells = _spy
+    try:
+        co.compute_nmi_matrix(_toy(), _D, bootstrap_n=20, seed=42)
+    finally:
+        co._run_cells = orig
+    n_off = len(_D) * (len(_D) - 1)
+    boot = [n for lab, n in seen if lab.startswith('bootstrap')]
+    assert boot == [n_off], (
+        f'bootstrap 任务池格数 {boot} != 全部非对角格 {n_off} —— '
+        f'{n_off // 2} 说明上三角镜像被加了回来 (S12 已证伪其前提: 6/600 非逐位对称)')
 
 
 def test_all_offdiagonal_cells_get_ci():

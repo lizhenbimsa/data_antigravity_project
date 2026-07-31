@@ -59,6 +59,14 @@ import logging
 import os
 import time
 
+try:
+    from threadpoolctl import threadpool_limits as _threadpool_limits
+except ImportError:      # threadpoolctl 是 sklearn 依赖; 极端裸环境缺失则退化为无操作
+    from contextlib import nullcontext as _nullcontext
+
+    def _threadpool_limits(limits=None, user_api=None):
+        return _nullcontext()
+
 import numpy as np
 import tiktoken
 
@@ -772,6 +780,22 @@ def embed_texts(texts, spec: dict, *,
         return None
 
     emb = np.zeros((n_orig, raw_emb.shape[1]), dtype=raw_emb.dtype)
+    # F44 (2026-08-01): 钉 BLAS 线程 —— 与 F26 (LDA fit) / F41 (emb cosine) 同一手法,
+    # 补的是**池化现场**这个口子。下面 :798 的 `np.linalg.norm(pooled)` 对 1-D 走
+    # `x.dot(x)` = MKL `ddot`, 其归约序随线程数变: 实测 (300 独立样本 × 线程档
+    # [1,1,2,4,8,16,24,32], 含同线程数控制组) **dim=4096 有 84/300 逐位不同**
+    # (canonical Qwen 轨正是 4096 维; `_lg` 的 3072 维在本机 MKL 下 0/300, 但那是
+    # 阈值巧合不是保证)。
+    # **为何非补不可**: 本函数在 `_auth_year_worker` (S5) 与 `_strat_year_worker`
+    # (S13) 两个 loky worker 里都被调到, 而 joblib 给 worker 的线程数是
+    # `cpu_count() // n_jobs` ⟹ 池化后的**嵌入向量本身**会随并行度逐位漂移, 再经
+    # cosine 传播成 `strat_diff_n*_emb*` / `auth_sim_emb*` 的末位差异。F41 只钉了
+    # cosine 那一步, 钉不住喂给它的 emb —— 故 F41 注释里"三者收敛到同一 canonical 值"
+    # 这句当时只对 `sim` 成立、对 `emb` 不成立, 本条补齐后才真正成立。
+    # ⚠ 只钉线程、**不改公式**: 换成 `sqrt((pooled*pooled).sum())` 虽也能去掉线程依赖,
+    # 但那是**改数** (pairwise 求和 vs ddot), 在钉线程协议下也不等价; 而
+    # `threadpool_limits(1)` 在四个 BLAS 环境变量全 =1 时是逐位 no-op ⟹ golden-safe。
+    # (仅多块池化分支受影响; `end - start == 1` 的直通分支不含任何归约。)
     for i, (start, end) in enumerate(chunk_map):
         if end - start == 1:
             emb[i] = raw_emb[start]
@@ -794,8 +818,9 @@ def embed_texts(texts, spec: dict, *,
              for j in range(start, end)],
             dtype=np.float64,
         )
-        pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
-        norm = np.linalg.norm(pooled)
+        with _threadpool_limits(limits=1):          # F44, 见本循环上方长注释
+            pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
+            norm = np.linalg.norm(pooled)
         emb[i] = (pooled / norm if norm > 0 else pooled).astype(raw_emb.dtype)
 
     # ── 输出产物 provenance + 单位向量不变量自检 (纯日志, 读已构好的 emb, 绝不复用下游) ──
