@@ -314,10 +314,33 @@ def test_s13_no_env_mutation_anywhere(monkeypatch):
     ⓐ 把运维值当 per-worker; ⓑ loky 复用常驻 worker 时对已存在的 executor 是 no-op;
     ⓒ 永不还原, 泄漏给同进程后续步骤 (runner:1846 的 compute_authoritative_similarity)。
     """
-    src = inspect.getsource(sd)
-    assert 'os.environ[sd._EMB_CONCURRENCY_ENV]' not in src
-    assert f"os.environ[_EMB_CONCURRENCY_ENV]" not in src, (
-        '又出现了对嵌入并发 env 的写入 —— 显式传参才是本项的正解')
+    # ⚠ 用 **AST** 扫对 `os.environ` 的写入 (下标赋值 / setdefault / update),
+    #   不用文本匹配。上一版第一条断言写的是 `'os.environ[sd._EMB_CONCURRENCY_ENV]'
+    #   not in src` —— 模块源码里根本不会出现 `sd.` 前缀, 该断言**结构上恒为真**,
+    #   与本轮自己刚逮到的 F28 空闸 (`assert flags and all(flags)` 在 [True] 上恒成立)
+    #   是同一形态。变异测试实证: 那条对 5 种回归形态捕获 0/5。
+    tree = ast.parse(inspect.getsource(sd))
+    bad = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for tgt in node.targets:
+                if (isinstance(tgt, ast.Subscript)
+                        and isinstance(tgt.value, ast.Name)
+                        and tgt.value.id == 'os'):
+                    bad.append('os[...] = ')
+                if (isinstance(tgt, ast.Subscript)
+                        and isinstance(tgt.value, ast.Attribute)
+                        and tgt.value.attr == 'environ'):
+                    bad.append(f'os.environ[...] = (line {tgt.lineno})')
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr in ('setdefault', 'update', 'pop')
+                and isinstance(node.func.value, ast.Attribute)
+                and node.func.value.attr == 'environ'):
+            bad.append(f'os.environ.{node.func.attr}() (line {node.lineno})')
+    assert not bad, (
+        f'strategic_diff 里出现了对 os.environ 的**写入** {bad} —— '
+        '嵌入并发改走显式传参正是为了摆脱 env 的三重脆弱 (总/单预算语义搞反 · '
+        'loky 复用池时改 env 是 no-op · 永不还原会泄漏给后续步骤), 不得回退')
     before = os.environ.get(sd._EMB_CONCURRENCY_ENV)
     sd._worker_emb_concurrency(12)
     sd._emb_total_budget()

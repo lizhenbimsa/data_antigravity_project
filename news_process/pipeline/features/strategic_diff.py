@@ -764,10 +764,11 @@ def _build_embedding_sim_matrix(texts, spec=None):
     # worker 得到 `32 // n_jobs`, 于是 `NEWS_PROCESS_AUTH_JOBS` 这个**纯运维旋钮**会
     # 静默改变 `auth_sim_emb*` / `auth_sim_emb_lg*` 的产出值; 串行回落臂 (父进程 32 线程)
     # 与并行臂也算不出同一个数。钉 1 后三者的**这一步**收敛到同一个 canonical 值。
-    # ⚠ 措辞订正 (2026-08-01 终审): 本条只钉住 cosine 这一步, **钉不住喂给它的 `emb`**
+    # ⚠ 措辞订正 (2026-08-01 终审): 本条只钉住 cosine 这一步, 不覆盖喂给它的 `emb`
     # —— 多块池化里的 `np.linalg.norm(pooled)` (dim=4096) 同样随线程数漂, 已由 F44
-    # 在 `embedding_engine` 现场补齐。两条合起来 `auth_sim_emb*`/`strat_diff_*_emb*`
-    # 才真正与并行度无关。
+    # 在 `embedding_engine` 现场补齐。⚠ 但 F44 那处的漂移是 float64 的 1–2 ULP 而 emb
+    # 是 float32, 实测 0/20,480,000 未传播到交付值 —— 故 F44 是**防御性钉死**而非修复
+    # 已观测漂移; 本条 (F41) 才是真正会改交付值的那一处 (float32 maxdiff 1.19e-7)。
     # **golden-safe (已实证)**: 在 CLAUDE.md 既定重生协议 (MKL/OPENBLAS/NUMEXPR/OMP
     # 四个环境变量全 =1) 下, 本 with 块是逐位 no-op (同探针 `np.array_equal`=True) ⟹
     # 不可能移动 golden。受影响的是**未钉环境**下的旧跑, 方向同 F26: 向 canonical 靠拢。
@@ -1091,7 +1092,17 @@ def _proc_workers(n_tasks: int) -> int:
 #        侥幸成立, 一旦有人在它之前插入任何进程并行, 保护静默失效而日志照打"≈240"。
 #     ③ **env 写入永不还原**, 会泄漏给同进程后续步骤 (runner.py:1837 本函数 → :1846
 #        `compute_authoritative_similarity`), 把 S5 的并发静默改掉且零披露。
-#     显式传参对这三条**天然免疫**: 不依赖进程创建时机、不依赖池是否复用、不留全局残留。
+#     显式传参对 ①② **天然免疫** (不依赖进程创建时机、不依赖池是否复用)。
+#     ⚠ **③ 只被减轻, 不是免疫** (2026-08-01 第二轮终审订正, 我上一版把它写成免疫是错的):
+#       loky **复用**常驻 worker, 故 worker 里改的 `_eng.EMB_API_CONCURRENCY` 同样会
+#       留在子进程里, 紧随其后复用同一批 worker 的 S5 fan-out 会读到残留值 —— 受害者
+#       与症状与 env 方案**完全相同**, 只是泄漏面从"父进程 env"换成了"子进程模块属性"。
+#       故这里用 try/finally 在每个 task 结束时**还原**, 把 ③ 真正闭合。
+#       (残留的方向恒向下 —— k = 总预算 // n_jobs ≤ 总预算 —— 所以历史上未致害;
+#        但"悄悄改掉另一个步骤的行为"正是本轮判为缺陷的那件事, 不该自己再犯。)
+#     ⚠ 另: S5 (`policy_similarity._auth_year_worker`) **自己没有**任何并发缩放, 其
+#       P×250 是**既有**敞口 (基线即如此), 之所以未致害是因为 strategic_diff 先跑并
+#       把同批文本播了种, S5 到达时几乎全缓存命中。那是独立的既有项, 不在本批射程。
 #   ⚠ worker 内的赋值必须**只在子进程做**: 串行臂与 OOM 兜底都会让父进程直接调 worker,
 #     在那里改模块属性就会污染父进程 (与 F42 同一类陷阱), 故用 `mp.parent_process()` 判定。
 #
@@ -1135,12 +1146,23 @@ def _emb_total_budget() -> int:
     if raw:
         try:
             v = int(raw)
-            if v >= 1:
-                return v
         except ValueError:
             logger.warning(
                 f"  {_EMB_CONCURRENCY_ENV}='{raw}' 非整数, 按基线 "
                 f"{_EMB_CONCURRENCY_BASELINE} 处理")
+            return _EMB_CONCURRENCY_BASELINE
+        if v >= 1:
+            return v
+        # ⚠ v ≤ 0 **必须 clamp 到 1, 不能回落基线** (2026-08-01 订正: 上一版在这里
+        #   静默 return 250)。理由: 项目其它所有嵌入现场读同一个 env 的方式是
+        #   `asyncio.Semaphore(max(1, min(EMB_API_CONCURRENCY, n_batches)))` ⟹
+        #   0/负数在那里等于 **1**。而"把并发调到极小"正是 2026-07-24 撞 TPM 后的
+        #   标准止血手段, `0` 是"踩刹车"最常见的写法 —— 若这里回落 250, 运维想刹车
+        #   反而得到 S13 独家 240 并发, 恰好是 F28 的成因, 且日志上看不出异常。
+        logger.warning(
+            f"  {_EMB_CONCURRENCY_ENV}={v} ≤ 0, clamp 到 1 (与 embedding_engine 的 "
+            f"max(1, ...) 口径一致; **不**回落基线 {_EMB_CONCURRENCY_BASELINE})")
+        return 1
     return _EMB_CONCURRENCY_BASELINE
 
 
@@ -1191,14 +1213,32 @@ def _strat_year_worker(task, n_list_cw, n_list_other, few_banks_warn,
     Returns:
         ``(payload | None, logs)`` — payload 为各方法结果字典; None 表示该年跳过。
     """
+    # S13: 端点总并发 = per-worker × worker 数。只在**子进程**里改, 见 Args::emb_concurrency。
+    # ⚠ 用 try/finally 还原: loky **复用**常驻 worker, 不还原就会把本值留给复用同一批
+    #   worker 的后续 fan-out (S5), 即"悄悄改掉另一个步骤的行为" —— 见模块上方长注释 ③。
+    _emb_saved = None
+    import multiprocessing as _mp
+    if emb_concurrency is not None and _mp.parent_process() is not None:
+        _emb_saved = _eng.EMB_API_CONCURRENCY
+        _eng.EMB_API_CONCURRENCY = int(emb_concurrency)
+    try:
+        return _strat_year_worker_body(
+            task, n_list_cw, n_list_other, few_banks_warn,
+            lda_fail_tmpl, bon_tail_tmpl)
+    finally:
+        if _emb_saved is not None:
+            _eng.EMB_API_CONCURRENCY = _emb_saved
+
+
+def _strat_year_worker_body(task, n_list_cw, n_list_other, few_banks_warn,
+                            lda_fail_tmpl, bon_tail_tmpl):
+    """`_strat_year_worker` 的计算主体 (抽出仅为让并发设置能用 try/finally 包住)。
+
+    ⚠ F28 塌缩告警在**本函数**里 —— `tests/test_f28_parity_collapse_visibility.py`
+    的站点表已随之指向这里, 勿改名而不同步那张表。
+    """
     track_label, track_suffix, year, banks, texts = task
     logs: list[tuple[int, str]] = []
-
-    # S13: 端点总并发 = per-worker × worker 数。只在**子进程**里改, 见 Args::emb_concurrency。
-    if emb_concurrency is not None:
-        import multiprocessing as _mp
-        if _mp.parent_process() is not None:
-            _eng.EMB_API_CONCURRENCY = int(emb_concurrency)
 
     if len(banks) < 3:
         if few_banks_warn:

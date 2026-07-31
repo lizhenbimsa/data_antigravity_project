@@ -781,47 +781,58 @@ def embed_texts(texts, spec: dict, *,
 
     emb = np.zeros((n_orig, raw_emb.shape[1]), dtype=raw_emb.dtype)
     # F44 (2026-08-01): 钉 BLAS 线程 —— 与 F26 (LDA fit) / F41 (emb cosine) 同一手法,
-    # 补的是**池化现场**这个口子。下面 :798 的 `np.linalg.norm(pooled)` 对 1-D 走
-    # `x.dot(x)` = MKL `ddot`, 其归约序随线程数变: 实测 (300 独立样本 × 线程档
-    # [1,1,2,4,8,16,24,32], 含同线程数控制组) **dim=4096 有 84/300 逐位不同**
-    # (canonical Qwen 轨正是 4096 维; `_lg` 的 3072 维在本机 MKL 下 0/300, 但那是
-    # 阈值巧合不是保证)。
-    # **为何非补不可**: 本函数在 `_auth_year_worker` (S5) 与 `_strat_year_worker`
-    # (S13) 两个 loky worker 里都被调到, 而 joblib 给 worker 的线程数是
-    # `cpu_count() // n_jobs` ⟹ 池化后的**嵌入向量本身**会随并行度逐位漂移, 再经
-    # cosine 传播成 `strat_diff_n*_emb*` / `auth_sim_emb*` 的末位差异。F41 只钉了
-    # cosine 那一步, 钉不住喂给它的 emb —— 故 F41 注释里"三者收敛到同一 canonical 值"
-    # 这句当时只对 `sim` 成立、对 `emb` 不成立, 本条补齐后才真正成立。
+    # 补的是**池化现场**这个口子。下方那行 `norm = np.linalg.norm(pooled)` (自带
+    # `# ← F44 钉的就是这一步` 标记) 对 1-D 走 `x.dot(x)` = MKL `ddot`, 其归约序随线程
+    # 数变: 实测 (300 独立样本 × 线程档 [1,1,2,4,8,16,24,32], 含同线程数控制组)
+    # **dim=4096 有 84/300 逐位不同** (canonical Qwen 轨正是 4096 维; `_lg` 的 3072 维
+    # 在本机 MKL 下 0/300, 但那是阈值巧合不是保证)。
+    # 本函数在 `_auth_year_worker` (S5) 与 `_strat_year_worker` (S13) 两个 loky worker
+    # 里都被调到, 而 joblib 给 worker 的线程数是 `cpu_count() // n_jobs`, 故这一步的
+    # 取值确实**依赖并行度**。
+    # ⚠ **但别把收益说过头** (2026-08-01 第二轮终审订正; 我上一版写成"嵌入向量本身会
+    #   随并行度漂移、再经 cosine 传播成面板末位差异", 那是**未经证实的推断**):
+    #   漂移只有 1–2 个 **float64** ULP (max_rel ≈ 3.0e-16), 而 `emb` 是 **float32**
+    #   (`get_embeddings_api` 三条出口全部预分配 float32), 相对间距 1.19e-07 ——
+    #   大 4×10⁸ 倍。落到 `.astype(raw_emb.dtype)` 时被完全舍掉: 5,000 条多块文本 ×
+    #   4096 维实测 **0 / 20,480,000 个交付值不同**, 单值翻位概率上界 ~2.5e-9。
+    #   ⟹ 本条的性质是**防御性钉死** (让这一步与 F26/F41 同协议、与线程数无关),
+    #      **不是**修复已观测到的产物漂移。F41 注释里那句"补齐后才真正成立"同此口径。
     # ⚠ 只钉线程、**不改公式**: 换成 `sqrt((pooled*pooled).sum())` 虽也能去掉线程依赖,
     # 但那是**改数** (pairwise 求和 vs ddot), 在钉线程协议下也不等价; 而
     # `threadpool_limits(1)` 在四个 BLAS 环境变量全 =1 时是逐位 no-op ⟹ golden-safe。
     # (仅多块池化分支受影响; `end - start == 1` 的直通分支不含任何归约。)
-    for i, (start, end) in enumerate(chunk_map):
-        if end - start == 1:
-            emb[i] = raw_emb[start]
-            continue
-        # fix(omni-g-embed-04, 2026-06-11) + KNOWN-OPEN⑧ 池化权重修正:
-        # (a) 逐块先 L2 归一再平均 — 未归一向量的 mean 隐含按块范数加权 (cosine
-        #     消费端尺度不变, 但池化方向被大范数块拖偏);
-        # (b) 按块 token 数加权 — 等权下 (8191, 1) 切分的 1-token 尾段碎片占 50%
-        #     方向权重, 严重扭曲超长文本的向量表征。
-        # 切分边界/块文本不变 → API 路径 LLMCache 缓存键与已存向量不受影响。
-        # 白话: 长文切块后合并时, 先把每块向量拉到同一长度(归一), 再按每块
-        # 实际有多少字(token 数)来定话语权 — 否则结尾只剩 1 个 token 的小尾巴
-        # 会和整整一大块平起平坐, 把合并结果带歪。
-        block = raw_emb[start:end].astype(np.float64)
-        norms = np.linalg.norm(block, axis=1, keepdims=True)
-        norms[norms == 0.0] = 1.0
-        unit = block / norms
-        w = np.array(
-            [max(1, len(_EMB_ENCODING.encode(str(all_chunks[j]), disallowed_special=())))
-             for j in range(start, end)],
-            dtype=np.float64,
-        )
-        with _threadpool_limits(limits=1):          # F44, 见本循环上方长注释
+    # ⚠ `with` 放在循环**外**: 进出 `threadpool_limits` 要遍历并改写**所有已加载**的
+    # 线程库, 成本随加载了几个库而变 —— 裸 numpy 环境 (只有 MKL) 实测 523 µs, 而本函数
+    # 的真实现场 (stage 40 / loky worker, sklearn 已 import ⟹ 另有两个 OpenMP) 实测
+    # **9.9 ms**, 差 19×。放循环内 = 每条多块文本各付一次这个钱; 放外面整段只付一次。
+    # (上一版写的 701 µs 是在裸 numpy 环境测的, 2026-08-01 第二轮终审订正。)
+    # 覆盖区域是超集 (2-D `norm(block, axis=1)` 本就线程无关), 数值完全相同。
+    with _threadpool_limits(limits=1):
+        for i, (start, end) in enumerate(chunk_map):
+            if end - start == 1:
+                emb[i] = raw_emb[start]
+                continue
+            # fix(omni-g-embed-04, 2026-06-11) + KNOWN-OPEN⑧ 池化权重修正:
+            # (a) 逐块先 L2 归一再平均 — 未归一向量的 mean 隐含按块范数加权 (cosine
+            #     消费端尺度不变, 但池化方向被大范数块拖偏);
+            # (b) 按块 token 数加权 — 等权下 (8191, 1) 切分的 1-token 尾段碎片占 50%
+            #     方向权重, 严重扭曲超长文本的向量表征。
+            # 切分边界/块文本不变 → API 路径 LLMCache 缓存键与已存向量不受影响。
+            # 白话: 长文切块后合并时, 先把每块向量拉到同一长度(归一), 再按每块
+            # 实际有多少字(token 数)来定话语权 — 否则结尾只剩 1 个 token 的小尾巴
+            # 会和整整一大块平起平坐, 把合并结果带歪。
+            block = raw_emb[start:end].astype(np.float64)
+            norms = np.linalg.norm(block, axis=1, keepdims=True)
+            norms[norms == 0.0] = 1.0
+            unit = block / norms
+            w = np.array(
+                [max(1, len(_EMB_ENCODING.encode(str(all_chunks[j]), disallowed_special=())))
+                 for j in range(start, end)],
+                dtype=np.float64,
+            )
             pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
-            norm = np.linalg.norm(pooled)
-        emb[i] = (pooled / norm if norm > 0 else pooled).astype(raw_emb.dtype)
+            norm = np.linalg.norm(pooled)               # ← F44 钉的就是这一步 (1-D → MKL ddot)
+            emb[i] = (pooled / norm if norm > 0 else pooled).astype(raw_emb.dtype)
 
     # ── 输出产物 provenance + 单位向量不变量自检 (纯日志, 读已构好的 emb, 绝不复用下游) ──
     # 维度 (dim) 是区分两 co-primary 来源的"指纹": Qwen3-Embedding-8B (canonical 无后缀)

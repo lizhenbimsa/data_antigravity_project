@@ -124,7 +124,7 @@ def test_coherence_collapse_emits_error_naming_the_lost_columns(
 #   认得 log_sink 回传写法 (worker 里不能直呼 logger, 只能 `logs.append((logging.ERROR, ...))`)。
 _COLLAPSE_SITES = [
     ('coherence', 'compute_strategic_differentiation', 'coh_emb'),
-    ('nn_worker', '_strat_year_worker', 'strat_diff_*_emb'),
+    ('nn_worker', '_strat_year_worker_body', 'strat_diff_*_emb'),
 ]
 
 
