@@ -1117,3 +1117,27 @@ worker)。零额外工作、日志结构不变、用户显式设过该变量时�
 
 ⚠ "并行臂确实走了并行" 这一条是**单独验的**, 不是假定的 —— 否则整个 A/B 会退化成
 "两次串行互比", 正是本计划反复警惕的那种假绿。
+
+### §21.10 全量 sweep 最终落地 + 一条方法论教训 (边跑边改 = 假红)
+
+后台那次全量 `-m fast` 最终跑完了 (~2 h)。失败清单里出现了
+`test_f28_parity_collapse_visibility` 与 `test_omni_fix_strategic` —— 而我在同一时间
+用同样的命令单跑这两个文件是**全绿**的。矛盾的来源不是 flake:
+
+> **这些用例靠 `inspect.getsource` / 读盘校验源码文本, 而 sweep 运行期间我正在
+> 改写 `strategic_diff.py` (S13)。它们读到的是半改完的文件。**
+
+⟹ **边跑全量边改代码, 得到的失败清单是污染的**, 既不能拿来判绿也不能拿来立案。
+本项目里"源码文本断言"用得很多 (F26/F28/S11/S13 的防回退锚都是这一类), 所以这个坑
+在本仓比一般项目更容易踩。规矩: 全量 sweep 期间**冻结工作区**, 或改用爆炸半径定向跑。
+
+复验后的最终归属 (逐条查过, 无一涉及我改的 6 个文件):
+
+| 类别 | 用例 | 归属 |
+|------|------|------|
+| 我的编辑污染 | `test_f28_parity_collapse_visibility` · `test_omni_fix_strategic` (共 6 项) | **复验全绿**, 非真红 |
+| 并发会话在途 | `test_company_{bank,tax_bank}_cooc_registry` · `*_altagg` · `test_codebook_family_map` (`bal_w0725_*` 741 列) | 另一会话未提交的 yaml 改动 |
+| 既有慢性红 | `test_citation_gate_hardening` (8) · `test_benefit_society_dual_track` cohort (2) · `test_omni_fix_herd::test_stable_sort_fix_intact` · `test_stata_labels_zh` · `test_qwen_semantic_validity` (需 API) · `test_omni_fix_attention` | HEAD 上即红, 与本轮无关 |
+
+这也再次说明 §21.8 的判断是对的: **有配对基线才谈得上"全量对拆"**; 没有基线时,
+爆炸半径 (import + 源码文本断言两类全覆盖) 才是对因果完备、且不会被污染误导的判据。
