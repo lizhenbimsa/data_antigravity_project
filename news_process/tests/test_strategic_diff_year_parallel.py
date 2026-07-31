@@ -308,6 +308,28 @@ def test_s13_operator_env_is_treated_as_total_budget(monkeypatch):
     assert sd._emb_total_budget() == sd._EMB_CONCURRENCY_BASELINE, '非整数应回落基线'
 
 
+@pytest.mark.parametrize('raw', ['0', '-1', '-250'])
+def test_s13_emb_budget_clamps_nonpositive_to_one(monkeypatch, raw):
+    """① 之二 b: env ≤ 0 必须 **clamp 到 1**, 绝不回落基线 250。
+
+    ⚠ 本闸 2026-08-01 第三轮终审补: 上一个 commit 修了这条并在 message 里写
+    "实测 0/-3 → 1", 但那是**手工探针**, 仓内没有任何测试会因回退而变红 ——
+    把 `return 1` 改回 `return _EMB_CONCURRENCY_BASELINE` 当时全绿。
+    这与本轮反复批评的"空闸"是同一形态: 只有会红的闸才算数。
+
+    口径依据: 项目其它嵌入现场读同一个 env 的方式是
+    ``Semaphore(max(1, min(EMB_API_CONCURRENCY, n_batches)))`` ⟹ 0/负数在那里等于 1。
+    而"把并发调到极小"正是撞 TPM 后的标准止血手段, `0` 是踩刹车最常见写法 ——
+    若这里回落 250, 运维想刹车反而拿到 S13 独家 240 并发, 恰是 F28 成因。
+    """
+    monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, raw)
+    assert sd._emb_total_budget() == 1, (
+        f'{raw} 应 clamp 到 1 而非回落基线 {sd._EMB_CONCURRENCY_BASELINE} —— '
+        '运维踩刹车反而拿到满并发, 正是 F28 的成因')
+    # 并发数**不为 0**: 下游 asyncio.Semaphore(0) 会永久阻塞。
+    assert sd._worker_emb_concurrency(12) >= 1
+
+
 def test_s13_no_env_mutation_anywhere(monkeypatch):
     """① 之三: 整条路径**不得**再写 os.environ (初版靠它传参, 三重脆弱)。
 
@@ -362,6 +384,52 @@ def test_s13_worker_only_sets_concurrency_in_child_process():
         'worker 在父进程里改了 EMB_API_CONCURRENCY —— 串行臂/OOM 兜底会污染父进程')
     src = inspect.getsource(sd._strat_year_worker)
     assert 'parent_process()' in src, 'worker 缺进程身份闸'
+
+
+@pytest.mark.parametrize('body_raises', [False, True])
+def test_s13_worker_restores_concurrency_after_task(monkeypatch, body_raises):
+    """① 之五: worker 每个 task 结束必须**还原** `EMB_API_CONCURRENCY` (含抛异常时)。
+
+    ⚠ 本闸 2026-08-01 第三轮终审补。上一个 commit 用 try/finally 修了这条 (EMBC-1:
+    loky **复用**常驻 worker ⟹ 不还原就把 S13 的 per-worker 值留给复用同一批 worker 的
+    S5 fan-out), 但**没留任何会红的闸** —— 把 `finally` 体删空当时全绿。
+    这与 EMBC-2 是同一形态: 修了、写了散文、没做闸。
+
+    ⚠ 本闸必须伪装成**子进程**才有意义: 父进程里 `parent_process()` 闸会短路整段
+    赋值, 于是"还原成功"会因为"根本没设过"而恒成立 —— 那又是一条永真断言。
+    故先断言**设进去了** (调用期内 == 3), 再断言**还原了**。
+    """
+    import multiprocessing
+
+    from news_process.pipeline.text import embedding_engine as _e
+
+    monkeypatch.setattr(multiprocessing, 'parent_process', lambda: object())
+    before = _e.EMB_API_CONCURRENCY
+    seen = []
+
+    def _spy_body(*a, **k):
+        seen.append(_e.EMB_API_CONCURRENCY)      # 调用期内的实际值
+        if body_raises:
+            raise RuntimeError('模拟 worker 体内崩')
+        return ({'sc': None}, [])
+
+    monkeypatch.setattr(sd, '_strat_year_worker_body', _spy_body)
+    task = ('Full', '', 2010, ['a', 'b', 'c'], ['x', 'y', 'z'])
+    if body_raises:
+        with pytest.raises(RuntimeError):
+            sd._strat_year_worker(task, [5], [5], True, 'x{year}{exc}', '{n}',
+                                  emb_concurrency=3)
+    else:
+        sd._strat_year_worker(task, [5], [5], True, 'x{year}{exc}', '{n}',
+                              emb_concurrency=3)
+
+    assert seen == [3], (
+        f'worker 调用期内 EMB_API_CONCURRENCY={seen} ≠ [3] —— 并发根本没设进去, '
+        '本闸会退化成永真断言 (还原成功只因为没设过)')
+    assert before == _e.EMB_API_CONCURRENCY, (
+        f'task 结束后未还原 ({_e.EMB_API_CONCURRENCY} ≠ {before})'
+        f"{' (异常路径)' if body_raises else ''} —— loky 复用常驻 worker, "
+        '残留值会被随后复用同一批 worker 的 S5 fan-out 读到 (EMBC-1)')
 
 
 def test_s13_driver_uses_streaming_callback():

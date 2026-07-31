@@ -1277,3 +1277,88 @@ F44-DOC-1 与 EMBC-1 的过度声称)。**教训写进文档不等于做到, 只
 ⚠ **过程留痕**: 本轮的部分修复由评审工作流的 agent 直接落盘 (它们被要求只读, 但有 agent
 越权改了文件)。我逐文件复核了这些改动 (lint / 编译 / 160 项闸测 / F28 判据反例) 并接管为
 本次交付的一部分 —— 记在这里, 因为"谁改的"影响的是**下一次该不该信任那条约束**。
+
+---
+
+## §21.14 第三轮终审 (亲验 · 2026-08-01): 变异测试 + 溯源核对
+
+第三轮不再 fan-out (收敛类任务用亲验, memory `no-manufactured-problems`), 改用
+**变异测试**当唯一判据 —— 前两轮反复出现"修了、写了散文、没做会红的闸", 只有
+把回归形态真注进源码看闸红不红, 才谈得上"验过"。
+
+### ⑴ 溯源: HEAD commit 的 message 与它的 diff 不符
+
+`3c84dd45` 的 message 写了 R1-01 (9.9 ms 注释订正) 与 R1-02 (4 处 48→36) 等**代码**
+改动, 但它的 diffstat **只有计划 .md 一个文件, 零代码**。实测 `git log -S` 定位:
+那些代码改动全部在**前一个** commit `b53ddd32` 里。
+
+- **不是数据损坏**: 盘上代码正确, 两条订正都在。
+- **是溯源污染**: 后来的人用 `git show 3c84dd45` 或 `git log -S` 做考古, 会得出
+  "这条修复从没做过"的错误结论。成因是第二/三轮整改在时间上交叠 (部分修复由越权的
+  评审 agent 直接落盘), commit 边界与叙述边界没对齐。
+- 处置: 不 amend (铁律), 在此记账。**教训**: message 只描述**本 commit diff 内**的
+  改动; 跨 commit 的叙述要显式写"已于 `<sha>` 落地"。
+
+### ⑵ 变异测试: 16 种回归形态, 合并捕获 16/16
+
+| 变异 | 目标闸 | 结果 |
+|------|--------|------|
+| `os.environ[...] = ` (字面量 / 常量名) ×2 | `test_s13_no_env_mutation_anywhere` (AST) | CAUGHT ×2 |
+| `os.environ.setdefault / update / pop` ×3 | 同上 | CAUGHT ×3 |
+| 删 `parent_process()` 进程身份闸 | `test_s13_worker_only_sets_concurrency_in_child_process` | CAUGHT |
+| 删 `finally` 还原体 | **`test_s13_worker_restores_concurrency_after_task` (本轮新增)** | CAUGHT |
+| `v ≤ 0` 回落基线而非 clamp 1 | **`test_s13_emb_budget_clamps_nonpositive_to_one` (本轮新增)** | CAUGHT |
+| 驱动器退回非流式 (丢 `on_result`) | `test_s13_driver_uses_streaming_callback` | CAUGHT |
+| `_emit` 改用 `logger.log(lvl,msg)` | `test_s13_replay_dispatches_to_original_logger_methods` | CAUGHT |
+| bootstrap 重新镜像下三角 | `test_boot_task_pool_covers_all_offdiagonal_cells` (行为级) | CAUGHT |
+| `_encode_codes` 换 `pd.factorize` | `test_encode_codes_is_bitwise_equivalent_for_nmi` | CAUGHT |
+| F28 塌缩 ERROR→WARNING / →INFO / 整块删除 ×3 | `test_f28_parity_collapse_visibility` | CAUGHT ×3 |
+| (F28 闸对 `logger.log` 分派为 MISS) | 不在其射程, 由上面第 9 行的闸覆盖 | 合并覆盖 |
+
+### ⑶ 本轮补的两道闸 (前两轮的**真缺口**)
+
+EMBC-1 与 EMBC-2 在上一个 commit 里修对了, 但**都没留下会红的闸** —— 把 `finally`
+体删空、把 `return 1` 改回 `return 250`, 当时**全绿**。commit message 里写的
+"实测 0/-3 → 1" 是手工探针, 不是闸。这正是 §21.13 那句"只有做成会红的闸才算数"
+在同一批工作里第三次被自己违反。
+
+⚠ 新闸 `test_s13_worker_restores_concurrency_after_task` 必须 `monkeypatch`
+`multiprocessing.parent_process` 伪装成子进程, 否则进程身份闸会短路整段赋值 ——
+于是"还原成功"会因为"根本没设过"而恒成立, **又是一条永真断言**。故闸内先断言
+调用期内 `== 3` (设进去了), 再断言结束后已还原; 两条都在, 才不是空闸。
+
+### ⑷ 修掉一条自 `d94baa83` 起的永久红
+
+`test_omni_fix_herd::test_stable_sort_fix_intact` 断言 `'fix(herd-decay-01' in src`
+一直红着。核实: F20 (`d94baa83`) 把该段从 `compute_herd_weights` 搬进
+`_herd_bank_worker` 时**只搬了代码没搬注释**, 行为 (`kind='stable'` + 内容派生次键)
+从未丢。→ 把溯源注释补回新位置。**红闸比空闸更糟: 它训练人忽略整个测试文件。**
+
+### ⑸ 一条方法论订正 (我自己的台架)
+
+第一版变异台架用 `Path.read_text()/write_text()` 做"还原后逐字节比对"——
+**那不是逐字节**: 读是 universal-newlines (CRLF→LF), 写是 `os.linesep` (LF→CRLF),
+往返后文件可能真的变了而断言照样通过。本例侥幸无损 (文件本就纯 CRLF), 但判据是错的。
+→ 改 `read_bytes()/write_bytes()`, 并用 `git hash-object` vs `git rev-parse HEAD:<path>`
+做最终确认 (两文件 blob 哈希与 HEAD 完全一致)。
+同源踩坑: 锚点里写 `\n` 在 CRLF 文件上恒不匹配, 表现为"变异未注入"而非报错。
+
+### ⑹ 本轮验收
+
+- 爆炸半径 24 文件 **423 passed / 0 failed** (含此前唯一那条永久红)
+- 变异测试 **16/16** 捕获
+- S13 串/并逐位等价**本轮独立重跑仍 166/166**, 两臂确证走对
+  (并行 `n_jobs=12` · 嵌入并发 20×12=240 · 对照串行) —— 用 `grep` 全量取选臂行,
+  不用 `tail` (§21.10 的教训: 假绿也可以来自**查看方式**)
+- `dag.py` 本会话全部改动经 diff 确认**仅注释**, `timeout=108000` 数值未动
+- R1-02 的格数亲验: bootstrap = 3 轨×6 + cross 30 = **48**; permutation = 30 + 6 = **36**;
+  串行 754 ms×48k + 774 ms×36k = **17.79 h** ✓
+- `EMB_API_CONCURRENCY = int(os.environ.get(..., '250'))` 恒为 int ⟹
+  `_emb_saved is not None` 哨兵安全; 且 env=0 时 engine 侧
+  `Semaphore(max(1, min(0, n)))` 也 = 1, 与 EMBC-2 的 clamp-to-1 **口径恰好一致**
+- 全仓仅两处 `logging.disable` (herd_decay / tone_words), 均已加进程身份闸;
+  `core/logging.py:393` 的 `removeHandler` 是幂等 handler 重绑, **非** F42 同型
+- ruff 全通过
+
+⚠ 仍未做且不在本机射程: 生产语料上的真实验证。S13 的逐位等价是在**桩掉嵌入的合成
+数据**上验的 (本机 T=2 走不进并行臂, 真嵌入付费), stage 40 重跑须过 **M0 审批门**。

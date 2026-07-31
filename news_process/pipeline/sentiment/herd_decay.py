@@ -400,6 +400,13 @@ def _herd_bank_worker(bank_df, full_col: str, has_ctx: bool, has_ss: bool,
     返回 (indices, full_counts, ctx_counts, ss_counts); 与串行分支**同一算法同一函数**,
     仅执行位置不同。调用方按提交序回收后写回 df (各银行 indices 不交 → 写回序无关)。"""
     _silence_worker_logging()
+    # fix(herd-decay-01, metric-audit 2026-06-10): 同日文章排序须确定 (原默认 quicksort
+    # 不稳定 + 无次键 → 同日 tie 顺序 run-to-run 非确定 → 加权 llm_vote_tone_hw 漂移)。
+    # 加 kind='stable' + 内容派生次键 (标题, 内容) 使同日次序内容确定、跨运行可复现。
+    # ⚠ 本注释 2026-08-01 补回: F20 (d94baa83) 把这段从 `compute_herd_weights` 搬进本
+    # worker 时**只搬了代码没搬注释**, 于是 `test_stable_sort_fix_intact` 自那时起一直
+    # 红着 —— 行为其实完好 (下一行的 kind='stable' 从未丢), 红的纯粹是溯源标记。
+    # 红闸比空闸更糟: 它训练人忽略整个测试文件。勿再删。
     _sort_keys = ['日期'] + [c for c in ('标题', '内容') if c in bank_df.columns]
     bank_df = bank_df.sort_values(_sort_keys, kind='stable').copy()
     indices = bank_df.index.tolist()
