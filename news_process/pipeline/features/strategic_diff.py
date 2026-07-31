@@ -1060,12 +1060,221 @@ def _proc_workers(n_tasks: int) -> int:
     return max(1, min(_PROC_PARALLEL_MAX_WORKERS, n_cpu - 2, n_tasks))
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# S13 (2026-07-31): 主逐年循环 (`compute_strategic_differentiation`) 的进程并行
+# ════════════════════════════════════════════════════════════════════════════
+# F25 只并行了 fluidity / tfidf_coherence / lda_coherence 三个「相邻期」循环;
+# 本函数**自己的**三轨逐年循环 (Full + _ctx + _ss) 一直是串行的, 而它才是 stage 40
+# 里 strategic_diff 窗口的大头。
+#
+# 🔴 **并行它之前必须先解决一个别处没有的阻断项**: 本循环体内会调 `embed_texts`,
+# 而 `embedding_engine.EMB_API_CONCURRENCY` 默认 **250** (每次调用内部
+# `asyncio.Semaphore(min(250, n_batches))`)。若直接 fan-out 到 P 个 loky worker,
+# 对同一端点的并发上界就变成 **P × 250** —— 而 250 这个值本身就是 2026-07-24
+# stage 16 首播撞硅基流动 TPM 限流后**降下来**的结果, 再乘 12 必然重演 F28
+# (重试耗尽 → `strat_diff_n*_emb*` / `centroid_diff_emb*` 整族静默 NaN)。
+#
+# **解法 (`_scale_worker_emb_concurrency`)**: fan-out 前把 `NEWS_PROCESS_EMB_CONCURRENCY`
+# 按 worker 数**等比缩小**写进环境, loky worker 重新 import 时读到的就是 `250 // P`,
+# 于是**总并发回到 250 —— 与今天的串行行为一致**。
+#   · 为什么有效: 该常量在模块 import 时求值, 而 loky worker 是新进程、必然重新 import;
+#     父进程自己的常量已在更早的 import 固化, 不受影响 (作用域天然只覆盖新 worker)。
+#   · 为什么不选"父进程串行预播种": 那要把嵌入读+解码做两遍 (实测占单任务 ~17%),
+#     且会改变阶段日志结构; 本方案零额外工作、日志结构不变。
+#   · 用户已显式设过该变量时**一律不覆盖** (运维意图优先)。
+#
+# **确定性**: 并发只影响墙钟不影响产出字节 (embedding_engine 按 batch_idx 重组, 见其
+# 模块注释); 循环体内的 dense-BLAS 现场已由 F26 (LDA fit) 与 F41 (emb cosine) 钉死;
+# `_compute_centroid_scores` 的三处归约 (`sum(axis=0)` / `einsum('ij,ij->i')` /
+# `norm(axis=1)`) 实测**线程无关** (1/2/8/16/24 五档 × emb/tfidf/theta 三形态全同,
+# 含同线程数重复两次的控制组) ⟹ 不需要额外钉。
+_STRAT_PARALLEL_MIN_YEARS = 12   #: 3 轨 × N 年扁平池; T=2 dev (6) 与单测一律留串行
+_STRAT_JOBS_ENV = 'NEWS_PROCESS_STRAT_JOBS'      #: 运维旁路 (同 S5 的 AUTH_JOBS)
+_EMB_CONCURRENCY_ENV = 'NEWS_PROCESS_EMB_CONCURRENCY'
+_EMB_CONCURRENCY_BASELINE = 250  #: 与 embedding_engine 默认值一致 (总并发预算)
+
+
+def _strat_jobs_override():
+    """读 ``NEWS_PROCESS_STRAT_JOBS``; 非正整数或未设 → None (用默认并行度)。"""
+    raw = os.environ.get(_STRAT_JOBS_ENV, '').strip()
+    if not raw:
+        return None
+    try:
+        v = int(raw)
+    except ValueError:
+        logger.warning(f"  {_STRAT_JOBS_ENV}='{raw}' 非整数, 忽略 (用默认并行度)")
+        return None
+    if v < 1:
+        logger.warning(f"  {_STRAT_JOBS_ENV}={v} < 1, 忽略 (用默认并行度)")
+        return None
+    return v
+
+
+#: 本进程是否已由 `_scale_worker_emb_concurrency` 写过并发环境变量。
+#: ⚠ 需要这个标记而不能只看"变量是否已设": 三条轨会各调一次, 第 2/3 次看到的是
+#: **我们自己**上一次写的值, 若照"已设 ⟹ 运维意图优先"分支去报, 日志就是假的。
+_EMB_CONCURRENCY_SCALED_BY_US = False
+
+
+def _scale_worker_emb_concurrency(n_jobs: int) -> None:
+    """把嵌入 API 并发按 worker 数等比缩小写进环境, 使**总**并发回到基线 250。
+
+    只对**之后新建的** loky worker 生效 (它们重新 import `embedding_engine`);
+    父进程自身的常量早已固化, 不受影响。用户显式设过该变量时不覆盖。
+    """
+    global _EMB_CONCURRENCY_SCALED_BY_US
+    _cur = os.environ.get(_EMB_CONCURRENCY_ENV, '').strip()
+    if _cur and not _EMB_CONCURRENCY_SCALED_BY_US:
+        logger.info(
+            f"  嵌入 API 并发: 沿用已设的 {_EMB_CONCURRENCY_ENV}={_cur} "
+            f"(运维意图优先, 不按 worker 数缩放)")
+        return
+    per_worker = max(1, _EMB_CONCURRENCY_BASELINE // max(1, n_jobs))
+    if _cur == str(per_worker):
+        return                      # 同轨同并行度重复调用: 静默幂等, 不刷重复日志
+    os.environ[_EMB_CONCURRENCY_ENV] = str(per_worker)
+    _EMB_CONCURRENCY_SCALED_BY_US = True
+    logger.info(
+        f"  嵌入 API 并发: 每 worker {per_worker} × {n_jobs} worker "
+        f"≈ {per_worker * n_jobs} (基线 {_EMB_CONCURRENCY_BASELINE}) —— "
+        f"防 P×250 打爆 TPM 重演 F28")
+
+
 # ⚠ 刻意**没有** `_silence_worker_logging()`: 下方三个 worker 会被**父进程直接调用**
 # (年数 < 阈值 / 只配到 1 worker 的串行回落路径, 以及 `_run_year_tasks` 的 OOM 兜底
 # 整批串行重跑路径)。若在 worker 里降 logger 级别, 这些串行路径会把整个 stage 的 INFO
 # 日志掐掉 —— 那正是 F16 那类"日志落空"缺陷的自造版本。改用**告警回传父端 emit**:
 # worker 体内零 logger 调用。
 # (原文此处还列了"LDA 的恒串行路径" —— F26 之后 LDA 已并行, 该项 2026-07-28 删除。)
+
+
+def _strat_year_worker(task, n_list_cw, n_list_other, few_banks_warn,
+                       lda_fail_tmpl, bon_tail_tmpl):
+    """单 (轨, 年) 的五方法计算 —— 原逐年循环体的**计算段**逐字节照搬。
+
+    ⚠ 与串行循环唯一的差别: 所有 ``logger.*`` 改为写进本地 ``logs`` 回传, 由父端按
+    提交序统一 emit (与 S5 `_auth_year_worker` 同一护栏)。两个早退守卫 (<3 家银行 /
+    both-or-neither 塌缩) **刻意留在 worker 内**, 提到父端会让守卫告警与计算类日志的
+    交错顺序偏离串行。
+
+    ⚠ **行装配刻意不在这里**: 列名 (`strat_diff_n{N}{sfx}` 等几十个) 全部留在父端
+    原地不动 —— 移动几十个 f-string 列名是本改动风险最高、收益最低的部分, 而它们
+    是纯字典查表, 本就不耗时。worker 只回传各方法的小字典 (n_banks × ~10 个 float),
+    IPC 轻。
+
+    Args:
+        task: ``(track_label, track_suffix, year, banks, texts)``。
+        n_list_cw:    char/word 两法的 N 列表 (Full 轨 = N_LIST; 子轨 = LDA_EMB_N_LIST)。
+        n_list_other: lda/emb/emb_lg 的 N 列表 (两轨均 = LDA_EMB_N_LIST)。
+        few_banks_warn: <3 家银行时是否发告警 (Full 轨 True; 子轨原为裸 continue)。
+        lda_fail_tmpl:  LDA 失败告警模板 (含 ``{year}`` / ``{exc}`` 占位)。
+        bon_tail_tmpl:  both-or-neither 告警的列名尾串模板 (含 ``{n}``)。
+
+    Returns:
+        ``(payload | None, logs)`` — payload 为各方法结果字典; None 表示该年跳过。
+    """
+    track_label, track_suffix, year, banks, texts = task
+    logs: list[tuple[int, str]] = []
+
+    if len(banks) < 3:
+        if few_banks_warn:
+            logs.append((logging.WARNING,
+                         f"  年度={year}: 仅 {len(banks)} 家银行, 跳过 (最低要求 3)"))
+        return None, logs
+    if few_banks_warn:
+        logs.append((logging.INFO, f"  年度={year}, 银行数={len(banks)}"))
+
+    # 方法 A: TF-IDF 字符级 — 看字符组合的相似度（不依赖分词）
+    sim_c, vec_c = _build_tfidf_sim_matrix(texts, 'char')
+    sc = _compute_nn_scores(sim_c, banks, n_list_cw)
+    # 全行业向量法 (谢佳松 2025, 经济研究, 图 1)
+    cd_c = _compute_centroid_scores(vec_c, banks, is_sparse=True)
+    # 方法 B: TF-IDF 词级 — 用 jieba 分词后比较（语义更精准）
+    sim_w, vec_w = _build_tfidf_sim_matrix(texts, 'word')
+    sw = _compute_nn_scores(sim_w, banks, n_list_cw)
+    cd_w = _compute_centroid_scores(vec_w, banks, is_sparse=True)
+    # 方法 C: LDA + JSD — 比较"主题分布"的差异（稳健性检验）
+    try:
+        jsd_mat, theta = _build_lda_jsd_matrix(texts, len(banks), log_sink=logs)
+        sl = _compute_nn_scores(jsd_mat, banks, n_list_other, is_distance=True)
+        cd_lda = _compute_centroid_scores(theta, banks)
+    except Exception as e:
+        logs.append((logging.WARNING,
+                     lda_fail_tmpl.format(year=year, exc=type(e).__name__)))
+        sl = None
+        cd_lda = None
+    # 方法 D: Embedding (主轨) — Qwen/Qwen3-Embedding-8B 语义距离
+    # fix(omni-g-strategic-02/10, 2026-06-11): emb 余弦真值域 [-1,1] /
+    # 距离 [0,2] — 显式传 bounds, 防按 TF-IDF [0,1] 默认值删失负余弦
+    se_mat, se_emb = _build_embedding_sim_matrix(texts)
+    if se_mat is not None:
+        se = _compute_nn_scores(se_mat, banks, n_list_other, sim_bounds=(-1.0, 1.0))
+        cd_emb = _compute_centroid_scores(se_emb, banks, dist_bounds=(0.0, 2.0))
+    else:
+        se, cd_emb = None, None
+    # 方法 D-lg: co-primary 嵌入 (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE)
+    se_lg, cd_emb_lg = None, None
+    if _LARGE_SPEC:
+        se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(texts, spec=_LARGE_SPEC)
+        if se_mat_lg is not None:
+            se_lg = _compute_nn_scores(se_mat_lg, banks, n_list_other,
+                                       sim_bounds=(-1.0, 1.0))
+            cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
+                                                 dist_bounds=(0.0, 2.0))
+        # both-or-neither parity (v3.14.0): MAIN 与 _lg 是 co-primary, 任一嵌入
+        # 失败 → 两者同族列一并 NaN (无单边孤儿列, parity test 守门)。
+        if se is None or se_lg is None:
+            # F28 同型站点留痕 (2026-07-28); 只加日志, 零数值改动。
+            logs.append((logging.ERROR,
+                         f"🔴 战略差异度 both-or-neither 塌缩 [{track_label} 轨 "
+                         f"year={year}]: "
+                         f"失败臂={'MAIN(Qwen)' if se is None else ''}"
+                         f"{'+' if se is None and se_lg is None else ''}"
+                         f"{'_lg(large)' if se_lg is None else ''}; "
+                         + bon_tail_tmpl.format(n=len(banks))))
+            se, cd_emb = None, None
+            se_lg, cd_emb_lg = None, None
+
+    return {'sc': sc, 'sw': sw, 'sl': sl, 'se': se, 'se_lg': se_lg,
+            'cd_c': cd_c, 'cd_w': cd_w, 'cd_lda': cd_lda,
+            'cd_emb': cd_emb, 'cd_emb_lg': cd_emb_lg}, logs
+
+
+def _run_strat_year_tasks(tasks, n_list_cw, n_list_other, few_banks_warn,
+                          lda_fail_tmpl, bon_tail_tmpl):
+    """S13 驱动器: 决定并行度 → 缩放嵌入 API 并发 → 复用 `_run_year_tasks` 执行。
+
+    并行度 = `NEWS_PROCESS_STRAT_JOBS` 覆盖值, 否则 `_proc_workers(len(tasks))`。
+    走串行臂时**不动**嵌入并发环境变量 (串行本就只有一个 250 的预算)。
+    """
+    _n = _strat_jobs_override()
+    _eff = _n if _n is not None else _proc_workers(len(tasks))
+    if len(tasks) >= _STRAT_PARALLEL_MIN_YEARS and _eff > 1:
+        _scale_worker_emb_concurrency(_eff)
+        logger.info(
+            f"  逐年并行: {len(tasks)} 个 (轨,年) 任务 → n_jobs={_eff} "
+            f"(阈值 {_STRAT_PARALLEL_MIN_YEARS}; 旁路 {_STRAT_JOBS_ENV})")
+    else:
+        logger.info(
+            f"  逐年串行: {len(tasks)} 个 (轨,年) 任务 "
+            f"(< 阈值 {_STRAT_PARALLEL_MIN_YEARS} 或并行度={_eff})")
+    return _run_year_tasks(
+        tasks, _strat_year_worker,
+        n_list_cw, n_list_other, few_banks_warn, lda_fail_tmpl, bon_tail_tmpl,
+        min_tasks=_STRAT_PARALLEL_MIN_YEARS, n_jobs=_n)
+
+
+def _strat_year_tasks(agg, track_label, track_suffix):
+    """把主逐年循环切成 ``(轨, 年, banks, texts)`` 任务单元。
+
+    ⚠ 必须与串行循环**同序同筛选**: `sorted(agg['year'].unique())`, 且 <3 家银行的
+    年份**照样进池** (由 worker 内的守卫早退并发告警) —— 在这里提前筛掉会让告警
+    时序偏离串行。
+    """
+    return [(track_label, track_suffix, year,
+             agg[agg['year'] == year]['target_bank'].tolist(),
+             agg[agg['year'] == year]['agg_text'].tolist())
+            for year in sorted(agg['year'].unique())]
 
 
 def _adjacent_year_tasks(agg_df):
@@ -1813,71 +2022,27 @@ def compute_strategic_differentiation(df_exploded, panel):
 
     # 【白话】逐年计算 — 每一年独立建模，不跨年混合
     #   这样做是因为金融科技领域变化很快，2020年的"热词"和2024年可能完全不同
-    for year in sorted(agg_df['year'].unique()):
-        dy = agg_df[agg_df['year'] == year]
-        banks = dy['target_bank'].tolist()   # 这一年有哪些银行
-        texts = dy['agg_text'].tolist()       # 每家银行的"年度总结"文本
-        if len(banks) < 3:
-            # 少于 3 家银行没法比较，跳过
-            logger.warning(f"  年度={year}: 仅 {len(banks)} 家银行, 跳过 (最低要求 3)")
+    # S13 (2026-07-31): 计算段下沉到 `_strat_year_worker` 并逐年进程并行; 本处只剩
+    # 「回放日志 + 装配行」。任务切分/结果回收均按 `sorted(year)` 提交序 ⟹ 日志行序、
+    # all_results 行序、列值均与串行逐字节一致 (F28 塌缩告警亦在其原位置)。
+    _tasks_full = _strat_year_tasks(agg_df, 'Full', '')
+    _bon_tail_full = ("该年 {n} 家银行的 strat_diff_n*_emb / strat_sim_max_emb / "
+                      "centroid_diff_emb / strat_diff_full 及其 _lg 孪生一并置 NaN")
+    for (_payload, _logs), _task in zip(
+            _run_strat_year_tasks(
+                _tasks_full, N_LIST, LDA_EMB_N_LIST, True,
+                "    LDA+JSD 失败 ({exc}), 跳过", _bon_tail_full),
+            _tasks_full):
+        for _lvl, _msg in _logs:
+            logger.log(_lvl, _msg)
+        if _payload is None:
             continue
-        logger.info(f"  年度={year}, 银行数={len(banks)}")
-
-        # 方法 A: TF-IDF 字符级 — 看字符组合的相似度（不依赖分词）
-        sim_c, vec_c = _build_tfidf_sim_matrix(texts, 'char')
-        sc = _compute_nn_scores(sim_c, banks, N_LIST)
-        # 全行业向量法 (谢佳松 2025, 经济研究, 图 1)
-        cd_c = _compute_centroid_scores(vec_c, banks, is_sparse=True)
-        # 方法 B: TF-IDF 词级 — 用 jieba 分词后比较（语义更精准）
-        sim_w, vec_w = _build_tfidf_sim_matrix(texts, 'word')
-        sw = _compute_nn_scores(sim_w, banks, N_LIST)
-        cd_w = _compute_centroid_scores(vec_w, banks, is_sparse=True)
-        # 方法 C: LDA + JSD — 比较"主题分布"的差异（稳健性检验）
-        try:
-            jsd_mat, theta = _build_lda_jsd_matrix(texts, len(banks))
-            sl = _compute_nn_scores(jsd_mat, banks, LDA_EMB_N_LIST, is_distance=True)
-            cd_lda = _compute_centroid_scores(theta, banks)
-        except Exception as e:
-            logger.warning(f"    LDA+JSD 失败 ({type(e).__name__}), 跳过")
-            sl = None
-            cd_lda = None
-        # 方法 D: Embedding (主轨) — Qwen/Qwen3-Embedding-8B 语义距离
-        # fix(omni-g-strategic-02/10, 2026-06-11): emb 余弦真值域 [-1,1] /
-        # 距离 [0,2] — 显式传 bounds, 防按 TF-IDF [0,1] 默认值删失负余弦
-        se_mat, se_emb = _build_embedding_sim_matrix(texts)
-        if se_mat is not None:
-            se = _compute_nn_scores(se_mat, banks, LDA_EMB_N_LIST, sim_bounds=(-1.0, 1.0))
-            cd_emb = _compute_centroid_scores(se_emb, banks,
-                                              dist_bounds=(0.0, 2.0))
-        else:
-            se, cd_emb = None, None
-        # 方法 D-lg: co-primary 嵌入 (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE)
-        se_lg, cd_emb_lg = None, None
-        if _LARGE_SPEC:
-            se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(
-                texts, spec=_LARGE_SPEC)
-            if se_mat_lg is not None:
-                se_lg = _compute_nn_scores(se_mat_lg, banks, LDA_EMB_N_LIST,
-                                           sim_bounds=(-1.0, 1.0))
-                cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
-                                                     dist_bounds=(0.0, 2.0))
-            # both-or-neither parity (v3.14.0): MAIN 与 _lg 是 co-primary, 任一嵌入
-            # 失败 → 两者同族列一并 NaN (无单边孤儿列, parity test 守门)。
-            if se is None or se_lg is None:
-                # F28 同型站点留痕 (2026-07-28; 本站点 2026-07-27 生产跑**未**触发 —
-                # 盘上 strat_diff_n*_emb* 全 6,224 满值 — 但用的是同一个 embed_texts /
-                # 同一个 TPM 端点, 只是没有任何一批把 80 次重试用光, 纯属运气)。
-                # 只加日志, 零数值改动。
-                logger.error(
-                    f"🔴 战略差异度 both-or-neither 塌缩 [Full 轨 year={year}]: "
-                    f"失败臂={'MAIN(Qwen)' if se is None else ''}"
-                    f"{'+' if se is None and se_lg is None else ''}"
-                    f"{'_lg(large)' if se_lg is None else ''}; "
-                    f"该年 {len(banks)} 家银行的 strat_diff_n*_emb / strat_sim_max_emb / "
-                    f"centroid_diff_emb / strat_diff_full 及其 _lg 孪生一并置 NaN"
-                )
-                se, cd_emb = None, None
-                se_lg, cd_emb_lg = None, None
+        banks = _task[3]
+        year = _task[2]
+        sc, sw, sl = _payload['sc'], _payload['sw'], _payload['sl']
+        se, se_lg = _payload['se'], _payload['se_lg']
+        cd_c, cd_w, cd_lda = _payload['cd_c'], _payload['cd_w'], _payload['cd_lda']
+        cd_emb, cd_emb_lg = _payload['cd_emb'], _payload['cd_emb_lg']
 
         # 【白话】把这一年每家银行的计算结果打包成一行行数据
         #   每一行 = 一家银行在这一年的所有差异度分数
@@ -2097,69 +2262,32 @@ def compute_strategic_differentiation(df_exploded, panel):
         flu_w_sub = _compute_fluidity(agg_sub_sd, 'word')
         sub_results = []
 
-        for year in sorted(agg_sub_sd['year'].unique()):
-            dy = agg_sub_sd[agg_sub_sd['year'] == year]
-            banks = dy['target_bank'].tolist()
-            texts = dy['agg_text'].tolist()
-            if len(banks) < 3:
+        # S13 (2026-07-31): 计算段下沉到 `_strat_year_worker` + 逐年进程并行
+        # (与 Full 轨同一 worker、同一驱动器)。⚠ 两处口径差异刻意保留:
+        #   ① 子轨 char/word 用 LDA_EMB_N_LIST (Full 轨用 N_LIST);
+        #   ② 子轨 <3 家银行原为**裸 continue 无告警**, 故 few_banks_warn=False,
+        #      日志与旧码逐行一致 (不借机"顺手补告警" —— 那会改变日志基线)。
+        _tasks_sub = _strat_year_tasks(agg_sub_sd, _tsfx, _tsfx)
+        _bon_tail_sub = (
+            "该年 {n} 家银行的 strat_diff_n*_emb" + _tsfx + " / "
+            "strat_sim_max_emb" + _tsfx + " / centroid_diff_emb" + _tsfx + " "
+            "及其 _lg 孪生一并置 NaN")
+        for (_payload, _logs), _task in zip(
+                _run_strat_year_tasks(
+                    _tasks_sub, LDA_EMB_N_LIST, LDA_EMB_N_LIST, False,
+                    "    " + _tsfx + " 轨 year={year} LDA+JSD 失败 ({exc}), 跳过",
+                    _bon_tail_sub),
+                _tasks_sub):
+            for _lvl, _msg in _logs:
+                logger.log(_lvl, _msg)
+            if _payload is None:
                 continue
-
-            # N-NN + centroid, 五方法; fix(topk-n-expansion): N∈LDA_EMB_N_LIST={5}∪_TOPK_NN
-            sim_c, vec_c = _build_tfidf_sim_matrix(texts, 'char')
-            sc = _compute_nn_scores(sim_c, banks, LDA_EMB_N_LIST)
-            cd_c = _compute_centroid_scores(vec_c, banks, is_sparse=True)
-
-            sim_w, vec_w = _build_tfidf_sim_matrix(texts, 'word')
-            sw = _compute_nn_scores(sim_w, banks, LDA_EMB_N_LIST)
-            cd_w = _compute_centroid_scores(vec_w, banks, is_sparse=True)
-
-            try:
-                jsd_mat, theta = _build_lda_jsd_matrix(texts, len(banks))
-                sl = _compute_nn_scores(jsd_mat, banks, LDA_EMB_N_LIST,
-                                         is_distance=True)
-                cd_lda = _compute_centroid_scores(theta, banks)
-            except Exception as e:
-                # fix(reaudit-2026-07-12 WP-A2): 镜像 Full 轨同款告警 — 原裸吞零日志,
-                # 该年 *_lda{_tsfx} 列静默 NaN 无审计线索 (数值语义不变: None → 跳写)。
-                logger.warning(
-                    f"    {_tsfx} 轨 year={year} LDA+JSD 失败 "
-                    f"({type(e).__name__}), 跳过")
-                sl, cd_lda = None, None
-
-            # fix(omni-g-strategic-02/10): emb 轨显式 bounds (同 Full 轨)
-            se_mat, se_emb = _build_embedding_sim_matrix(texts)
-            if se_mat is not None:
-                se = _compute_nn_scores(se_mat, banks, LDA_EMB_N_LIST,
-                                        sim_bounds=(-1.0, 1.0))
-                cd_emb = _compute_centroid_scores(se_emb, banks,
-                                                  dist_bounds=(0.0, 2.0))
-            else:
-                se, cd_emb = None, None
-            # co-primary 嵌入 (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE)
-            se_lg, cd_emb_lg = None, None
-            if _LARGE_SPEC:
-                se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(
-                    texts, spec=_LARGE_SPEC)
-                if se_mat_lg is not None:
-                    se_lg = _compute_nn_scores(se_mat_lg, banks, LDA_EMB_N_LIST,
-                                               sim_bounds=(-1.0, 1.0))
-                    cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
-                                                         dist_bounds=(0.0, 2.0))
-                # both-or-neither parity (v3.14.0): MAIN 与 _lg co-primary, 任一
-                # 嵌入失败 → 两者同族列一并 NaN (无单边孤儿列)。
-                if se is None or se_lg is None:
-                    # F28 同型站点留痕 (2026-07-28; 与 Full 轨同型, 只加日志零数值改动)
-                    logger.error(
-                        f"🔴 战略差异度 both-or-neither 塌缩 [{_tsfx} 轨 year={year}]: "
-                        f"失败臂={'MAIN(Qwen)' if se is None else ''}"
-                        f"{'+' if se is None and se_lg is None else ''}"
-                        f"{'_lg(large)' if se_lg is None else ''}; "
-                        f"该年 {len(banks)} 家银行的 strat_diff_n*_emb{_tsfx} / "
-                        f"strat_sim_max_emb{_tsfx} / centroid_diff_emb{_tsfx} "
-                        f"及其 _lg 孪生一并置 NaN"
-                    )
-                    se, cd_emb = None, None
-                    se_lg, cd_emb_lg = None, None
+            banks = _task[3]
+            year = _task[2]
+            sc, sw, sl = _payload['sc'], _payload['sw'], _payload['sl']
+            se, se_lg = _payload['se'], _payload['se_lg']
+            cd_c, cd_w, cd_lda = _payload['cd_c'], _payload['cd_w'], _payload['cd_lda']
+            cd_emb, cd_emb_lg = _payload['cd_emb'], _payload['cd_emb_lg']
 
             for bank in banks:
                 row = {'target_bank': bank, 'year': year}

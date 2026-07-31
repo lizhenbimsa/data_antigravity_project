@@ -21,6 +21,7 @@
 """
 from __future__ import annotations
 
+import ast
 import inspect
 import logging
 import os
@@ -252,3 +253,87 @@ def test_streaming_oom_fallback_reruns_only_remaining():
     msgs = ' '.join(cap.msgs)
     assert '回落串行补跑' in msgs and '已完成' in msgs, (
         f'流式兜底未 loud ERROR 或文案退化: {msgs[:300]}')
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S13 (2026-07-31) gate: 主逐年循环 (`compute_strategic_differentiation`) 的并行
+# ══════════════════════════════════════════════════════════════════════════
+# F25 只并行了三个「相邻期」循环; 本函数**自己的**三轨逐年循环才是大头, S13 补上。
+# 这里锁四件事, 每一件都对应一个具体的翻车方式:
+#   ① 嵌入 API 并发必须按 worker 数**等比缩小** —— 否则 P×250 打爆 TPM, 重演 F28
+#      (重试耗尽 → 整族嵌入列静默 NaN)。这是 S13 唯一的硬阻断项。
+#   ② 并行阈值必须把 T=2 dev 与单测留在串行 (桩不传播进 loky ⟹ 测试当场失真)。
+#   ③ worker 体内零 logger 调用 (同 F25 的 ④, 串行回落路径会在父进程跑它)。
+#   ④ 任务切分与串行循环同序同筛选, 且 <3 家银行的年份**照样进池** (由 worker 内
+#      守卫早退) —— 在切分处提前筛掉会让告警时序偏离串行。
+
+def test_s13_emb_concurrency_scaled_by_worker_count(monkeypatch):
+    """① 总并发 = 每 worker 并发 × worker 数 ≈ 基线, 不得是 P × 250。"""
+    monkeypatch.delenv(sd._EMB_CONCURRENCY_ENV, raising=False)
+    monkeypatch.setattr(sd, '_EMB_CONCURRENCY_SCALED_BY_US', False)
+    sd._scale_worker_emb_concurrency(12)
+    per = int(os.environ[sd._EMB_CONCURRENCY_ENV])
+    assert per * 12 <= sd._EMB_CONCURRENCY_BASELINE * 1.05, (
+        f'每 worker {per} × 12 = {per * 12} 远超基线 '
+        f'{sd._EMB_CONCURRENCY_BASELINE} —— 会重演 F28 的 TPM 重试耗尽')
+    assert per >= 1
+
+
+def test_s13_emb_concurrency_respects_operator_override(monkeypatch):
+    """① 之二: 用户显式设过该变量时**不得**覆盖 (运维意图优先)。"""
+    monkeypatch.setenv(sd._EMB_CONCURRENCY_ENV, '7')
+    monkeypatch.setattr(sd, '_EMB_CONCURRENCY_SCALED_BY_US', False)
+    sd._scale_worker_emb_concurrency(12)
+    assert os.environ[sd._EMB_CONCURRENCY_ENV] == '7', '覆盖了运维显式设置'
+
+
+def test_s13_threshold_keeps_toy_and_t2_serial():
+    """② T=2 dev (每轨 2 个任务) 与单测 fixture 必须留在串行臂。"""
+    assert sd._STRAT_PARALLEL_MIN_YEARS >= 12, (
+        f'_STRAT_PARALLEL_MIN_YEARS={sd._STRAT_PARALLEL_MIN_YEARS} 过低 —— '
+        'T=2 dev 与单测会走进 loky, 而 monkeypatch 桩不传播进子进程')
+
+
+def test_s13_worker_has_zero_logger_calls():
+    """③ worker 体内零 logger (它会被父进程直接调用于串行回落路径)。"""
+    node = ast.parse(inspect.getsource(sd._strat_year_worker)).body[0]
+    bad = [f'logger.{n.func.attr}' for n in ast.walk(node)
+           if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+           and isinstance(n.func.value, ast.Name) and n.func.value.id == 'logger']
+    assert not bad, (
+        f'_strat_year_worker 体内出现 logger 调用 {bad} —— 串行回落时它在父进程跑, '
+        '会掐掉整个 stage 的日志; 告警一律经 logs 回传父端 emit')
+
+
+def test_s13_task_split_keeps_small_years_and_is_sorted():
+    """④ 切分与串行同序, 且 <3 家银行的年份照样进池 (由 worker 守卫早退)。"""
+    agg = pd.DataFrame({
+        'year': [2011, 2011, 2011, 2010, 2010, 2012],
+        'target_bank': ['a', 'b', 'c', 'a', 'b', 'a'],
+        'agg_text': ['t'] * 6,
+    })
+    tasks = sd._strat_year_tasks(agg, 'Full', '')
+    assert [t[2] for t in tasks] == [2010, 2011, 2012], '年份未按 sorted 提交'
+    assert len(tasks[0][3]) == 2 and len(tasks[2][3]) == 1, (
+        '<3 家银行的年份被提前筛掉了 —— 守卫告警时序会偏离串行')
+
+
+def test_s13_worker_early_exits_and_warns_like_serial():
+    """④ 之二: <3 家银行 → 返回 None + (Full 轨) 告警; 子轨保持无告警。"""
+    task = ('Full', '', 2010, ['a', 'b'], ['x', 'y'])
+    payload, logs = sd._strat_year_worker(
+        task, [5], [5], True, '  LDA 失败 ({exc}) year={year}', '{n} 家')
+    assert payload is None
+    assert any('仅 2 家银行' in m for _, m in logs), 'Full 轨少了 <3 家告警'
+    task_sub = ('_ctx', '_ctx', 2010, ['a', 'b'], ['x', 'y'])
+    payload2, logs2 = sd._strat_year_worker(
+        task_sub, [5], [5], False, '  LDA 失败 ({exc}) year={year}', '{n} 家')
+    assert payload2 is None and logs2 == [], (
+        '子轨原本是裸 continue 无告警, 不得借机补告警 (会改变日志基线)')
+
+
+def test_s13_worker_is_module_level_picklable():
+    """loky 进程后端要求 worker 模块级 (pickle-by-ref)。"""
+    import pickle
+    assert sd._strat_year_worker.__module__ == sd.__name__
+    assert pickle.loads(pickle.dumps(sd._strat_year_worker)) is sd._strat_year_worker
