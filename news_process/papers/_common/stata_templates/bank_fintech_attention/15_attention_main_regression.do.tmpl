@@ -14,14 +14,14 @@
 * M4: + 标准银行层面控制变量
 * M5: + 宏观控制 (gdp_growth / m2_growth 存在时; 否则退化复用 M4 规格)
 * M6: + attention × post-DCEP-pilot 试点哑变量 INLINE 强度 DiD (intensity-DiD,
-*     兑现 spec.event_studies 的事件设定; 仅 T≥3 才可识别, T=2 试跑帧零方差跳过)
+*     兑现 spec.event_studies 的事件设定; 仅 T≥3 才可识别, 早期试跑 T=2 帧零方差跳过)
 *
 * 识别策略: 双向固定效应 (TWFE) 面板回归 (bank FE + year FE)
 *                via reghdfe; M1-M6 全为 reghdfe TWFE, 本模板无 csdid 调用.
 *                注: spec.identification 概念上锚定 staggered DiD, 但 Callaway-Sant'Anna
 *                (2021) staggered DiD estimator 需 T≥3 (多期 pre/post 以识别 group-time
-*                ATT); 当前面板 T=2 (2017-2018 bank-year), staggered DiD 不可识别, 故
-*                baseline 退化为 TWFE — 见 pipeline/panel/iv_did.py docstring 的 T=2
+*                ATT); 当前面板早期试跑 T=2 (2017-2018 bank-year), staggered DiD 不可识别, 故
+*                baseline 退化为 TWFE — 见 pipeline/panel/iv_did.py docstring 的早期试跑 T=2
 *                识别披露. 待 production run 扩到 T≥3 后方可启用 csdid.
 *                IV 用 leave-one-out 同业 attention (Bartik 后备由共享模板
 *                22_tableA3_bartik_iv 处理)。
@@ -80,7 +80,7 @@ else {
 * DID-2 修复: 旧 M6 喂 post_E1 (post_E*/treat_E* 全 pipeline 零生产者 → 永久空壳)。
 *   改接已物化的 dcep_post (同步政策冲击, 而非 staggered cohort) × attention 强度,
 *   兑现 spec.event_studies 的 intensity-DiD 设定, 无需新列 → golden-safe。
-* ⚠ T=2 试跑帧 dcep_post 恒 0 (处理年 2019 晚于面板末年) → 零方差守卫静默跳过,
+* ⚠ 早期试跑 T=2 帧 dcep_post 恒 0 (处理年 2019 晚于面板末年) → 零方差守卫静默跳过,
 *   T=19 自动激活; sandbox_post 作 fallback (其处理年若更早可有变异)。
 local m6_done = 0
 foreach _post in dcep_post sandbox_post {
@@ -102,7 +102,7 @@ foreach _post in dcep_post sandbox_post {
     }
 }
 if `m6_done' == 0 {
-    display "  [INFO] dcep_post/sandbox_post 零方差或不在盘 (处理年晚于 T=2 面板末年); M6 跳过, T=19 自动激活"
+    display "  [INFO] dcep_post/sandbox_post 零方差或不在盘 (处理年晚于早期试跑 T=2 面板末年); M6 跳过, T=19 自动激活"
 }
 
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6 依赖 post_E1 (无管道
@@ -129,7 +129,7 @@ esttab `models' using "$tables_dir/table2_main.tex", replace ///
     title("Main Results --- bank_fintech_attention (P2)") ///
     mtitles(`mtitles') ///
     addnotes("Two-way fixed-effects (TWFE) panel regression; bank and year FE; SE clustered at {{CLUSTER_VAR}}." ///
-             "M6 = INLINE intensity-DiD (attention x post-DCEP-pilot); identified only when the policy treatment year falls inside the panel window (T>=3). Callaway-Sant'Anna (2021) staggered DiD requires T>=3 and is not identified on the current T=2 panel (2017-2018)." ///
+             "M6 = INLINE intensity-DiD (attention x post-DCEP-pilot); identified only when the policy treatment year falls inside the panel window (T>=3). Callaway-Sant'Anna (2021) staggered DiD requires T>=3 and is not identified on the retired T=2 trial panel (2017-2018)." ///
              "Main treatment attention_index_full is firm-level verified-universe gated (ATT-1 semi-join). DISCLOSURE (SU-2 / ATT-2): the geographic attention family (ft_attn_yr/prov/city, ft_vol_yr/prov/city) is NOT verified-universe gated and feeds only descriptive Table 1 rows, never any regression/IV coefficient; its level drift is absorbed by year FE. Gating asymmetry to be removed (numerator-only) before any geo-IV activation." ///
              "IV first stage in 19_attention_iv_first_stage.do (incl. LOO x Bartik pooled over-id, Hansen J); Bartik fallback in 22_tableA3_bartik_iv.")
 

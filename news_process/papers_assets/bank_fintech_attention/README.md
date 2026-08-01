@@ -80,7 +80,7 @@ P2 applicable events (原 B-route master plan 章节锚点已随 docs/ 目录整
 ## 仍待用户补充 (prerequisites; 原 B-route master plan 章节锚点已随 docs/ 目录整体删除而不可达)
 
 1. Raw 语料的物理位置 / 访问凭证 (D1 决策点)
-   - **当前 disk 实测**: 84 banks × 2 yr (2017-2018) = 168 obs (`40_panel_yearly.parquet`,
+   - **disk 实测 (2026-08-01)**: 1,247 banks × 19 yr (2007-2025) = 23,693 obs (其中 6,224 格 n_articles>0); ⚠ 旧载「84 banks × 2 yr (2017-2018) = 168 obs」系 T=2 试跑期数字, 已作废 (`40_panel_yearly.parquet`,
      frozen 2026-05-16)
    - **M0.5 production run 目标**: ~500 banks × 19 yr (2007-2025) ≈ 9500 obs
    - **R1-R5 audit fix A10 (2026-05-27)**: 此前文档 "Raw 40 万条语料" 与 disk

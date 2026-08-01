@@ -134,7 +134,7 @@ inference:
     fwer_method: romano_wolf_or_westfall_young
     references: ["Romano-Wolf 2005 ECMA", "Westfall-Young 1993", "List-Shaikh-Xu 2019 EE (RCT 范式, 仅参照)", "Anderson 2008 JASA"]
   weak_iv_inference:  # IV-2 修复: 弱工具稳健推断 (22_substance_iv_2sls weakiv AR-CI)
-    concern: "peer-LOO / Bartik 工具在 T=2 退化盘上 KP F 可能 < Stock-Yogo 临界 16.38"
+    concern: "peer-LOO / Bartik 工具在早期试跑 T=2 退化盘上 KP F 可能 < Stock-Yogo 临界 16.38"
     remedy: "Anderson-Rubin 弱工具稳健 CI (weakiv ado; Andrews-Stock-Sun 2019 ARE) 进 IV 表 stats 行; KP F 弱时改读 AR 区间"
   cluster_primary: bank_id        # = controls.cluster (one-way; G_bank≈200)
   small_g_inference:

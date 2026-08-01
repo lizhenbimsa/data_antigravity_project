@@ -103,7 +103,7 @@ If the organizational-source dimension carries no marginal information beyond P3
 
 **Panel.** Article-level classifications aggregate into a bank-year panel of **110 Chinese commercial banks** (2007–2025, T=19).
 
-> TODO: Realized production-panel row/column counts and per-variable non-missing observation counts to be backfilled after the production-machine rerun (the spec design target is obs ≥ 3000; the local dev environment carries only a T=2 trial dataset, which does not constitute a realized measurement).
+> TODO: Realized production-panel row/column counts and per-variable non-missing observation counts to be backfilled after the production-machine rerun (the spec design target is obs ≥ 3000; the development environment at the time of drafting carried only an early-trial T=2 dataset (retired; the on-disk panel has since been rebuilt at production scale, T=19), which does not constitute a realized measurement).
 
 ### 3.2 Measurement: Innovation Collaboration Mode
 
@@ -319,6 +319,6 @@ This paper measures innovation collaboration mode using a binary classification 
 
 The prompt template used for LLM classification (prompt v8) is an *additive supplementation* of the pre-registered v7 prompt (anchored at git tag `prompt-v7-released`); v7's verification, sentiment, substantiveness, and locus criteria are preserved verbatim (a purely additive, non-revisionary supplement that leaves all pre-registered criteria untouched, consistent with pre-registration supplementation discipline). The new collaboration mode dimension is to be committed at git tag `prompt-v8-supplementation-released` upon M5 finalization (this tag is not yet created).
 
-**Empirical-status declaration.** This manuscript was drafted on a development machine (T=2 dev trial data only), with no production regression results of any kind; all coefficients, standard errors, and significance levels in §4/§5 are pending-backfill placeholders. The financial/M&A/patent enrichment layer (M0.5.11) is forthcoming, and the corresponding outcome columns are already wired ahead.
+**Empirical-status declaration.** This manuscript was drafted on a development machine (early-trial T=2 data only), with no production regression results of any kind; all coefficients, standard errors, and significance levels in §4/§5 are pending-backfill placeholders. The financial/M&A/patent enrichment layer (M0.5.11) is forthcoming, and the corresponding outcome columns are already wired ahead.
 
 **LLM-use disclosure (pointer).** Consistent with the other papers from the same pipeline, this paper's LLM-use disclosure comprises: (i) LLM routing — article-level classification is performed by three models (gpt-5.4-nano and gemini-3.1-flash-lite routed via yunwu; deepseek-v4-flash via direct connection) at temperature=0.0, seed=42, under byte-frozen prompt v8, aggregated by majority vote; (ii) the article-retention gate is full-only (`llm_verified_full`), with ctx/ss tracks conditional-on-full; (iii) the pipeline's co-primary dual embedding tracks (Qwen3-Embedding-8B canonical + text-embedding-3-large `_lg`) serve only as pipeline background and enter neither P5's treatment nor any of its regressions. Full disclosure text: `papers/_common/AI_DISCLOSURE_TEMPLATES.md`.

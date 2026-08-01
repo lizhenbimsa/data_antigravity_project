@@ -34,8 +34,8 @@
 *   - psacalc 走 SSC, capture which 守卫未装则跳过该 panel (视为正常, 非失败)。
 *   - esttab/estout 名单动态化 (qui estimates dir → 过滤候选), 缺名不点名防 r(111),
 *     全部带 CSV side-channel。
-*   - T=2 试跑盘 (years 2017-2018, ~174 行) 退化守卫: 银行特定线性趋势 c.year#bank_id
-*     在 T=2 时与 bank+year 共线 → capture 吸收失败优雅跳过 (production T=19 才全功效)。
+*   - 早期试跑 T=2 盘 (years 2017-2018, ~174 行) 退化守卫: 银行特定线性趋势 c.year#bank_id
+*     在早期试跑 T=2 时与 bank+year 共线 → capture 吸收失败优雅跳过 (production T=19 才全功效)。
 * ============================================================================
 
 version 19
@@ -153,7 +153,7 @@ if !_rc {
         local felabs `"`felabs' "+Province#Year""'
     }
     else {
-        display "  WARN Panel A: +省份×年 FE 失败 (共线/T=2 退化?), 跳过"
+        display "  WARN Panel A: +省份×年 FE 失败 (共线/早期试跑 T=2 退化?), 跳过"
     }
 }
 
@@ -193,7 +193,7 @@ if !_rc {
     }
 }
 
-* M4: + 银行特定线性趋势 (c.year#bank_id) — 需 T>=3 (T=2 时与 bank+year 共线退化)
+* M4: + 银行特定线性趋势 (c.year#bank_id) — 需 T>=3 (早期试跑 T=2 时与 bank+year 共线退化)
 quietly levelsof year, local(_yrs)
 local n_yr : word count `_yrs'
 if `n_yr' >= 3 {
@@ -232,7 +232,7 @@ if "`A_models'" != "" {
         title("Table 7-strat-A: Fixed-Effect Saturation (Gormley-Matsa 2014)") ///
         mtitles(`A_titles') ///
         addnotes("Progressive FE saturation; RHS held fixed (strat_diff_n5 + controls), only absorb() varies." ///
-                 "Bank-specific linear trend (c.year#bank_id) needs T>=3; degrades on T=2 trial panel.")
+                 "Bank-specific linear trend (c.year#bank_id) needs T>=3; degrades on the retired T=2 trial panel.")
     estout `A_models' using "$tables_dir/table7a_fe_saturation.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01) keep(`X')
@@ -245,7 +245,7 @@ else {
 * ==========================================================================
 * Panel B — 离群稳健估计 (qreg .5 / rreg vs OLS; Koenker-Bassett 1978)
 * reghdfe 高维 FE 不能与 qreg/rreg 同用 → 用 i.year (+ 大样本择 i.btype_grp) 显式哑变量。
-* T=2 时仅 i.year, 维持简约; production 大样本可加类型哑变量。
+* 早期试跑 T=2 时仅 i.year, 维持简约; production 大样本可加类型哑变量。
 * ==========================================================================
 eststo clear
 local Bcols ""
@@ -333,7 +333,7 @@ else {
         * 受控回归 (psacalc 读 e(): 用显式 year 哑变量 FE 而非 reghdfe absorb, 因 psacalc 需
         *  e(b)/e(V) 含全部回归元 — reghdfe 部分版本与 psacalc 不兼容)。
         * SD-ECON-2: 不放 i.bank_id (86 哑变量) — 与 locus/22 + benefit/26 + substance/24
-        *  sibling 同口径。i.bank_id 在 T=2 几乎吸收掉全部 within 变异 → 受控 R²→1。
+        *  sibling 同口径。i.bank_id 在早期试跑 T=2 几乎吸收掉全部 within 变异 → 受控 R²→1。
         * ⚠ 家族级 mcontrol 修正: mcontrol 只放 year-FE 哑变量 (绝不放 $controls; 否则
         *  substantive 控制被当 nuisance, δ 退化为仅 year-FE 移动界定, 识别口径错位)。
         *  psacalc 的 mcontrol() 不接受 factor 记号 i.year (实测 rc=5001) → tab year 展开
@@ -366,7 +366,7 @@ else {
                 capture psacalc delta `X', rmax(`rmax')
             }
             if _rc {
-                display "  WARN Panel C: psacalc delta 计算失败 (T=2 退化/共线?), Oster δ 跳过"
+                display "  WARN Panel C: psacalc delta 计算失败 (早期试跑 T=2 退化/共线?), Oster δ 跳过"
             }
             else {
                 local oster_delta = r(delta)

@@ -56,7 +56,7 @@ forvalues i = 1/`n_ev' {
     }
 
     * INLINE 截面强度 DiD: locus_layer_full × 事件年前后时间哑变量
-    * 仅在该事件窗内有 ≥2 个不同相对年份时才有识别 (T=2 试跑帧自动退化 → capture 跳过)
+    * 仅在该事件窗内有 ≥2 个不同相对年份时才有识别 (早期试跑 T=2 帧自动退化 → capture 跳过)
     capture noisily reghdfe {{MAIN_DV}} ///
             c.locus_layer_full#i.event_t_`ev'_0 ///
             c.locus_layer_full#i.event_t_`ev'_1 ///
@@ -90,7 +90,7 @@ forvalues i = 1/`n_ev' {
         }
     }
     else {
-        display "  [SKIP] 事件 `ev' (`yr'): 窗内相对年份不足 / 共线 (T=2 退化); production T=19 自动激活"
+        display "  [SKIP] 事件 `ev' (`yr'): 窗内相对年份不足 / 共线 (早期试跑 T=2 退化); production T=19 自动激活"
     }
 }
 
@@ -102,7 +102,7 @@ foreach m of local stored {
     if strmatch("`m'", "es_*") local models `models' `m'
 }
 if "`models'" == "" {
-    display "  [WIRE-AHEAD] 事件研究无任何已存储估计 (T=2 仅 2017-2018, 各事件窗退化); production T=19 激活, 表跳过"
+    display "  [WIRE-AHEAD] 事件研究无任何已存储估计 (早期试跑 T=2 仅 2017-2018, 各事件窗退化); production T=19 激活, 表跳过"
 }
 else {
     esttab `models' ///

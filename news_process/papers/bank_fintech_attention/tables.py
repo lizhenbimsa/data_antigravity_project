@@ -82,7 +82,7 @@ def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
     fix(omni-g-papers-misc-08, 2026-06-11): 旧 docstring 无保留宣称 'staggered DiD
     baseline', 与 frozen spec (RR15-1/R8-M03: baseline=cross_sectional_intensity_did)
     及模板实现 (15_attention_main_regression: M1-M6 全为 reghdfe TWFE, 无 csdid 调用,
-    T=2 下 csdid 不可识别) 不符 — 现三层措辞对齐。"""
+    早期试跑 T=2 下 csdid 不可识别) 不符 — 现三层措辞对齐。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_attention', 'table2_main.csv', paper_config)
 

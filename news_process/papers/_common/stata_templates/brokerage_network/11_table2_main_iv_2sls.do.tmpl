@@ -79,7 +79,7 @@ if !`_m3' {
 *   兑现为真命令 (镜像主线 25_tableA6:122-167 的 proven pattern): 先 ivreg2 重估同规格,
 *   紧随 weakiv, level(95) 在 log 输出 AR 95% 置信集 (weakiv 读上一条 ivreg2 估计;
 *   不抽脆弱标量, 与主线一致)。capture which 守卫 (未装/退化优雅跳过, T=19 激活)。
-local ar_note "Anderson-Rubin weak-IV-robust CI NOT computed (weakiv not installed or sample degenerate T=2; ssc install weakiv). "
+local ar_note "Anderson-Rubin weak-IV-robust CI NOT computed (weakiv not installed or sample degenerate early-trial T=2; ssc install weakiv). "
 capture which weakiv
 if !_rc {
     capture which ivreg2
@@ -100,7 +100,7 @@ if !_rc {
 *   失真。主 2SLS 补 wild cluster bootstrap (boottest, Roodman et al. 2019) 在 prov 层,
 *   wild p 写入 side-channel CSV。boottest 不支持 ivreghdfe 的 absorb → 用 ivreg2 +
 *   显式 i.bank_id i.year (boottest 兼容); capture which 守卫 + N 守卫优雅跳过。──
-local boot_note "boottest: ado unavailable / sample degenerate (T=2); production prov-level wild bootstrap"
+local boot_note "boottest: ado unavailable / sample degenerate (early-trial T=2); production prov-level wild bootstrap"
 capture which boottest
 if !_rc {
     capture which ivreg2

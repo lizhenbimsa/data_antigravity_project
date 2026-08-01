@@ -20,7 +20,7 @@
 *   如果三段差很多, 说明把 18 年合在一起跑一个系数会把异质效应平均成有偏均值, 论文
 *   须分时代报告或限识别窗。
 *
-* T=2 退化守卫 (铁律): 当前硬盘是 T=2 试跑帧 (year∈{2017,2018}, 全落在 Era 2),
+* 早期试跑 T=2 退化守卫 (铁律): 早期试跑期的硬盘是 T=2 帧 (year∈{2017,2018}, 全落在 Era 2),
 *   则只有 Era 2 有数据 → Panel A 仅产 Era 2 一列, Panel B/C 因 era 无变异 (单时代)
 *   优雅跳过 (capture + 取值数守卫), 不报错不弹框; 全量 T=19 接入后三时代自动激活。
 *
@@ -97,7 +97,7 @@ replace era = 3 if year >= 2019 & year <= 2025
 label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values era era_lbl
 
-* 检测实际有几个时代有数据 (T=2 盘只有 Era 2)
+* 检测实际有几个时代有数据 (早期试跑 T=2 盘只有 Era 2)
 quietly levelsof era if !missing(`DV'), local(eras_present)
 local n_eras : word count `eras_present'
 display as text "── Table A11: 实有时代数 = `n_eras' (`eras_present') ──"
@@ -125,7 +125,7 @@ foreach e of local eras_present {
         }
     }
     else {
-        display "  ⚠️ Panel A era=`e' 子样本 N=`r(N)' 过少 (<=10), 跳过 (T=2 试跑盘正常)"
+        display "  ⚠️ Panel A era=`e' 子样本 N=`r(N)' 过少 (<=10), 跳过 (早期试跑 T=2 盘正常)"
     }
 }
 
@@ -200,11 +200,11 @@ if `n_eras' >= 2 {
         }
     }
     else {
-        display "  ⚠️ Panel B/C: pooled treatment×era 回归退化 (单时代 era 无变异?), 跳过 (T=2 试跑盘正常)"
+        display "  ⚠️ Panel B/C: pooled treatment×era 回归退化 (单时代 era 无变异?), 跳过 (早期试跑 T=2 盘正常)"
     }
 }
 else {
-    display "  ⚠️ Panel B/C: 仅 `n_eras' 个时代有数据 (T=2 盘全落 Era 2), 交乘+Wald 跳过"
+    display "  ⚠️ Panel B/C: 仅 `n_eras' 个时代有数据 (早期试跑 T=2 盘全落 Era 2), 交乘+Wald 跳过"
     display "       全量 T=19 (2007-2025) 接入后, 三时代交乘与 Wald 相等检验自动激活。"
 }
 

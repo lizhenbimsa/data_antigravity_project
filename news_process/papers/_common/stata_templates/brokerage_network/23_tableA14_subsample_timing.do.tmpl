@@ -24,7 +24,7 @@
 *   - DV={{MAIN_DV}}_w (ROA sentinel): 全程 capture confirm; 财务面板未接入时
 *     各 Panel 优雅 no-op (wire-ahead 桩), 接入并跑 01_data_prep 后自动激活。
 *   - SSC 命令 ivreghdfe: capture which 守卫 (本篇 IV 主估计器, 视为已装)。
-*   - T=2 退化盘: F. lead 算子多为缺失 -> N-守卫优雅跳过 (production T=19 才全功效);
+*   - 早期试跑 T=2 退化盘: F. lead 算子多为缺失 -> N-守卫优雅跳过 (production T=19 才全功效);
 *     bank_type 逐类 / size 中位切子样本 N<30 同样 N-守卫跳过。
 *   - esttab 名单动态化 (不硬点名缺估计)。
 *
@@ -159,7 +159,7 @@ if !_rc {
             local sublabs `"`sublabs' "`_tlab'""'
         }
         else {
-            display "[SKIP] Panel A type=`_tlab' subsample N=`_Nt' < 30 or est failed (T=2 degenerate; production T=19)."
+            display "[SKIP] Panel A type=`_tlab' subsample N=`_Nt' < 30 or est failed (early-trial T=2 degenerate; production T=19)."
         }
     }
 }
@@ -191,7 +191,7 @@ if !_rc {
             local sublabs `"`sublabs' "Small (size<yr-med)""'
         }
     }
-    else display "[SKIP] Panel A small-size subsample N=" r(N) " < 30 (T=2 degenerate)."
+    else display "[SKIP] Panel A small-size subsample N=" r(N) " < 30 (early-trial T=2 degenerate)."
     restore
     * 大行 (size 中位及以上)
     preserve
@@ -206,7 +206,7 @@ if !_rc {
             local sublabs `"`sublabs' "Large (size>=yr-med)""'
         }
     }
-    else display "[SKIP] Panel A large-size subsample N=" r(N) " < 30 (T=2 degenerate)."
+    else display "[SKIP] Panel A large-size subsample N=" r(N) " < 30 (early-trial T=2 degenerate)."
     restore
 }
 else {
@@ -236,21 +236,21 @@ if "`outcols'" != "" {
         addnotes("Split-sample 2SLS; bank/year FE; cluster at `CL'. New dimensions vs Table 4 (is_soe) / Table 10 (hub)." ///
                  "bank_type = organizational form (city/rural/joint/SOE/foreign...); bank_effective_size = network resource (WITHIN-YEAR median split, audit N-08; not pooled p50)." ///
                  "KP rk Wald F = e(widstat); subsample F typically below Stock-Yogo 16.38 => instruments weak. [TODO/SKIP: Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE) NOT yet computed in this table — to be added at production T=19; do NOT read split-sample point estimates as identified until AR CI reported]." ///
-                 "Subsamples with effective N<30 skipped (T=2 panel degenerate; production T=19 required, external-validity discussion in Angrist & Pischke 2009, Mostly Harmless Econometrics, Princeton University Press, ISBN 978-0691120355 — book, no journal DOI).")
+                 "Subsamples with effective N<30 skipped (early-trial T=2 panel degenerate; production T=19 required, external-validity discussion in Angrist & Pischke 2009, Mostly Harmless Econometrics, Princeton University Press, ISBN 978-0691120355 — book, no journal DOI).")
     estout `outcols' using "$tables_dir/tableA14_brok_subsample.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01)
     display "[OK] Table A14-A (subsample) written"
 }
 else {
-    display "  WARN Panel A: 所有子样本退化 (T=2; production T=19 才有功效), 跳过"
+    display "  WARN Panel A: 所有子样本退化 (早期试跑 T=2; production T=19 才有功效), 跳过"
 }
 
 * ==========================================================================
 * Panel B — 前向 (lead) 安慰剂时序 (Bertrand-Duflo-Mullainathan 2004 QJE)
 *   主: peer_tone_lag1 (= L., 已是滞后). 安慰剂: F.peer_tone_lag1 (= 当期同业语调)。
 *   若 F. lead 对当期 ROA 显著 => 违反时序排他 (未来不应预测今日)。
-*   T=2 退化盘 F. 多为缺失 -> N-守卫优雅跳过。
+*   早期试跑 T=2 退化盘 F. 多为缺失 -> N-守卫优雅跳过。
 * ==========================================================================
 eststo clear
 local tmcols ""
@@ -259,7 +259,7 @@ local tmlabs ""
 * ⚠ fix(BRK-A14-r5-not-sorted): Panel A 维度2 的 `bysort year: egen` (line 178) 把物理排序
 *   改为仅 year, 其后 preserve/restore 维持该 year-only 排序 → 本 Panel 前向时序算子 F./L.
 *   需 panelvar×timevar (bank_id year) 排序, 否则抛 r(5) 'not sorted' 并 abort 整个 do-file
-*   (bank_effective_size 在真盘存在 → size 分支必跑 → 必崩, 非 T=2 退化)。重申 xtset 恢复排序。
+*   (bank_effective_size 在真盘存在 → size 分支必跑 → 必崩, 非早期试跑 T=2 退化)。重申 xtset 恢复排序。
 capture xtset bank_id year
 
 * B1: 主设定 (滞后同业语调; 用 reghdfe OLS 简化时序对照, 与 IV 主表互补)
@@ -286,7 +286,7 @@ if `_Nl' >= 30 {
     else display "  WARN Panel B: lead 安慰剂回归失败 (退化), 跳过"
 }
 else {
-    display "[SKIP] Panel B lead placebo — F. forward operator N=`_Nl' < 30 (T=2 degenerate; production T=19)."
+    display "[SKIP] Panel B lead placebo — F. forward operator N=`_Nl' < 30 (early-trial T=2 degenerate; production T=19)."
 }
 
 * B3: 同时含 lag 主 + lead 安慰剂 (条件竞争: lead 在控制 lag 后应仍不显著)
@@ -308,14 +308,14 @@ if "`tmcols'" != "" {
                  "Lead placebo F.`ENDOG' (= current peer tone) should NOT predict current ROA (temporal exclusion)." ///
                  "ESTIMATOR NOTE (audit BRK-A14-TIMING): these timing columns are reduced-form reghdfe OLS — the treatment (`ENDOG') is NOT instrumented here, unlike the main 2SLS identification. The lead placebo is therefore a REDUCED-FORM temporal-leakage check (does future peer tone load on current ROA?), which provides only INDIRECT support for the IV exclusion restriction (it does not re-estimate the structural 2SLS)." ///
                  "Significant lead => violation of timing exclusion (Bertrand-Duflo-Mullainathan 2004 QJE, doi:10.1162/003355304772839588)." ///
-                 "F. forward operator largely missing on T=2 panel -> N-guarded skip (production T=19 required).")
+                 "F. forward operator largely missing on early-trial T=2 panel -> N-guarded skip (production T=19 required).")
     estout `tmcols' using "$tables_dir/tableA14_brok_timing.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01)
     display "[OK] Table A14-B (lead-placebo timing) written"
 }
 else {
-    display "  WARN Panel B: 时序对照全退化 (T=2 lead 缺失; production T=19 才有功效), 跳过"
+    display "  WARN Panel B: 时序对照全退化 (早期试跑 T=2 lead 缺失; production T=19 才有功效), 跳过"
 }
 
 display "[OK] Table A14 (subsample external validity & lead-placebo timing) — brokerage_network 完成"

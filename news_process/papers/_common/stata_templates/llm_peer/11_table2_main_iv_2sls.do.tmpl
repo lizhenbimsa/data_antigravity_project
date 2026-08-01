@@ -56,7 +56,7 @@ eststo M2
 * ivreghdfe 因 ftools/reghdfe Mata 版本不兼容恒 r(301) (reghdfe/ivreg2 均正常) →
 * 旧"仅 ivreghdfe 缺失才回退"会让全部 IV 列空缺; 改为运行期失败亦回退, IV 列经
 * ivreg2 照常填充。capture noisily 防弱识别/退化样本 abort; 两估计器皆失败 → 该列
-* 优雅缺席 (动态 esttab 仅呈现已收敛规格, 同 benefit_society/25 的 T=2 graceful-skip)。
+* 优雅缺席 (动态 esttab 仅呈现已收敛规格, 同 benefit_society/25 的早期试跑 T=2 graceful-skip)。
 local _m3 = 0
 capture which ivreghdfe
 if !_rc {

@@ -20,7 +20,7 @@
 *     处理 (strat_diff_n5) + $controls; 仅消费在盘列。
 *   - 各子样本回归 capture 守卫 + esttab/estout 名单动态化 (缺名不点名防 r(111)),
 *     带 CSV side-channel。
-*   - T=2 试跑盘 (years 2017-2018, ~174 行) + 子样本切薄: bank+year FE 在过小子样本
+*   - 早期试跑 T=2 盘 (years 2017-2018, ~174 行) + 子样本切薄: bank+year FE 在过小子样本
 *     可能吸收殆尽 → capture 回归失败优雅跳过 (production T=19 才全功效)。
 *
 * 文献锚点: 子样本/外部效度为标准做法 (无单一典范 DOI; 见 Roberts & Whited 2013,
@@ -130,7 +130,7 @@ if !_rc {
         }
     }
     else {
-        display "  SKIP 维度1: 枢纽子样本 N=`r(N)' < `NMIN', 跳过 (T=2 试跑盘 hub 仅 11 行, 预期退化)"
+        display "  SKIP 维度1: 枢纽子样本 N=`r(N)' < `NMIN', 跳过 (早期试跑 T=2 盘 hub 仅 11 行, 预期退化)"
     }
 }
 else {
@@ -299,7 +299,7 @@ if "`Tm'" != "" {
     display "[OK] Table 8-strat-C (bank-type subsample) written"
 }
 else {
-    display "  WARN Table 8-strat-C 无任何类型子样本估计; 表跳过 (T=2 试跑盘多数类型 within-bank 退化, 预期)"
+    display "  WARN Table 8-strat-C 无任何类型子样本估计; 表跳过 (早期试跑 T=2 盘多数类型 within-bank 退化, 预期)"
 }
 
 display "[OK] Table 8-strat (subsample external validity: hub / size / bank-type) — strategic_diff 完成"

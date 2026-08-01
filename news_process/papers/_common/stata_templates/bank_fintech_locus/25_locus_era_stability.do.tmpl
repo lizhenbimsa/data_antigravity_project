@@ -21,7 +21,7 @@
 *   为什么: 长面板 (T=19) 里同一个比值/强度测度跨年含义会漂移, year FE 只吸收水平
 *           不吸收"含义漂移"; 审稿人 (顶刊对长面板媒体测度的硬要求) 要看效应在不同
 *           监管/技术时代是否稳定, 而不是被平均成一个有偏的总均值。
-*   影响:   纯 Stata 层, 只读在盘 treatment/MAIN_DV; T=2 试跑帧仅 2017-2018 → 只有
+*   影响:   纯 Stata 层, 只读在盘 treatment/MAIN_DV; 早期试跑 T=2 帧仅 2017-2018 → 只有
 *           era2 一个时代有数据, 其余 era 与交乘/Wald 自动 capture 跳过 (优雅, 不报错);
 *           production T=19 自动激活全部三时代。$0 / golden-safe。
 *
@@ -117,7 +117,7 @@ if `have_dv' & `have_treat' {
             }
         }
         else {
-            display as text "  [SKIP] Panel A era==`e': N=" r(N) " < `min_n' (T=2 试跑帧仅 2017-2018 落 era2); production 全样本激活"
+            display as text "  [SKIP] Panel A era==`e': N=" r(N) " < `min_n' (早期试跑 T=2 帧仅 2017-2018 落 era2); production 全样本激活"
         }
     }
 }
@@ -126,7 +126,7 @@ if `have_dv' & `have_treat' {
 * Panel B — 全样本 + treatment × era 交乘 (era1 = 参照组)
 * Panel C — Wald 检验三时代主处理 (locus_layer_full) 系数相等
 * ============================================================================
-* 仅当 ≥2 个时代有数据时交乘才有识别 (T=2 单时代时自动跳过)
+* 仅当 ≥2 个时代有数据时交乘才有识别 (早期试跑 T=2 单时代时自动跳过)
 * (have_dv==0 时 MAIN_DV 列不在盘 → capture 守卫防 levelsof r(111) 中断脚本)
 local n_eras_present = 0
 if `have_dv' & `have_treat' {
@@ -165,7 +165,7 @@ if `have_dv' & `have_treat' & `n_eras_present' >= 2 {
     }
 }
 else {
-    display as text "  [SKIP] Panel B/C: 仅 `n_eras_present' 个时代有数据 (T=2 退化, 需 ≥2); production T=19 激活全部三时代交乘 + Wald"
+    display as text "  [SKIP] Panel B/C: 仅 `n_eras_present' 个时代有数据 (早期试跑 T=2 退化, 需 ≥2); production T=19 激活全部三时代交乘 + Wald"
 }
 
 * ============================================================================
@@ -196,7 +196,7 @@ foreach m of local stored {
 }
 
 if "`models'" == "" {
-    display as text "  [WIRE-AHEAD] Table D 无任何已存储估计 (financial DV 待接入 / T=2 单时代退化); 表跳过, 非失败"
+    display as text "  [WIRE-AHEAD] Table D 无任何已存储估计 (financial DV 待接入 / 早期试跑 T=2 单时代退化); 表跳过, 非失败"
 }
 else {
     esttab `models' using "$tables_dir/tableD_locus_era_stability.tex", replace ///
@@ -208,7 +208,7 @@ else {
                  "Columns era_1/era_2/era_3: subperiod main spec; column era_interact: pooled with locus×era interactions (era1 reference)." ///
                  "Wald F/p rows (era_interact column) test H0: layer effect equal across eras (interaction terms era2=era3=0); rejection ⇒ effect varies by fintech regime." ///
                  "Bai-Perron 1998 / Hansen 2001 structural-stability rationale; optional xtbreak single-break diagnostic in supplemental log." ///
-                 "T=2 trial frame (2017-2018) populates only era2 ⇒ other eras + interaction + Wald gracefully skipped; production T=19 activates all.")
+                 "the retired T=2 trial frame (2017-2018) populates only era2 ⇒ other eras + interaction + Wald gracefully skipped; production T=19 activates all.")
 
     estout `models' using "$tables_dir/tableD_locus_era_stability.csv", replace ///
         delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///

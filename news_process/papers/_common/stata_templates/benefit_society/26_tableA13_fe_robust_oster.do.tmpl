@@ -27,7 +27,7 @@
 *   (bank_province/bank_type/bank_zone) + 在盘控制 ($controls)。outcome
 *   {{MAIN_DV}}_w (=ROA_w) 为外部财务 sentinel — 经 capture confirm 守卫, 缺列时
 *   全表优雅跳过 (wire-ahead, 不报错中断)。
-* ⚠ T=2 退化守卫: 现盘 T=2 (2017–2018, ~176 行)。高维交互 FE 在试跑样本会被
+* ⚠ 早期试跑 T=2 退化守卫: 早期试跑盘曾为 T=2 (2017–2018, ~176 行)。高维交互 FE 在试跑样本会被
 *   reghdfe 自动 drop 共线维度; 银行线性趋势 (c.year#i.bank_id) 需 T≥3, 用
 *   quietly count + N 守卫优雅跳过。production T=19 才有完整功效。
 * ============================================================================
@@ -97,20 +97,20 @@ if _rc {
 *   FE-saturation 阶梯: Panel A 在主 FE 之上逐级加 province/type/zone×year FE
 *   + bank 线性趋势 (Gormley & Matsa 2014 RFS), 看主系数能否扛住更细的时变冲击。
 *   注: 全项目仅 13_table4_heterogeneity 刻意保留 bank_type FE (F-R5-H2 within-type
-*   异质性, T=2 试跑盘 + 仅类型内变异); 11_table2 / 14_table5 / 本表均用 bank_id year。
+*   异质性, 早期试跑 T=2 盘 + 仅类型内变异); 11_table2 / 14_table5 / 本表均用 bank_id year。
 * (capture 守卫: 财务列接入后若 M0 退化共线也不中断本表, Panel B/C 仍可跑)
 capture noisily reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 if !_rc {
     eststo feA_m0
-    * BS-A13-003: T=2 + bank FE 下, 仅单年出现的银行成 singleton 被 reghdfe 丢弃 →
+    * BS-A13-003: 早期试跑 T=2 + bank FE 下, 仅单年出现的银行成 singleton 被 reghdfe 丢弃 →
     *   有效识别银行数远低于面板银行总数。报告之以披露 over-baseline 检验的真实功效。
     *   (e(N_clust) 为聚类数 = 进入估计的 bank_id 数; e(N) 为有效观测数。)
     capture local _m0_nclust = e(N_clust)
     capture local _m0_nobs   = e(N)
     quietly levelsof {{CLUSTER_VAR}}, local(_all_clust)
     local _n_all_clust : word count `_all_clust'
-    display "  [INFO] M0 over-baseline: 有效识别银行(聚类)数 = `_m0_nclust' (面板银行总数 = `_n_all_clust'); T=2 + bank FE 下单年 singleton 被丢弃, 有效样本骤降。"
+    display "  [INFO] M0 over-baseline: 有效识别银行(聚类)数 = `_m0_nclust' (面板银行总数 = `_n_all_clust'); 早期试跑 T=2 + bank FE 下单年 singleton 被丢弃, 有效样本骤降。"
 }
 else {
     display "  [WARN] Panel A M0 基线回归失败 (degenerate?); 跳过 (后续 Panel 不受影响)"
@@ -152,7 +152,7 @@ else {
 
 * M4: + 银行特定线性趋势 (bank-specific linear trend) — 需 T≥3
 * 白话: 让每家银行有自己的一条时间斜率, 吸收"某行业绩本就在逐年走高/走低"的趋势。
-* 须 T≥3 才能在 within-bank 估出斜率; T=2 时与 bank FE 共线 → 守卫跳过。
+* 须 T≥3 才能在 within-bank 估出斜率; 早期试跑 T=2 时与 bank FE 共线 → 守卫跳过。
 quietly levelsof year, local(_years)
 local _nyear : word count `_years'
 if `_nyear' >= 3 {
@@ -285,12 +285,12 @@ else {
         *   而非真实 δ 数值, 脚注会打印 'string(oster_delta,...)' 字面)。
         local _osternote = "Oster (2019) delta = " + string(oster_delta, "%5.2f") + " (rmax = 1.3 x controlled R-squared); delta >= 1 indicates robustness to unobserved selection."
     }
-    * BS-A13-003: M0 over-baseline 有效识别银行(聚类)数表注 (T=2 + bank FE singleton drop)。
+    * BS-A13-003: M0 over-baseline 有效识别银行(聚类)数表注 (早期试跑 T=2 + bank FE singleton drop)。
     *   _m0_nclust / _n_all_clust 为 Panel A 内设的 local (do-file 单作用域内持续可见);
     *   非空且非 missing 时才追加有效银行数披露。
     local _m0note "M0 reproduces the main bank_id+year FE (SPEC IV-1); subsequent columns saturate FE further (province/type/zone x year + bank trends)."
     if "`_m0_nclust'" != "" & "`_m0_nclust'" != "." {
-        local _m0note = "`_m0note' Under T=2 + bank FE, single-year banks drop as singletons: effective identifying banks = `_m0_nclust' (vs `_n_all_clust' panel banks)."
+        local _m0note = "`_m0note' Under early-trial T=2 + bank FE, single-year banks drop as singletons: effective identifying banks = `_m0_nclust' (vs `_n_all_clust' panel banks)."
     }
     esttab `models' ///
         using "$tables_dir/tableA13_fe_robust_oster.tex", replace ///
@@ -304,7 +304,7 @@ else {
                  "Panel B (OLS/qreg/rreg): LSDV i.year(+i.type) design; qreg(.5) = median regression (Koenker-Bassett 1978); rreg = Huber + Tukey-biweight IRLS bounded-influence M-estimator (NOT Yohai MM)." ///
                  "Panel B SE bases DIFFER across columns and are not directly comparable: OLS = bank-clustered; qreg(.5) = iid sparsity-based; rreg = IRLS." ///
                  "Panel C: `_osternote' Oster delta is defined by the R-squared movement of observable controls (\$controls) relative to the FE baseline (mcontrol = FE dummies only, NOT substantive controls)." ///
-                 "Bank linear trend (c.year#i.bank_id) requires T>=3; skipped under T=2 sample.")
+                 "Bank linear trend (c.year#i.bank_id) requires T>=3; skipped under early-trial T=2 sample.")
 
     * CSV side-channel (parse_esttab_csv 格式; tables.py 可经 read_paper_esttab 消费)
     estout `models' using "$tables_dir/tableA13_fe_robust_oster.csv", replace delimiter(",") ///

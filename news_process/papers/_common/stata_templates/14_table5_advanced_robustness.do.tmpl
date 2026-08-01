@@ -71,7 +71,7 @@ restore
 quietly summarize year
 local median_year = floor((r(min) + r(max)) / 2)
 
-* fix(omni-g-templates-15, 2026-06-11) (d): 子期切分零观测守卫 — T=2 面板
+* fix(omni-g-templates-15, 2026-06-11) (d): 子期切分零观测守卫 — 早期试跑 T=2 面板
 * (years={2017,2018}) 下 floor 中位年=2017, `year < 2017` 为空 → reghdfe r(2000) 崩。
 * 任一子样本为空时跳过 5b (T≥3 全量面板正常执行)。
 quietly count if year < `median_year'

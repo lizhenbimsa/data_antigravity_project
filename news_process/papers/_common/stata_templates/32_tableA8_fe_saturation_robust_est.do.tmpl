@@ -29,8 +29,8 @@
 *   Koenker, R., & Bassett, G. (1978). Regression Quantiles. Econometrica,
 *     46(1), 33-50. https://doi.org/10.2307/1913643        [qreg 分位回归]
 *
-* T=2 退化守卫: 当前试跑盘 years={2017,2018} (~174 行, T=2)。c.year#i.bank_id 银行
-*   线性趋势在 T=2 下与 bank+year FE 完全共线 → reghdfe 自动吸收/或回归退化, 用
+* 早期试跑 T=2 退化守卫: 早期试跑盘 years={2017,2018} (~174 行, T=2)。c.year#i.bank_id 银行
+*   线性趋势在早期试跑 T=2 下与 bank+year FE 完全共线 → reghdfe 自动吸收/或回归退化, 用
 *   capture + N/df 守卫优雅跳过 (production T=19 才有功效)。qreg/rreg 在小样本仅近似
 *   FE (i.year, T 充足时加 i.bank_type 哑变量), 同样 capture 守卫。
 *
@@ -132,7 +132,7 @@ if !_rc {
         local felabs `"`felabs' "+Prov×Yr""'
     }
     else {
-        display "  ⚠️ Panel A M1 (+省份×年) 回归失败/退化, 跳过 (T=2 试跑盘可能共线)"
+        display "  ⚠️ Panel A M1 (+省份×年) 回归失败/退化, 跳过 (早期试跑 T=2 盘可能共线)"
     }
 }
 
@@ -164,7 +164,7 @@ if !_rc {
     }
 }
 
-* M4 + 银行特定线性趋势 (c.year#i.bank_id) — 需 T≥3 才可识别 (T=2 与 bank+year FE 共线)
+* M4 + 银行特定线性趋势 (c.year#i.bank_id) — 需 T≥3 才可识别 (早期试跑 T=2 与 bank+year FE 共线)
 quietly levelsof year, local(_yrs)
 local _T : word count `_yrs'
 if `_T' >= 3 {
@@ -285,7 +285,7 @@ if !_rc {
 
 * B2: 中位数回归 qreg(.5) (Koenker & Bassett 1978 ECMA)
 * 先试富 FE (`approx_fe' = i.year [+ i.bank_type]); 若小样本下因哑变量过参数化失败,
-* 退回仅 i.year 重试 (T=2 试跑盘加 i.bank_type 可能共线 → 回退仍可产出主系数)。
+* 退回仅 i.year 重试 (早期试跑 T=2 盘加 i.bank_type 可能共线 → 回退仍可产出主系数)。
 capture which qreg
 if !_rc {
     capture eststo RB_qreg: qreg `DV' `EXPL' `LOCUS' `SUBST' `approx_fe', quantile(0.5)
@@ -307,7 +307,7 @@ else {
 
 * B3: Huber+Tukey biweight IRLS 有界影响 M-估计 rreg (对离群点迭代降权; 非 MM-估计)
 * 同 qreg: 富 FE 失败则退回 i.year 重试。rreg 先按 Cook's D 剔除强影响点再迭代,
-* T=2 + 缺值模式下可能把全部观测剔光 (rc=2000 "no observations") → 优雅跳过,
+* 早期试跑 T=2 + 缺值模式下可能把全部观测剔光 (rc=2000 "no observations") → 优雅跳过,
 * 全量 T=19 下有功效。
 capture which rreg
 if !_rc {
@@ -321,7 +321,7 @@ if !_rc {
         local rlabs `"`rlabs' "Robust (rreg)""'
     }
     else {
-        display "  ⚠️ Panel B: rreg 仍失败 (T=2 强影响点剔除致无观测?), 跳过稳健回归 (全量 T=19 有功效)"
+        display "  ⚠️ Panel B: rreg 仍失败 (早期试跑 T=2 强影响点剔除致无观测?), 跳过稳健回归 (全量 T=19 有功效)"
     }
 }
 else {

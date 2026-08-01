@@ -152,7 +152,7 @@ eststo OLS: reghdfe `DV' `LOCUS' digital_frontier, absorb(bank_id year) vce(clus
 * 双路: ① 优先官方 bartik_weight ado (capture which 守卫); ② 缺 ado 时回退本表
 * 内联 OLS 近似 (镜像 iv_did.py::diagnose_rotemberg_weights 同口径)。基期 share
 * 列 bartik_<prefix>_share_* 已物化在面板 → 真实可算 (非占位)。
-* T=2 退化 / share 列缺失时 capture 守卫优雅跳过。
+* 早期试跑 T=2 退化 / share 列缺失时 capture 守卫优雅跳过。
 * ============================================================================
 * 选用与主 IV 同轨的 group_prefix: full→fintech_lf, ctx→fintech_lc
 if "{{MAIN_SENT_TRACK}}" == "full" {
@@ -238,7 +238,7 @@ if !_rc {
             if "`max_share'" != "" {
                 quietly summarize year
                 local _ymin = r(min)
-                * 取最早一年为 "基期前" 代理 (T=2 盘只有 2017-2018 → 优雅退化跳过)
+                * 取最早一年为 "基期前" 代理 (早期试跑 T=2 盘只有 2017-2018 → 优雅退化跳过)
                 quietly count if year == `_ymin' & !missing(`DV') & !missing(`max_share')
                 if r(N) > 10 {
                     display as text "  ── Top-weight share `max_share' pre-period placebo (year==`_ymin') ──"
@@ -248,12 +248,12 @@ if !_rc {
                     }
                 }
                 else {
-                    display as text "  ⚠️ 基期前样本过少 (N<=10, T=2 试跑盘正常), top-weight placebo 跳过 (全量 T=19 激活)"
+                    display as text "  ⚠️ 基期前样本过少 (N<=10, 早期试跑 T=2 盘正常), top-weight placebo 跳过 (全量 T=19 激活)"
                 }
             }
         }
         else {
-            display as text "  ⚠️ `ROT_IV' 方差为 0 (T=2 退化), Rotemberg 近似跳过"
+            display as text "  ⚠️ `ROT_IV' 方差为 0 (早期试跑 T=2 退化), Rotemberg 近似跳过"
         }
     }
     else {

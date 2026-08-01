@@ -26,7 +26,7 @@ set seed {{RANDOM_SEED}}
 * INFER IV-1 修复 (2026-06-14): 把 claimed-but-never-run 的 rwolf 从注释转活跃。
 * 测度农场族 (主 sub_frac + ctx 孪生 sub_frac_sc + sub-symb gap) 同时检验同一
 * 机制的多个测度, 跨这族做 Romano-Wolf step-down FWER 校正, 把校正后 p 写进表。
-* 全程 capture 守卫: rwolf 未装 / DV sentinel 缺 / T=2 退化时优雅跳过, 不丢表。
+* 全程 capture 守卫: rwolf 未装 / DV sentinel 缺 / 早期试跑 T=2 退化时优雅跳过, 不丢表。
 * 学术依据: Romano & Wolf 2005 ECMA; Clarke, Romano & Wolf 2020 (rwolf, Stata Journal 20(4):812-843); Anderson 2008 JASA。
 local rw_p_main = .
 local rw_p_ctx  = .
@@ -54,7 +54,7 @@ else {
             reps(1000) seed({{RANDOM_SEED}}) ///
             method(reghdfe) abs(bank_id year) cluster({{CLUSTER_VAR}})
         if _rc {
-            display "  ⚠️ rwolf 执行失败 (rc=`=_rc'; 多为 T=2 退化/单测度); FWER 校正 p 缺失"
+            display "  ⚠️ rwolf 执行失败 (rc=`=_rc'; 多为早期试跑 T=2 退化/单测度); FWER 校正 p 缺失"
         }
         else {
             * D4-rwolf-ename 修复 (2026-06-16): 旧版逐个取 e(rw_<indepvar>) 系统性取空。
@@ -251,7 +251,7 @@ esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
           labels("N" "R²" "Wild cluster bootstrap p" "Romano-Wolf FWER p")) ///
     title("Table 5 — Advanced Robustness (P3 substance)") ///
     addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
-             "Romano-Wolf FWER p (rw\_p row): step-down familywise-error-corrected p across the substantiveness measure family {sub\_frac, sub\_frac\_sc, sub-symb gap}, 1000 reps (Romano-Wolf 2005 ECMA; Anderson 2008 JASA). Blank when rwolf is unavailable or the cell degenerates (T=2)." ///
+             "Romano-Wolf FWER p (rw\_p row): step-down familywise-error-corrected p across the substantiveness measure family {sub\_frac, sub\_frac\_sc, sub-symb gap}, 1000 reps (Romano-Wolf 2005 ECMA; Anderson 2008 JASA). Blank when rwolf is unavailable or the cell degenerates (early-trial T=2)." ///
              "Alternative substantiveness track: sub_frac_sc (ctx) + sub-symb gap (full/ctx), derived from panel-real columns." ///
              "Honest DiD: see note below — substance baseline is a within-bank within-year FE panel (no event-time leads/lags), so Rambachan-Roth (2023) HonestDiD is not applicable here; pre-trend sensitivity belongs to the event-study companion (locus/19).")
 

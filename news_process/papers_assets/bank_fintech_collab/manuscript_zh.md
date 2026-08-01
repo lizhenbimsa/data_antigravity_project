@@ -103,7 +103,7 @@ Hagedoorn (2002) 对 1960 年以来企业间 R&D 伙伴关系的系统梳理表�
 
 **面板。** 文章级分类聚合为 **110 家中国商业银行**的银行-年面板（2007-2025, T=19）。
 
-> TODO: 生产面板实测行数、列数与各变量非缺失观测数待生产机重跑后回填（spec 设计目标为 obs ≥ 3000；本机 dev 环境仅 T=2 试跑数据，不构成实测口径）。
+> TODO: 生产面板实测行数、列数与各变量非缺失观测数待生产机重跑后回填（spec 设计目标为 obs ≥ 3000；本机 dev 环境仅早期试跑 T=2 数据，不构成实测口径）。
 
 ### 3.2 度量：创新协作模式
 
@@ -319,6 +319,6 @@ Table 6 以 `cell_id_full`（= subst×4 + locus×2 + collab + 1）的 8 单元�
 
 本研究使用的 LLM 分类 prompt 模板（prompt v8）是预注册的 v7 prompt（git tag `prompt-v7-released`）的**纯增量补充（additive supplementation）**；v7 中的验证、情感、实质性、位点判定规则完全保留（纯增量、不修订既有判定规则的 additive non-revisionary 补充，遵循预注册增补规范）。新增的创新协作模式维度计划在最终 production 重跑后通过 git tag `prompt-v8-supplementation-released` 锚定（该 tag 尚未创建）。
 
-**实证状态声明。** 本稿撰写环境为开发机（仅 T=2 dev 试跑数据），无任何生产回归结果；§4/§5 的全部系数、标准误与显著性均为待回填占位。财务/并购/专利 enrichment 层（M0.5.11）后续接入，相关 outcome 列以 wire-ahead 形式已接线。
+**实证状态声明。** 本稿撰写环境为开发机（仅早期试跑 T=2 数据），无任何生产回归结果；§4/§5 的全部系数、标准误与显著性均为待回填占位。财务/并购/专利 enrichment 层（M0.5.11）后续接入，相关 outcome 列以 wire-ahead 形式已接线。
 
 **LLM 使用披露（指针）。** 与同管线其余论文一致，本文的 LLM 使用披露包含: (i) LLM 路由——文章级分类由三家模型（gpt-5.4-nano 与 gemini-3.1-flash-lite 经 yunwu 路由、deepseek-v4-flash 直连）在 temperature=0.0、seed=42、prompt v8 字节级冻结下完成，多数投票聚合; (ii) 留篇门控为 full-only（`llm_verified_full`），ctx/ss 轨为 conditional-on-full; (iii) 管线的 co-primary 双嵌入轨（Qwen3-Embedding-8B canonical + text-embedding-3-large `_lg`）仅作为管线背景，不进入 P5 的处理变量或任何回归。完整披露文本见 `papers/_common/AI_DISCLOSURE_TEMPLATES.md`。

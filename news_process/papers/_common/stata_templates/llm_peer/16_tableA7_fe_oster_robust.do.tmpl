@@ -33,7 +33,7 @@
 *   Leone, Minutti-Meza & Wasley (2019). Influential observations and inference
 *     in accounting research. TAR 94(6), 337-364. DOI 10.2308/accr-52396
 *
-* 全部 capture / capture-confirm 守卫: 缺列/缺包 (ivreghdfe/psacalc)/T=2 退化/簇过少 时
+* 全部 capture / capture-confirm 守卫: 缺列/缺包 (ivreghdfe/psacalc)/早期试跑 T=2 退化/簇过少 时
 * 优雅 degrade, esttab 动态列名不硬点名, 绝不 r(111) 崩主链。新列零产出 → golden-safe。
 *
 * 输出: $tables_dir/tableA7_fe_oster_robust.{tex,csv} (+ Panel C 单列子表)
@@ -178,7 +178,7 @@ if `HAS_IV' {
                 local felabs `"`felabs' "+Prov×Year""'
             }
             else {
-                display "  ⚠️ Panel A: 省份×年 FE 失败 (T=2 共线?), 跳过 A1"
+                display "  ⚠️ Panel A: 省份×年 FE 失败 (早期试跑 T=2 共线?), 跳过 A1"
             }
         }
 
@@ -230,7 +230,7 @@ if `HAS_IV' {
             }
         }
 
-        * A4: + 银行特定线性趋势 c.year#i.bank_id (T≥3 守卫: T=2 时趋势与 FE 完全共线)
+        * A4: + 银行特定线性趋势 c.year#i.bank_id (T≥3 守卫: 早期试跑 T=2 时趋势与 FE 完全共线)
         quietly levelsof year, local(_yrs)
         local _nyr : word count `_yrs'
         if `_nyr' >= 3 {
@@ -275,7 +275,7 @@ if "`fecols'" != "" {
         mtitles(`felabs') ///
         addnotes("Endogenous own tone `TONE' instrumented by LLM-peer leave-one-out tone `IV'." ///
                  "Each column adds interacted FE to absorb region/type/zone-by-year common shocks (Gormley-Matsa 2014 RFS); SE clustered at `CL'." ///
-                 "Bank-specific linear trends require T>=3 (production T=19); skipped on T=2 trial panel.")
+                 "Bank-specific linear trends require T>=3 (production T=19); skipped on the retired T=2 trial panel.")
     estout `fecols' using "$tables_dir/tableA7_fe_oster_robust.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
         keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
@@ -302,8 +302,8 @@ else {
 *       须把 i.year 现场 tab 展开成哑变量集 (_yd_*) 再传入 mcontrol。
 *   rmax = min(1, 1.3 × R²(controlled)) (Oster 2019 经验法则); |δ|>1 即可放心
 *   (Altonji et al. 2005 / Oster 2019)。
-* ⚠ T=2 退化披露: 盘面 years 2017-2018 (T=2), 银行 FE areg 后剩余自由度极少,
-*   δ 估计仅 production T=19 全样本下有功效; T=2 时 psacalc 优雅跳过。
+* ⚠ 早期试跑 T=2 退化披露: 盘面 years 2017-2018 (T=2), 银行 FE areg 后剩余自由度极少,
+*   δ 估计仅 production T=19 全样本下有功效; 早期试跑 T=2 时 psacalc 优雅跳过。
 local oster_note "psacalc unavailable"
 capture which psacalc
 if !_rc {
@@ -331,7 +331,7 @@ if !_rc {
                 display "  [OK] Panel B: `oster_note'"
             }
             else {
-                display "  ⚠️ Panel B: psacalc 计算失败 (T=2 共线/样本不足?), 跳过 Oster"
+                display "  ⚠️ Panel B: psacalc 计算失败 (早期试跑 T=2 共线/样本不足?), 跳过 Oster"
             }
         }
         else {
@@ -359,7 +359,7 @@ local rbcols ""
 local rblabs ""
 capture confirm variable `TONE' $controls
 if !_rc {
-    * 决定 FE 哑变量集: T 足够才加 i.bank_type, T=2 时只 i.year (防过度共线)
+    * 决定 FE 哑变量集: T 足够才加 i.bank_type, 早期试跑 T=2 时只 i.year (防过度共线)
     capture confirm variable bank_type_grp
     local _has_type = (_rc == 0)
     if `_has_type' {

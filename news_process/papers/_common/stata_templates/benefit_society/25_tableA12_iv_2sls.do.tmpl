@@ -164,7 +164,7 @@ else {
 * 把头注"KP F < Stock-Yogo 临界值时改读 AR CI"的声明落为真实命令: 对每个已估计的
 * 2SLS 规格紧随其后跑 weak-IV-robust AR 置信集 (weakiv, ivreg2 后端), 写进 esttab note
 * (lockstep)。三层回退: weakiv (over-id/恰好识别通用) → condivreg (恰好识别 AR/CLR) →
-* rivtest。全程 capture which 守卫: 未装 ado 时优雅跳过 (诊断照常输出 KP F)。T=2 退化
+* rivtest。全程 capture which 守卫: 未装 ado 时优雅跳过 (诊断照常输出 KP F)。早期试跑 T=2 退化
 * 或 DV 缺列时 AR 检验报错 → capture noisily 吞错, 不阻断主表输出。
 * (镜像主线 25_tableA6_tone_iv_2sls 的 weakiv 块; benefit 第二阶段含 $controls +
 *  i.bank_id i.year 外生集, IV 工具集随列而变。)

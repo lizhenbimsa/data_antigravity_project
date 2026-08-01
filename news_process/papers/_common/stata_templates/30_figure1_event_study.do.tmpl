@@ -8,7 +8,7 @@
 * Sun-Abraham (2021) interaction-weighted 估计 (异质处理效应稳健); 未装才回退标准 TWFE
 * lead/lag, 并在图脚注如实标注实际所用估计量。下方 has_es 探测结果现已被消费。
 * 注 (2026-06-14 DID-6 修复): lead/lag 窗口不再硬编码 ±3 — 据样本实有年份跨度动态设定
-* (T=19 用 ±5, 小样本退化到可用宽度), 不浪费 T=19 功效, T=2 仍优雅退化。
+* (T=19 用 ±5, 小样本退化到可用宽度), 不浪费 T=19 功效, 早期试跑 T=2 仍优雅退化。
 * 设计披露 (2026-06-16 S1-04): digital_frontier 是【基年截面固定分组】(runner.py:1138,
 * _base_year_median_split, "组员资格跨年固定"), 非交错采纳事件 — 故 _first_treat (line 33)
 * 对每家处理组银行都坍缩为面板首年, 全部处理观测 _rel_time ≥ 0: 无处理前 lead、单一
@@ -79,7 +79,7 @@ preserve
             display as text "  ✅ eventstudyinteract (Sun-Abraham) 估计完成"
         }
         else {
-            display as text "  ⚠️ eventstudyinteract 退化 (T=2 无 never-treated/cohort 变异?), 回退 TWFE"
+            display as text "  ⚠️ eventstudyinteract 退化 (早期试跑 T=2 无 never-treated/cohort 变异?), 回退 TWFE"
             local has_es = 0
         }
     }

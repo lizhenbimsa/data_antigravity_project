@@ -53,7 +53,7 @@ else {
 
 * 4.bis (R1-R5 audit fix A1 + M2-regression fix 2026-05-30): 定义 $bank_controls 全局 macro
 * 供 19_*_clarity_robustness 等下游稳健性模板使用 (remove-title-track: 25_tableA8 已删)。
-* 银行财务控制 (ln_assets/leverage/...) 需 Wind/CSMAR merge, 当前 dev 面板尚未含。
+* 银行财务控制 (ln_assets/leverage/...) 需 Wind/CSMAR merge, 早期试跑 dev 面板尚未含。
 * 若 $bank_controls 硬列入不存在的变量, `reghdfe DV ... $bank_controls` 会 r(111)
 * 硬崩溃 (从静默跳过恶化为中断)。
 * 自校验: 逐个 capture confirm, 只把面板中实际存在的财务控制拼入 $bank_controls。

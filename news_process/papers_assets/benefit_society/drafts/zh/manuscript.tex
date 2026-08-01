@@ -175,7 +175,7 @@ canonical 槽模型技术细节见 \textcite{zhang2025qwen3}, 其金融域 (含�
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
 银行—年度面板覆盖约 164 个银行—年观测 (2017--2018)。
-上述观测数为\emph{开发期快照} ($T=2$ dev), 仅用于管线与规格验证; 生产目标
+上述观测数为\emph{开发期快照} (早期试跑帧, $T=2$ dev), 仅用于管线与规格验证; 生产目标
 面板基于普查总量 18{,}198{,}978 条媒体报道 (2007--2025, $T=19$) 聚合为覆盖 110 家银行
 的银行—年面板, 与 PAP 样本目标 (n\_bank\_min $= 200$, $T=19$, obs $\geq 3000$)
 属不同阶段口径, 三套口径不得混用。
@@ -438,7 +438,7 @@ magnitude ratio 仅作 informative 报告。Table A11 来自
 \subsection{测量与识别的局限性}\label{sec:disc:limit}
 \NoteThis{依照 Jha-Liu-Manela (2026) §6.1 议事录传统, 我们公开承认五类局限:
 \begin{enumerate}
-  \item \textbf{面板时间跨度}: 当前 84 银行、2 年 ($T=2$, 2017--2018) panel
+  \item \textbf{面板时间跨度}: 当前 84 银行、2 年 (早期试跑帧 $T=2$, 2017--2018) panel
         限制了时间序列检验; fintech 监管事件 event-study 与
         local-projection 脉冲响应推迟到 panel 扩展到 $T\geq10$ (M0.5 里程碑)
         之后。

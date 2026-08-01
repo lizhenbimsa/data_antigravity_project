@@ -186,7 +186,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         # 撤销 2026-06-13 的 avg_ft_intensity_full 主规格 (该文本量 Y 与 P2 attention
         # treatment 同源派生自同一媒体语料 → 反映共同覆盖因子而非真实公司行为)。
         # roa 是外部财务面板 sentinel (同 benefit/brokerage/strategic 三 B-route 篇);
-        # 当前 T=2 试跑盘无 roa 列 → 整复现包在 01_data_prep capture confirm (line 55)
+        # 早期试跑 T=2 盘无 roa 列 → 整复现包在 01_data_prep capture confirm (line 55)
         # exit 198 优雅 fail-loud (wire-ahead, 财务接入后自动激活)。avg_ft_intensity_full
         # 降为 first-stage 机制佐证 (spec.outcome.mechanism_evidence)。
         'MAIN_DV': 'roa',  # spec.outcome.primary (external financial sentinel, SAL-3)

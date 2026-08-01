@@ -39,7 +39,7 @@ outcome:
   #    avg_ft_intensity_full 降为 first-stage 机制佐证 (见 outcome.mechanism_evidence):
   #    展示 own tone → own fintech 战略响应这一中间通道, 但【不】作为 headline Y。
   # ── 2SLS 结构不变: peer-IV (llm_peer_tone_iv) → own tone (llm_vote_tone) → roa。
-  #    财务接入后模板 LHS (MAIN_DV) 自动指向 roa; 当前 T=2 试跑盘无 roa 列 → 整复现
+  #    财务接入后模板 LHS (MAIN_DV) 自动指向 roa; 早期试跑 T=2 盘无 roa 列 → 整复现
   #    包在 01_data_prep 优雅 fail-loud (同主线 B-route 篇), 不冒充可跑。
   primary: roa
   # secondary (经济/创新结局佐证): ln_fintech_investment (fintech 实际投入, P2 重叠

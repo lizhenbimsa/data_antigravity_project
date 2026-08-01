@@ -17,7 +17,7 @@
 *
 * golden-safe: 仅消费在盘分组列 (is_soe/bank_is_hub/bank_effective_size/bank_type 已核
 *   在盘); DV {{MAIN_DV}} + $controls 为待接入财务哨兵 → capture confirm 守卫,
-*   缺列则整表 no-op (wire-ahead 桩)。每个子样本回归用 quietly count + N 守卫防 T=2
+*   缺列则整表 no-op (wire-ahead 桩)。每个子样本回归用 quietly count + N 守卫防早期试跑 T=2
 *   分组后样本过小崩溃 (优雅跳过该组)。TIMING 不纳入 (has_lag=false, 年度面板无滞后窗)。
 * ============================================================================
 
@@ -66,7 +66,7 @@ if _rc {
 
 * --------------------------------------------------------------------------
 * 单组子样本回归子程序 (内联宏): 守卫 N → reghdfe → eststo 存名 → 累积列名/标题。
-* 最小观测守卫: 子样本需 N≥10 (粗略防 T=2 分组后退化崩溃; production T=19 充裕)。
+* 最小观测守卫: 子样本需 N≥10 (粗略防早期试跑 T=2 分组后退化崩溃; production T=19 充裕)。
 * --------------------------------------------------------------------------
 local subcols ""
 local sublabs ""
@@ -86,7 +86,7 @@ if !_rc {
             }
             else display "  WARN SS1 is_soe==`g' 回归失败 (共线/退化), 跳过"
         }
-        else display "  WARN SS1 is_soe==`g' 子样本 N<10 (T=2 退化), 跳过"
+        else display "  WARN SS1 is_soe==`g' 子样本 N<10 (早期试跑 T=2 退化), 跳过"
     }
 }
 else display "  WARN SS1: is_soe 缺, 跳过产权分组"
@@ -106,7 +106,7 @@ if !_rc {
             }
             else display "  WARN SS2 bank_is_hub==`g' 回归失败, 跳过"
         }
-        else display "  WARN SS2 bank_is_hub==`g' 子样本 N<10 (T=2 退化), 跳过"
+        else display "  WARN SS2 bank_is_hub==`g' 子样本 N<10 (早期试跑 T=2 退化), 跳过"
     }
 }
 else display "  WARN SS2: bank_is_hub 缺, 跳过枢纽分组"
@@ -130,7 +130,7 @@ if !_rc {
             }
             else display "  WARN SS3 size==`g' 回归失败, 跳过"
         }
-        else display "  WARN SS3 size==`g' 子样本 N<10 (T=2 退化), 跳过"
+        else display "  WARN SS3 size==`g' 子样本 N<10 (早期试跑 T=2 退化), 跳过"
     }
     capture drop _size_big
 }
@@ -151,7 +151,7 @@ if !_rc {
             }
             else display "  WARN SS4 bank_type==`t' 回归失败, 跳过"
         }
-        else display "  WARN SS4 bank_type==`t' 子样本 N<10 (T=2 退化), 跳过"
+        else display "  WARN SS4 bank_type==`t' 子样本 N<10 (早期试跑 T=2 退化), 跳过"
     }
 }
 else display "  WARN SS4: bank_type 缺, 跳过类型分组"
@@ -172,7 +172,7 @@ if "`subcols'" != "" {
     display "[OK] Table A-collab-SUBSAMPLE → tableA_collab_subsample.tex (+ .csv)"
 }
 else {
-    display "  WARN Table A-collab-SUBSAMPLE 无任何子样本估计 (DV 哨兵未接入 / T=2 全退化), 表 no-op"
+    display "  WARN Table A-collab-SUBSAMPLE 无任何子样本估计 (DV 哨兵未接入 / 早期试跑 T=2 全退化), 表 no-op"
 }
 
 display "[OK] bank_fintech_collab 24_collab_subsample 完成 (SOE / hub / size / type 四分组)"

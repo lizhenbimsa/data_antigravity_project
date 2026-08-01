@@ -10,7 +10,7 @@
 *     — per-model 分类维度 (实质创新占比; 共识 sub_frac = canonical headline; 生产机回填前休眠)
 *   三族**分别** rwolf (各自 family), 禁并入同一族。
 * ⚠ 铁律: 各家/各模型各自 just-identified 并排, 禁混同一 over-identified Hansen J (这是 FWER 校正 p, 非 IV)。
-* ⚠ wire-ahead: DV (ROA/funding_cost 财务哨兵) 盘上缺席 → capture confirm 守卫, 当前 T=2 优雅跳过,
+* ⚠ wire-ahead: DV (ROA/funding_cost 财务哨兵) 盘上缺席 → capture confirm 守卫, 早期试跑 T=2 优雅跳过,
 *    T=19 财务数据到位才产校正 p (与仓库 wire-ahead 惯例一致)。
 * ⚠ BERT net_tone 是 Phase 2 (encode post-agg) 列; Phase 1 前未落盘 → capture confirm 自动休眠。
 * ⚠ 本 .do 由 00_master 以 capture noisily do 调用 → **绝不用 exit** (会让 master 提前退出); 全程 if/else 守卫。
@@ -85,7 +85,7 @@ else {
                 }
             }
         }
-        else display as text "  [WARN] LLM 族 rwolf 失败 (rc=`=_rc'; 多为 T=2 退化/单测度); 校正 p 缺"
+        else display as text "  [WARN] LLM 族 rwolf 失败 (rc=`=_rc'; 多为早期试跑 T=2 退化/单测度); 校正 p 缺"
     }
 
     * ===== BERT 族: net_tone (Phase 2 post-agg 列; Phase 1 前 capture confirm 自动休眠) =====
@@ -144,7 +144,7 @@ else {
     else display as text "  [INFO] per-model 分类 frac 族未落盘 (生产机离线重放回填前休眠); 不报 CLS 族。"
 
     if `ri' == 0 {
-        display as text "  [SKIP] 跨模型 rwolf 无任何校正 p (T=2 退化 / DV 缺 / net_tone 未产)。"
+        display as text "  [SKIP] 跨模型 rwolf 无任何校正 p (早期试跑 T=2 退化 / DV 缺 / net_tone 未产)。"
     }
     else {
         matrix `RES' = `RES'[1..`ri', 1...]

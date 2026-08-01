@@ -13,7 +13,7 @@
 *   Panel A  FE-SAT   : FE 饱和阶梯 (Gormley & Matsa 2014 RFS)。逐层加
 *                       i.bank_province#i.year / i.bank_type#i.year /
 *                       i.bank_zone#i.year, 再加银行特定线性趋势 c.year#i.bank_id
-*                       (需 T>=3, T=2 退化盘 N-守卫跳过)。spatial-lag 同业溢出
+*                       (需 T>=3, 早期试跑 T=2 退化盘 N-守卫跳过)。spatial-lag 同业溢出
 *                       最大的替代解释 = "同省同年共同冲击" → 省份×年 FE 直接吸收。
 *   Panel B  ROBUST-EST: 离群稳健估计 (Koenker & Bassett 1978 ECMA 分位回归;
 *                       Huber M-估计)。winsor 是"削数据后再 OLS", 与 qreg(.5)/rreg
@@ -27,7 +27,7 @@
 *   - DV={{MAIN_DV}}_w (ROA sentinel): 全程 capture confirm; 财务面板未接入时
 *     各 Panel 优雅 no-op (wire-ahead 桩), 接入并跑 01_data_prep 后自动激活。
 *   - SSC 命令 psacalc: capture which 守卫, 未装则 Panel C 跳过 (视为正常)。
-*   - T=2 退化盘: 银行线性趋势 / qreg 大样本设定有 quietly count + N 守卫。
+*   - 早期试跑 T=2 退化盘: 银行线性趋势 / qreg 大样本设定有 quietly count + N 守卫。
 *   - 全部 reghdfe/qreg/rreg/psacalc 用 capture, esttab 名单动态化 (不硬点名缺估计)。
 *
 * ── 文献锚点 (DOI 已核验) ───────────────────────────────────────────────────
@@ -190,7 +190,7 @@ if !_rc {
     }
 }
 
-* A4: + 银行特定线性趋势 c.year#i.bank_id (需 T>=3; T=2 不可识别 -> N-守卫跳过)
+* A4: + 银行特定线性趋势 c.year#i.bank_id (需 T>=3; 早期试跑 T=2 不可识别 -> N-守卫跳过)
 if `Tn' >= 3 {
     capture eststo A4_trend: reghdfe `DVUSE' `TREAT' $controls, ///
         absorb(bank_id year _prov_fe#year c.year#i.bank_id) vce(cluster `CL')
@@ -212,7 +212,7 @@ if "`fecols'" != "" {
         addnotes("OLS reghdfe; coefficient on `TREAT' across progressively saturated FE (Gormley & Matsa 2014 RFS, doi:10.1093/rfs/hht047)." ///
                  "Prov#Year FE absorbs same-province-same-year common shocks (the leading alternative for spatial-lag spillover)." ///
                  "Type#Year / Zone#Year FE absorb type-time regulatory and zone-time industry-cycle common errors." ///
-                 "Bank linear trend (c.year#i.bank_id) needs T>=3; skipped on T=2 degenerate panel (production T=19).")
+                 "Bank linear trend (c.year#i.bank_id) needs T>=3; skipped on early-trial T=2 degenerate panel (production T=19).")
     estout `fecols' using "$tables_dir/tableA13_brok_fe_saturation.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) keep(`TREAT') ///
         starlevels(* 0.10 ** 0.05 *** 0.01)

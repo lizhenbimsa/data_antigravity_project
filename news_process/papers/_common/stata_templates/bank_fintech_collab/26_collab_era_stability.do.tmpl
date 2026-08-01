@@ -19,7 +19,7 @@
 *   era 交乘用连续量更干净) + 二元主导对 collab_open_full/collab_closed_full 作对照。
 *
 * golden-safe / $0: 仅消费在盘 collab_frac/year + 待接入 DV 哨兵; 全程 capture 守卫。
-*   T=2 现盘只有 2017-2018 (单一时代 ERA2 有数据) → A 面板仅跑有 N 的时代, B/C
+*   早期试跑 T=2 现盘只有 2017-2018 (单一时代 ERA2 有数据) → A 面板仅跑有 N 的时代, B/C
 *   面板因交乘项缺乏跨时代变异自动退化/优雅跳过 (N 守卫 + capture), 不报错不弹框;
 *   生产 T=19 三时代齐全后自动激活全部三面板。
 *
@@ -78,7 +78,7 @@ replace _era = 3 if year >= 2019 & year <= 2025
 label define _eralbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values _era _eralbl
 
-* 有数据的时代清单 (T=2 盘只 ERA2; 防对空时代跑回归崩溃)
+* 有数据的时代清单 (早期试跑 T=2 盘只 ERA2; 防对空时代跑回归崩溃)
 levelsof _era, local(_eras_present)
 
 * ===========================================================================
@@ -98,7 +98,7 @@ foreach e of local _eras_present {
         }
         else display "  WARN Panel A era==`e' 回归失败 (共线/退化), 跳过"
     }
-    else display "  WARN Panel A era==`e' 子样本 N<10 (T=2 退化), 跳过"
+    else display "  WARN Panel A era==`e' 子样本 N<10 (早期试跑 T=2 退化), 跳过"
 }
 
 if "`eracols'" != "" {
@@ -114,7 +114,7 @@ if "`eracols'" != "" {
     display "[OK] Table A-collab-ERA Panel A → tableA_collab_era_split.tex (+ .csv)"
 }
 else {
-    display "  WARN Panel A 无任何时代有足够样本 (T=2 单时代退化 / DV 哨兵未接入), 跳过"
+    display "  WARN Panel A 无任何时代有足够样本 (早期试跑 T=2 单时代退化 / DV 哨兵未接入), 跳过"
 }
 
 * ===========================================================================
@@ -171,12 +171,12 @@ if `n_era_present' >= 2 {
             }
             else display "  WARN Panel C: 仅 1 个有数据时代, 无跨时代对比, 跳过 Wald"
         }
-        else display "  WARN Panel B 交乘回归失败 (T=2 单时代无变异 / 共线), 跳过 B+C"
+        else display "  WARN Panel B 交乘回归失败 (早期试跑 T=2 单时代无变异 / 共线), 跳过 B+C"
     }
     else display "  WARN Panel B 全样本 N<20, 跳过交乘 + Wald"
 }
 else {
-    display "  WARN 仅 `n_era_present' 个时代有数据 (T=2 盘多为单一 ERA2) — 跨时代交乘/Wald 无变异, 优雅跳过 (生产 T=19 自动激活)"
+    display "  WARN 仅 `n_era_present' 个时代有数据 (早期试跑 T=2 盘多为单一 ERA2) — 跨时代交乘/Wald 无变异, 优雅跳过 (生产 T=19 自动激活)"
 }
 
 capture drop _era

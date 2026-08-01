@@ -88,7 +88,7 @@ if !_rc {
     local ppmlcols "`ppmlcols' PPML1"
     local ppmllabs `"`ppmllabs' "PPML bare""'
 }
-else display "  WARN PPML1 (裸) 失败 (separation / T=2 退化?), 跳过"
+else display "  WARN PPML1 (裸) 失败 (separation / 早期试跑 T=2 退化?), 跳过"
 
 * P2: + 财务控制 (capture confirm 守卫; $controls 缺则等同 P1, 故仅在非空时跑)
 if "$controls" != "" {
@@ -125,7 +125,7 @@ if "`ppmlcols'" != "" {
     display "[OK] Table A-collab-PPML → tableA_collab_ppml.tex (+ .csv)"
 }
 else {
-    display "  WARN Table A-collab-PPML 无任何估计成功 (DV 哨兵未接入 / separation / T=2 退化), 表 no-op"
+    display "  WARN Table A-collab-PPML 无任何估计成功 (DV 哨兵未接入 / separation / 早期试跑 T=2 退化), 表 no-op"
 }
 
 display "[OK] bank_fintech_collab 25_collab_ppml 完成 (Poisson PML 计数模型对照 OLS)"

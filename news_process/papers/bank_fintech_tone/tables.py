@@ -109,7 +109,7 @@ def write_table1(paper_config: PaperConfig | None = None,
         CSV 文件路径。
     """
     # fix(toptier-audit D5-3, 2026-06-13): 年档 ft_attn_yr/ft_vol_yr 为 year-level 常量
-    # (同年所有 bank 同值), summary_stats 报的是 POOLED SD (仅反映 between-year, T=2),
+    # (同年所有 bank 同值), summary_stats 报的是 POOLED SD (仅反映 between-year, 早期试跑 T=2),
     # 易被审稿误读为截面离散 → 表尾脚注显式披露 (亦适用其在 year FE 下被吸收, 仅作描述)。
     _footnote = (
         'ft_attn_yr / ft_vol_yr are year-level constants (identical across banks within '

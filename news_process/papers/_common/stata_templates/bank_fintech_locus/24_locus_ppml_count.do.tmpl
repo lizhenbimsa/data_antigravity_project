@@ -123,10 +123,10 @@ if `have_ppml' & `have_dv' & `have_treat' & `dv_nonneg' {
     capture noisily ppmlhdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     if !_rc eststo c_ppml_fe
-    else display as text "  [SKIP] PPML (bank+year FE): ppmlhdfe 未收敛或全 separation (T=2 退化可能; production T=19 激活)"
+    else display as text "  [SKIP] PPML (bank+year FE): ppmlhdfe 未收敛或全 separation (早期试跑 T=2 退化可能; production T=19 激活)"
 
     * B2: 仅 year FE + i.bank_type 哑 (FE 更稀疏, 缓解小样本 perfect-prediction 丢观测)
-    *     bank_type 字符串先数值化; T=2 下 bank FE 易把大量单元完美预测掉。
+    *     bank_type 字符串先数值化; 早期试跑 T=2 下 bank FE 易把大量单元完美预测掉。
     capture confirm numeric variable bank_type
     if _rc capture encode bank_type, gen(_btype_id)
     else gen long _btype_id = bank_type

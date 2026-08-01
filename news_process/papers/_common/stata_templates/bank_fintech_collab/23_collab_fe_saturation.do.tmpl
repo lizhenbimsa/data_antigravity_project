@@ -25,7 +25,7 @@
 *
 * golden-safe: 仅消费在盘列; DV {{MAIN_DV}} + $controls 为待接入财务哨兵, capture
 *   confirm 守卫 → 缺列则各 Panel 优雅 degrade/no-op (wire-ahead 桩, 不报错)。
-* T=2 退化: 银行线性趋势 (c.year#i.bank_id) 与 qreg 大样本设定在 T=2 试跑盘退化,
+* 早期试跑 T=2 退化: 银行线性趋势 (c.year#i.bank_id) 与 qreg 大样本设定在 T=2 盘退化,
 *   quietly count + N 守卫优雅跳过; production T=19 才全功效。
 * ============================================================================
 
@@ -132,7 +132,7 @@ if `HAS_PROV' {
         local fecols "`fecols' A1_provyr"
         local felabs `"`felabs' "+prov#year""'
     }
-    else display "  WARN Panel A: province#year 吸收失败 (T=2 试跑盘可能共线退化), 跳过 A1"
+    else display "  WARN Panel A: province#year 吸收失败 (早期试跑 T=2 盘可能共线退化), 跳过 A1"
 }
 
 * A2: + type#year (银行类型监管周期吸收)
@@ -157,7 +157,7 @@ if `HAS_ZONE' {
     else display "  WARN Panel A: zone#year 吸收失败, 跳过 A3"
 }
 
-* A4: + 银行特定线性趋势 c.year#i.bank_id (需 T≥3, T=2 盘退化跳过)
+* A4: + 银行特定线性趋势 c.year#i.bank_id (需 T≥3, 早期试跑 T=2 盘退化跳过)
 if `NYR' >= 3 {
     capture eststo A4_trend: reghdfe `DVUSE' `X' $controls, ///
         absorb(bank_id year c.year#i.bank_id) vce(cluster `CL')
@@ -260,7 +260,7 @@ if `_has_psacalc' & ("$controls" != "") {
                 file close _osterf
                 display "[OK] Table A-collab-Oster (Panel B: Oster delta, continuous collab_frac) → tableA_collab_oster.csv"
             }
-            else display "  WARN Panel B: psacalc delta 计算失败 (样本/控制不足? T=2 盘可能退化), 跳过"
+            else display "  WARN Panel B: psacalc delta 计算失败 (样本/控制不足? 早期试跑 T=2 盘可能退化), 跳过"
         }
         else display "  WARN Panel B: Oster 基线 areg 失败, 跳过"
     }
@@ -293,7 +293,7 @@ if !_rc {
     local recols "`recols' C1_qreg"
     local relabs `"`relabs' "qreg(.5)""'
 }
-else display "  WARN Panel C: qreg(.5) 失败 (T=2/共线?), 跳过 C1"
+else display "  WARN Panel C: qreg(.5) 失败 (早期试跑 T=2/共线?), 跳过 C1"
 
 * C2: rreg Huber/Tukey biweight 有界影响 IRLS 稳健回归 (迭代加权下调离群点)
 *     ⚠ rreg = Huber 起始 + Tukey biweight IRLS (bounded-influence M-估计), 非 MM。
@@ -302,7 +302,7 @@ if !_rc {
     local recols "`recols' C2_rreg"
     local relabs `"`relabs' "rreg (Huber/Tukey)""'
 }
-else display "  WARN Panel C: rreg 失败 (T=2/共线?), 跳过 C2"
+else display "  WARN Panel C: rreg 失败 (早期试跑 T=2/共线?), 跳过 C2"
 
 if "`recols'" != "" {
     esttab `recols' using "$tables_dir/tableA_collab_robust_est.tex", replace ///
@@ -318,7 +318,7 @@ if "`recols'" != "" {
     display "[OK] Table A-collab-ROBEST (Panel C: outlier-robust) written"
 }
 else {
-    display "  WARN Panel C: 无离群稳健估计成功 (DV 哨兵/T=2 退化), Panel C no-op"
+    display "  WARN Panel C: 无离群稳健估计成功 (DV 哨兵/早期试跑 T=2 退化), Panel C no-op"
 }
 
 * 清理临时 group 编码 (golden-safe: 不写回任何持久产物)

@@ -23,7 +23,7 @@
 * ----------------------------------------------------------------------------
 * golden-safe 铁律 (capture 守卫 + 优雅跳过):
 *   主 outcome cost_income_ratio_change_3yr 为外部财务 sentinel; 全部回归
-*   capture confirm 守卫, 缺 DV 则整表优雅跳过 (wire-ahead)。T=2 试跑盘只有
+*   capture confirm 守卫, 缺 DV 则整表优雅跳过 (wire-ahead)。早期试跑 T=2 盘只有
 *   2017-2018 → 仅 era 2 有数据: 单时代时只出该列, 跳过其余时代与交乘/Wald,
 *   不报错不弹框; T=19 财务接入后三时代列与 Wald 自动激活。
 *   小单元守卫: 每时代估计前 quietly count raw N>=10, 估计后再查 e(N)>=10。
@@ -87,7 +87,7 @@ if `_have_dv' & `_have_tx' {
             }
         }
         else {
-            display "  [INFO] era `e' raw N<10 (T=2 盘多只覆盖 era 2); 跳过该时代列"
+            display "  [INFO] era `e' raw N<10 (早期试跑 T=2 盘多只覆盖 era 2); 跳过该时代列"
         }
     }
 
@@ -135,7 +135,7 @@ if `_have_dv' & `_have_tx' {
         }
     }
     else {
-        display "  [INFO] 仅 `n_present' 个时代有数据 (T=2 盘=单时代); 跳过 era 交乘 + Wald (无可比对象)"
+        display "  [INFO] 仅 `n_present' 个时代有数据 (早期试跑 T=2 盘=单时代); 跳过 era 交乘 + Wald (无可比对象)"
     }
 
     * --------------------------------------------------------------------
@@ -168,7 +168,7 @@ if `_have_dv' & `_have_tx' {
             mtitles(`mtitles') ///
             addnotes("Columns 1-3: main spec (sub_frac -> cost_income_ratio_change_3yr, bank + year FE) re-estimated within each regime epoch (era 1 = 2007-2012 / era 2 = 2013-2018 / era 3 = 2019-2025)." ///
                      "Last column: full-sample c.sub_frac##i.era interaction (era main effects absorbed by year FE); Wald rows test equality of the era-specific slopes (rejection => effect is regime-heterogeneous, pooled estimate is a biased average)." ///
-                     "Empty columns / blank Wald arise on T=2 trial frames where only one regime has data; full T=19 activates all three eras automatically. Anchors: Bai-Perron 1998 ECMA; Hansen 2001 JEP; Gentzkow-Shapiro 2010 ECMA.")
+                     "Empty columns / blank Wald arise on the retired T=2 trial frames where only one regime has data; full T=19 activates all three eras automatically. Anchors: Bai-Perron 1998 ECMA; Hansen 2001 JEP; Gentzkow-Shapiro 2010 ECMA.")
 
         * CSV side-channel (与本目录其他模板一致约定; 供 tables.py 可选消费)
         estout `models' using "$tables_dir/tableA_substance_era_stability.csv", replace delimiter(",") ///

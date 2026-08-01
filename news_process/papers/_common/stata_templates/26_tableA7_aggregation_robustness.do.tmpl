@@ -24,7 +24,7 @@
 *   B 把"误差棒只按银行算"换成"按银行和年份双向算"并用自助法重测显著性 (银行家数不多时更稳);
 *   C 把"一年只有一两篇新闻的银行"剔掉再跑, 因为这种格子的情感分基本是噪声。
 *
-* 全部 capture-confirm / capture 守卫: 缺列、缺包 (boottest/winsor2)、簇过少 (T=2 试跑盘
+* 全部 capture-confirm / capture 守卫: 缺列、缺包 (boottest/winsor2)、簇过少 (早期试跑 T=2 盘
 * 的 year 仅 2 簇) 时优雅 degrade 并告警, 绝不 r(111) 崩主链 (动态列名, 不硬点名缺失估计)。
 *
 * Main spec: sent={{MAIN_SENT_TRACK}} (locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}})
@@ -123,14 +123,14 @@ if !_rc {
     local infcols "`infcols' B_oneway"
     local inflabs `"`inflabs' "Cluster: bank""'
 
-    * B2: 双向 cluster(bank_id year) — T=2 试跑盘 year 仅 2 簇可能失败, capture 守卫
+    * B2: 双向 cluster(bank_id year) — 早期试跑 T=2 盘 year 仅 2 簇可能失败, capture 守卫
     capture eststo B_twoway: reghdfe `DV_EW' `EXPL', absorb(bank_id year) vce(cluster bank_id year)
     if !_rc {
         local infcols "`infcols' B_twoway"
         local inflabs `"`inflabs' "Cluster: bank & year""'
     }
     else {
-        display "  ⚠️ Panel B: 双向聚类失败 (year 簇过少? T=2 试跑盘正常), 跳过 B2 — 全量 T=19 下应成立"
+        display "  ⚠️ Panel B: 双向聚类失败 (year 簇过少? 早期试跑 T=2 盘正常), 跳过 B2 — 全量 T=19 下应成立"
     }
 
     * B3: 野聚类自助法 (boottest; bank 簇有限 G≈84). 报自助 p 值/CI 入 log + 脚注.

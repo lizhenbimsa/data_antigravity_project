@@ -80,7 +80,7 @@ if r(N) >= 30 {
         if !_rc eststo G1_nonhub
     }
 }
-else display "[SKIP] non-hub subsample N=" r(N) " < 30 (T=2 degenerate)"
+else display "[SKIP] non-hub subsample N=" r(N) " < 30 (early-trial T=2 degenerate)"
 restore
 
 * G2: 枢纽子样本 2SLS
@@ -103,7 +103,7 @@ if r(N) >= 30 {
         if !_rc eststo G2_hub
     }
 }
-else display "[SKIP] hub subsample N=" r(N) " < 30 (T=2 degenerate)"
+else display "[SKIP] hub subsample N=" r(N) " < 30 (early-trial T=2 degenerate)"
 restore
 
 * H_pooled: 组间差异的正式检验 — pooled 交乘 2SLS (交乘项 = 组间 LATE 差)
@@ -138,7 +138,7 @@ if r(N) >= 40 {
         }
     }
 }
-else display "[SKIP] pooled-interaction N=" r(N) " < 40 (T=2 degenerate)"
+else display "[SKIP] pooled-interaction N=" r(N) " < 40 (early-trial T=2 degenerate)"
 
 qui estimates dir
 local stored `r(names)'
@@ -172,7 +172,7 @@ esttab `models' using "$tables_dir/table10_network_het.tex", replace ///
              "Pooled-interaction column is 2-endog/2-IV, where 1-endogenous Stock-Yogo values (16.38) do not apply;" ///
              "Anderson-Rubin CI (weakiv after ivreg2, logged; ASS 2019 ARE) is its primary inference." ///
              "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301)." ///
-             "Subsamples with effective N<30 are skipped (T=2 panel degenerate; production T=19 required)." ///
+             "Subsamples with effective N<30 are skipped (early-trial T=2 panel degenerate; production T=19 required)." ///
              "Grouping var _hub_q derives from bank_degree_cent (endogenous to media coverage, P1-5) and also enters instrument iv_x_hub:" ///
              "between-group difference is CONDITIONAL heterogeneity, NOT causal amplification by hub status (mirrors Table 9 P1-5 caveat)." ///
              "Heterogeneity conditional on main identification (W2*tone exclusion P1-6, co-mention validity P1-3 unresolved upstream).")

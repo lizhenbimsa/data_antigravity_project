@@ -106,14 +106,14 @@ else {
 *   一定偏离 (M ∈ {0, .5, 1, 2}×∆̂), 看主效应在多大偏离下仍显著。
 * 把此前仅 "* honestdid" 注释脚手架转为真实估计行 (capture which honestdid 守卫)。
 * (Rambachan & Roth 2023 RES; Roth 2022 AER:Insights; Sun & Abraham 2021 JoE)
-* ⚠ 依赖事件研究 (下游稳健性): 政策处理 dcep_lead*/dcep_lag* 在 T=2 试跑帧上全 0
+* ⚠ 依赖事件研究 (下游稳健性): 政策处理 dcep_lead*/dcep_lag* 在早期试跑 T=2 帧上全 0
 *   (处理年 2019 晚于面板末年) → coefleg 无 pre 系数, 守卫静默跳过; T=19 自动激活。
 * ============================================================================
 * (3a) INLINE intensity-DiD 事件研究 (DCEP) + pre-trend 联合 F
 local es_ok = 0
 capture confirm variable dcep_lead3 dcep_lead2 dcep_lag0 dcep_lag1 dcep_lag2 dcep_lag3
 if !_rc {
-    * 处理 dummy 方差守卫 (T=2 试跑帧 leads/lags 恒 0 → 不可识别, 跳过)
+    * 处理 dummy 方差守卫 (早期试跑 T=2 帧 leads/lags 恒 0 → 不可识别, 跳过)
     quietly summarize dcep_lag1
     if (r(sd) > 0) & (r(sd) < .) {
         * attention 强度 × 相对事件年 leads/lags (omit dcep_lead1 作基准期, 镜像 collab/19 INLINE 写法)
@@ -136,7 +136,7 @@ if !_rc {
         }
     }
     else {
-        display "  [SKIP DID-3] DCEP leads/lags 零方差 (处理年 2019 晚于面板末年, T=2 试跑帧); 事件研究 + HonestDiD 跳过, T=19 自动激活"
+        display "  [SKIP DID-3] DCEP leads/lags 零方差 (处理年 2019 晚于面板末年, 早期试跑 T=2 帧); 事件研究 + HonestDiD 跳过, T=19 自动激活"
     }
 }
 else {
@@ -188,7 +188,7 @@ if `es_ok' {
                 numpreperiods(2) mvec(0 0.5 1 2) delta(rm) ///
                 coefplot saving("$tables_dir/honestdid_attention.gph", replace)
             if !_rc display "  [OK DID-3] HonestDiD relative-magnitude sensitivity (M=0..2) → honestdid_attention.gph"
-            else    display "  [WARN] honestdid 运行失败 (T=2 退化 / OSQP-ECOS plugin / coefplot 版本); production T=19 激活"
+            else    display "  [WARN] honestdid 运行失败 (早期试跑 T=2 退化 / OSQP-ECOS plugin / coefplot 版本); production T=19 激活"
         }
         else {
             display "  [SKIP DID-3] event-time 子向量抽取失败 (退化样本部分交乘被 drop); production T=19 激活"

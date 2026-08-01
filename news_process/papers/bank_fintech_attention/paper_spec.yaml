@@ -130,7 +130,7 @@ inference:
       # ⚠ cross_model_* 为声明式文档, 运行时无消费者; 各家/各模型 just-identified 并排, 禁混同一 over-identified Hansen J。
     lit: [Romano-Wolf 2005 ECMA, List-Shaikh-Xu 2019 EE, Anderson 2008 JASA]
   cluster: [bank]              # 主规格 firm-level 聚类 (= CLUSTER_VAR bank_id; T=19 G≈200 大 G 充足)
-  cluster_robustness:          # small-G / 多维聚类对比 (Cameron-Miller 2015 JHR; T=2 试跑帧退化时优雅跳过)
+  cluster_robustness:          # small-G / 多维聚类对比 (Cameron-Miller 2015 JHR; 早期试跑 T=2 帧退化时优雅跳过)
     - bank_only                # 主规格
     - bank_year_twoway         # 双向聚类 (year G=18 小, 仅作对比)
     - province_year_twoway     # 省级×年 (省 G≈31, 配 wild bootstrap MacKinnon-Webb 2017)

@@ -64,7 +64,7 @@ if `have_treat' == 0 {
     display as error "  [WARN] {{MAIN_TREAT}} 不在盘 — 上游 stage 14/45 未产出 treatment, Table A8 跳过"
 }
 
-* T 守卫: 部分设定 (bank 线性趋势 / 大样本分位回归) 需 T≥3; 当前盘 T=2 退化
+* T 守卫: 部分设定 (bank 线性趋势 / 大样本分位回归) 需 T≥3; 当前盘早期试跑 T=2 退化
 quietly levelsof year, local(_yrs)
 local n_years : word count `_yrs'
 display as text "  [INFO] panel T (distinct years) = `n_years' (production T=19 才有线性趋势/分位回归全功效)"
@@ -113,7 +113,7 @@ if `have_dv' & `have_treat' {
     }
 
     * M3 + bank-specific linear trend (c.year#i.bank_id) — 需 T≥3, 否则与 bank+year
-    *     FE 共线 (T=2 时银行趋势不可识别), N/T 守卫优雅跳过。
+    *     FE 共线 (早期试跑 T=2 时银行趋势不可识别), N/T 守卫优雅跳过。
     if `n_years' >= 3 {
         capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
             absorb(bank_id year c.year#i.bank_id) vce(cluster {{CLUSTER_VAR}})

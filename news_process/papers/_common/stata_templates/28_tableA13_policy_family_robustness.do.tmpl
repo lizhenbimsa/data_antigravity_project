@@ -12,7 +12,7 @@
 *   full 轨**无后缀** (禁给 full 臂加轨后缀); 次序铁律 lg 先、allv 后
 *   (禁把 allv 拼在 lg 前)。错拼会被 capture confirm 静默吞臂,
 *   gate = test_stata_templates 的字面量断言; 生产机首次出表须核对 12 臂齐全。
-* ⚠ wire-ahead: DV 财务哨兵盘上缺席 → capture confirm 守卫优雅跳过 (T=2 预期 [SKIP])。
+* ⚠ wire-ahead: DV 财务哨兵盘上缺席 → capture confirm 守卫优雅跳过 (早期试跑 T=2 预期 [SKIP])。
 * ⚠ 本 .do 由 00_master 以 capture noisily do 调用 → **绝不用 exit**; 全程 if/else 守卫。
 * ⚠ 根级路径约定 (镜像 26_tableA7/27_tableA12): data/processed + capture confirm 回退 full.dta。
 * ============================================================================
@@ -61,7 +61,7 @@ else {
                 capture noisily eststo A13_`=`narm'+1': reghdfe `DV' `arm' $bank_controls, ///
                     absorb(bank_id year) cluster({{CLUSTER_VAR}})
                 if !_rc local ++narm
-                else display as text "  [WARN] 臂 `arm' 回归失败 (rc=`=_rc'; 多为 T=2 退化); 跳过"
+                else display as text "  [WARN] 臂 `arm' 回归失败 (rc=`=_rc'; 多为早期试跑 T=2 退化); 跳过"
             }
             else display as text "  [INFO] 臂 `arm' 不在面板 (回填/allv companion 未产, wire-ahead 休眠)"
         }

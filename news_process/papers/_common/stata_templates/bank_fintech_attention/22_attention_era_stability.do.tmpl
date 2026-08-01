@@ -17,7 +17,7 @@
 *           "三段效应是不是一样大"。
 *   为什么: 顶刊审稿人对长面板媒体测度的硬要求 — 年份固定效应只吸收水平漂移,
 *           不保证测度跨年含义一致; 分时代稳定性表是 referee 期待的标配。
-*   影响:   纯 Stata 层, 只读在盘列 + 全程 capture 守卫; T=2 试跑帧只有 2017-2018
+*   影响:   纯 Stata 层, 只读在盘列 + 全程 capture 守卫; 早期试跑 T=2 帧只有 2017-2018
 *           (落在中时代) → 仅一个时代有数据时优雅跳过其余 + Wald 不可算时跳过,
 *           不报错不弹框; golden-safe, T=19 自动激活全部三段 + 交乘 + Wald。
 *
@@ -161,7 +161,7 @@ else {
             addnotes("Era split per audit CY-2: 2007-2012 (pre-yuebao) / 2013-2018 (yuebao-P2P) / 2019-2025 (post-DCEP)." ///
                      "Era-interact column: c.treat#ibn.era = era-specific slopes (ibn=no-base-omit, all three era slopes estimable); i.era main effect absorbs era level shifts; bank+year FE retained." ///
                      "Wald test of equal treatment slopes across eras (H0: cross-era stability): F=`wald_F', p=`wald_p'. Reject => regime-dependent effect (pooled estimate is a biased average; Bai-Perron 1998, Hansen 2001)." ///
-                     "T=2 trial frame (2017-2018) falls in era 2 only; off-era columns and the Wald test gracefully skip and auto-activate at T=19.")
+                     "the retired T=2 trial frame (2017-2018) falls in era 2 only; off-era columns and the Wald test gracefully skip and auto-activate at T=19.")
 
         * CSV side-channel — parse_esttab_csv 消费 (tables.py read_paper_esttab)
         estout `models' using "$tables_dir/tableA_era_stability.csv", replace ///

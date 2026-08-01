@@ -131,7 +131,7 @@ else {
 * eststo → 经 esttab stats() 输出到表 (lockstep, 与姐妹模板 substance/22:148-204 口径一致),
 * 不再只留在 log。
 * 三层回退: weakiv (over-id/恰好识别通用) → condivreg (恰好识别 AR/CLR) → rivtest。
-* 全程 capture which 守卫: 未装 ado 时优雅跳过 (诊断照常输出 KP F)。T=2 退化时
+* 全程 capture which 守卫: 未装 ado 时优雅跳过 (诊断照常输出 KP F)。早期试跑 T=2 退化时
 * AR 检验可能报错 → capture noisily 吞错, 不阻断主表输出。缺值时 estadd . 无害。
 local ar_note ""
 capture which weakiv

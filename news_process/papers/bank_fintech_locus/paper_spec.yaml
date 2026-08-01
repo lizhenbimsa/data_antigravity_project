@@ -113,7 +113,7 @@ inference:
     # 永久 r(198) 被 capture 吞 → 已替换为真命令)。E1=2013 余额宝事件 INLINE 强度事件研究上跑。
     method: honest_did          # honestdid (Rambachan-Roth 2023 RES; delta(rm) 相对幅度)
     m_grid: [0, 0.5, 1, 1.5, 2] # 相对幅度 M-band; pre-trend 联合 F 配套报 (leads −3/−2/−1 = 0)
-    event: E1                   # 2013-06-13 yuebao_launch (窗口最长); production T=19 激活, T=2 优雅跳过
+    event: E1                   # 2013-06-13 yuebao_launch (窗口最长); production T=19 激活, 早期试跑 T=2 优雅跳过
     lit: [Rambachan-Roth 2023 RES, Roth 2022 AER:Insights, Sun-Abraham 2021 JoE]
 
 identification:

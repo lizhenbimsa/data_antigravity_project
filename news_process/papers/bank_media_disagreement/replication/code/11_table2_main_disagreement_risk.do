@@ -98,7 +98,7 @@ eststo M6: reghdfe `DV' c.`TX'##i.is_soe `CTRL_B' `CTRL_Y', ///
 * S10-04/S12-004: 少聚类 wild cluster bootstrap 推断 (headline 列 M3)
 * ──────────────────────────────────────────────────────────────────────────
 * 主表用 vce(cluster bank_id year) 双向聚类, 但 year 维聚类数 G_year≈13 偏小
-* (production T≈18; T=2 试跑更小)。按 MacKinnon-Webb 2017 (Econometrics Journal)
+* (production T=19; 早期试跑 T=2 更小)。按 MacKinnon-Webb 2017 (Econometrics Journal)
 * / Roodman et al. 2019 (SJ), G<~30 时渐近聚类 SE 在该维不可靠 → 对 year 维
 * 改报 wild cluster bootstrap p 值 (boottest, cluster(year), reps(999)) 作为
 * 该维首选推断。boottest 不改写 e(b)/e(V), wild p 在 r(p) → estadd 注入后

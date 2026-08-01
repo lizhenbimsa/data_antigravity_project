@@ -19,7 +19,7 @@
 *   outcome {{MAIN_DV}}_w (=ROA_w) 为外部财务 sentinel — capture confirm 守卫,
 *   缺列时全表优雅跳过 (wire-ahead)。FE = bank_id + year (SPEC IV-1 后主基线;
 *   分时代子样本内年份少 → 守卫退化)。
-* ⚠ T=2 退化守卫: 现盘 T=2 (2017–2018) 仅落在 Era 2 → 只有一个时代有数据;
+* ⚠ 早期试跑 T=2 退化守卫: 早期试跑盘曾为 T=2 (2017–2018) 仅落在 Era 2 → 只有一个时代有数据;
 *   各时代 N 守卫 + 交乘 Wald 仅在 ≥2 时代有数据时计算, 否则优雅跳过 (不报错)。
 *   production T=19 三时代齐全才有完整功效。
 * ============================================================================
@@ -49,7 +49,7 @@ if _rc {
 }
 
 * ----------------------------------------------------------------------------
-* 时代标签 era ∈ {1,2,3}; 各时代有数据的标记 (T=2 退化时仅 Era 2 有数据)
+* 时代标签 era ∈ {1,2,3}; 各时代有数据的标记 (早期试跑 T=2 退化时仅 Era 2 有数据)
 * ----------------------------------------------------------------------------
 capture drop era
 gen byte era = .
@@ -94,7 +94,7 @@ forvalues e = 1/3 {
         }
     }
     else {
-        display "  [INFO] Era `e' N=`_n_e`e'' < 10; 分时代回归跳过 (T=2 退化, production T=19 才足量)"
+        display "  [INFO] Era `e' N=`_n_e`e'' < 10; 分时代回归跳过 (早期试跑 T=2 退化, production T=19 才足量)"
     }
 }
 
@@ -102,7 +102,7 @@ forvalues e = 1/3 {
 * Panel B — 全样本 treatment×era 交乘 + Wald 三时代系数相等性检验
 *   仅当 ≥2 时代有数据时才有意义 (单时代无跨时代对比)。
 * ----------------------------------------------------------------------------
-local _wald_note "Cross-era Wald equality test requires >=2 eras with data (T=2 sample has only Era 2)."
+local _wald_note "Cross-era Wald equality test requires >=2 eras with data (early-trial T=2 sample has only Era 2)."
 if `_n_eras_present' >= 2 {
     * i.era##c.{{ATTITUDE_VAR}} 全交乘; era#year 共线由 reghdfe 处理。
     * 基准时代取出现的第一个 (ib`_base'.era)。
@@ -144,7 +144,7 @@ if `_n_eras_present' >= 2 {
     }
 }
 else {
-    display "  [INFO] 仅 `_n_eras_present' 个时代有数据 (<2); 交乘 + Wald 跳过 (T=2 退化, production T=19 激活)"
+    display "  [INFO] 仅 `_n_eras_present' 个时代有数据 (<2); 交乘 + Wald 跳过 (早期试跑 T=2 退化, production T=19 激活)"
 }
 
 * ============================================================================
@@ -168,7 +168,7 @@ forvalues i = 1/`nmod' {
 
 if "`models'" == "" {
     display as error "  [WARN] Table A15 无任何已存储估计 (全时代退化跳过), 表跳过"
-    display "[OK] Table A15 (era stability) → 全时代退化跳过 (T=2; production T=19 激活)"
+    display "[OK] Table A15 (era stability) → 全时代退化跳过 (早期试跑 T=2; production T=19 激活)"
 }
 else {
     esttab `models' ///
@@ -182,7 +182,7 @@ else {
                  "Each Era column re-estimates {{ATTITUDE_VAR}} -> {{MAIN_DV}}_w on the sub-period; bank_id + year FE; SE clustered at {{CLUSTER_VAR}}." ///
                  "Full x era column = full sample with treatment x era interactions (base era omitted)." ///
                  "`_wald_note'" ///
-                 "Sub-period N small under T=2 (only Era 2 = 2017-2018 populated); production T=19 gives all three eras full power.")
+                 "Sub-period N small under early-trial T=2 (only Era 2 = 2017-2018 populated); production T=19 gives all three eras full power.")
 
     * CSV side-channel (parse_esttab_csv 格式; tables.py 可经 read_paper_esttab 消费)
     estout `models' using "$tables_dir/tableA15_era_stability.csv", replace delimiter(",") ///

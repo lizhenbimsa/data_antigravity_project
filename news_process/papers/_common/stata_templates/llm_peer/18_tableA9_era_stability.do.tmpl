@@ -15,7 +15,7 @@
 * 本表三件套 (Bai-Perron 对面板 DiD/2SLS 非硬要求; 真要求是系数稳定性证据):
 *   Panel A — 三时代分段主 2SLS: 2007-2012 (pre-余额宝) / 2013-2018 (P2P-fintech
 *             爆发) / 2019-2025 (DCEP / 强监管)。各时代各跑一次主规格, 看系数与
-*             第一阶段 F 是否同号同量级。T=2 试跑盘仅 2017-2018 落在中段 →
+*             第一阶段 F 是否同号同量级。早期试跑 T=2 盘仅 2017-2018 落在中段 →
 *             仅一个时代有数据时优雅跳过其余 (production T=19 才有三段功效)。
 *   Panel B — 全样本 treatment×era 交乘 2SLS + Wald 三时代系数相等检验:
 *             把 era 哑变量与本行语调交乘 (内生项), 用 peer-IV × era 工具识别,
@@ -34,7 +34,7 @@
 *   Hansen, B.E. (2001). The new econometrics of structural change. JEP 15(4),
 *     117-128. DOI 10.1257/jep.15.4.117
 *
-* 全部 capture / capture-confirm / N-守卫: 缺列 / 缺包 (ivreghdfe) / T=2 退化
+* 全部 capture / capture-confirm / N-守卫: 缺列 / 缺包 (ivreghdfe) / 早期试跑 T=2 退化
 *   (单一时代有数据) / 时代子样本 N 过小 时优雅跳过, esttab 动态列名不硬点名,
 *   绝不 r(111) 崩主链。era 哑变量/交乘项用即时构造 (不落盘) → golden-safe。
 *
@@ -123,7 +123,7 @@ if _rc {
     exit 0
 }
 
-* N-守卫: 时代子样本有效 2SLS 样本须 >= N_MIN, 否则优雅跳过 (T=2 退化保护)
+* N-守卫: 时代子样本有效 2SLS 样本须 >= N_MIN, 否则优雅跳过 (早期试跑 T=2 退化保护)
 local N_MIN 20
 
 * ── era 哑变量即时构造 (不落盘 → golden-safe) ───────────────────────────
@@ -137,7 +137,7 @@ replace era = 3 if year >= 2019 & year <= 2025
 label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values era era_lbl
 
-* 有数据的时代数 (T=2 试跑盘仅 2017-2018 → 只有 era2)
+* 有数据的时代数 (早期试跑 T=2 盘仅 2017-2018 → 只有 era2)
 quietly levelsof era if !missing(era, `DVUSE', `TONE', `IV'), local(eras_present)
 local n_eras : word count `eras_present'
 display "  [INFO] Table A9: 有数据的时代 = `eras_present' (共 `n_eras' 个)"
@@ -182,7 +182,7 @@ forvalues e = 1/3 {
         local eralabs `"`eralabs' "`_ename'""'
     }
     else {
-        display "  ⚠️ Panel A: 时代 `_ename' 子样本 N<`N_MIN' 或 2SLS 失败, 跳过 (T=2 试跑盘仅中段有数据; production T=19 才有三段功效)"
+        display "  ⚠️ Panel A: 时代 `_ename' 子样本 N<`N_MIN' 或 2SLS 失败, 跳过 (早期试跑 T=2 盘仅中段有数据; production T=19 才有三段功效)"
     }
 }
 
@@ -195,14 +195,14 @@ if "`eracols'" != "" {
         mtitles(`eralabs') ///
         addnotes("Sample split by fintech regime era: 2007-2012 (pre-Yu'ebao) / 2013-2018 (P2P-fintech boom) / 2019-2025 (DCEP/tightening)." ///
                  "Each column = main 2SLS (`TONE' = `IV'), bank+year FE, SE clustered at `CL'." ///
-                 "Eras with N<`N_MIN' skipped (T=2 trial panel only covers 2017-2018; production T=19 populates all three).")
+                 "Eras with N<`N_MIN' skipped (the retired T=2 trial panel only covers 2017-2018; production T=19 populates all three).")
     estout `eracols' using "$tables_dir/tableA9_era_stability.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
         keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
     display "[OK] Table A9 Panel A (segmented era 2SLS) written"
 }
 else {
-    display "  ⚠️ Panel A 无可用列 (单一时代 / T=2 退化), 跳过 A9 Panel A 主表 (production T=19 才有功效)"
+    display "  ⚠️ Panel A 无可用列 (单一时代 / 早期试跑 T=2 退化), 跳过 A9 Panel A 主表 (production T=19 才有功效)"
 }
 
 * ==========================================================================
@@ -211,7 +211,7 @@ else {
 * 仅当 >=2 个时代有数据时才有交乘可言 (单时代退化无对比 → 跳过)。
 eststo clear
 if `n_eras' < 2 {
-    display "  ⚠️ Panel B: 仅 `n_eras' 个时代有数据 (T=2 试跑盘), 无跨时代交乘可检验, 跳过 (production T=19 才能跑三时代 Wald)"
+    display "  ⚠️ Panel B: 仅 `n_eras' 个时代有数据 (早期试跑 T=2 盘), 无跨时代交乘可检验, 跳过 (production T=19 才能跑三时代 Wald)"
 }
 else {
     * 交乘项即时构造: tone × era 哑变量 + iv × era 哑变量 (内生项各配工具)。
@@ -328,7 +328,7 @@ if !_rc {
                 if _rc display "  [INFO] Panel C: estat sbsingle 不适用当前序列 (探索性, 跳过)"
             }
             else {
-                display "  [INFO] Panel C: 年度序列 <8 点 (T=2 退化), 跳过 sbsingle (production T=19)"
+                display "  [INFO] Panel C: 年度序列 <8 点 (早期试跑 T=2 退化), 跳过 sbsingle (production T=19)"
             }
         }
     }

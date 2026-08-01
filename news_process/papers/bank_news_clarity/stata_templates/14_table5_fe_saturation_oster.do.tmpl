@@ -24,7 +24,7 @@
 *   M1: + province × year   (i.bank_province#i.year)  省级时变宏观冲击
 *   M2: + bank_type × year  (i.bank_type#i.year)      类型监管周期
 *   M3: + bank_zone × year  (i.bank_zone#i.year)      区域媒体生态
-*   M4: + bank-specific linear trend (c.year#i.bank_id)  T≥3 守卫 (盘面 T=2 退化跳过)
+*   M4: + bank-specific linear trend (c.year#i.bank_id)  T≥3 守卫 (早期试跑盘面 T=2 退化跳过)
 *
 * Panel B — Oster (2019) δ:
 *   psacalc delta TREAT, rmax(1.3 * R²_controlled) mcontrol(<受控回归里的 FE 哑变量项>)
@@ -119,7 +119,7 @@ if `DV_OK' {
     *   财务/宏观控制 (CTRL_B+CTRL_Y) listwise-delete 后估计样本塌缩 → 每个 eststo
     *   后读 e(N), 太小则 estimates drop 该退化列 (esttab 名单据 estimates dir 动态
     *   收集 → drop 后自然不进表)。
-    * _nyr_cl: year 簇数 (双向 cluster(bank_id year) 的第二维)。盘面 T=2 / 生产
+    * _nyr_cl: year 簇数 (双向 cluster(bank_id year) 的第二维)。早期试跑盘面 T=2 / 生产
     *   ~18, 少簇 → cluster-robust SE 渐近近似差, addnotes 显式披露 + caveat。
     local MINEST 20
     quietly levelsof year, local(_yrs)
@@ -177,7 +177,7 @@ if `DV_OK' {
     }
 
     * M4: + bank-specific linear trend (c.year#i.bank_id) — 需 T≥3
-    * T=2 退化守卫: 每个银行只 2 个时点时银行特定线性趋势完美共线 → 跳过。
+    * 早期试跑 T=2 退化守卫: 每个银行只 2 个时点时银行特定线性趋势完美共线 → 跳过。
     if `_nyr' >= 3 {
         capture noisily eststo A_m4: reghdfe `DV' `TX' `CTRL_B' `CTRL_Y', ///
             absorb(bank_id year c.year#i.bank_id) vce(cluster bank_id year)
@@ -187,7 +187,7 @@ if `DV_OK' {
         }
     }
     else {
-        display "  [T=2 退化] 仅 `_nyr' 个年度 (<3) — Panel A M4 银行线性趋势跳过" ///
+        display "  [早期试跑 T=2 退化] 仅 `_nyr' 个年度 (<3) — Panel A M4 银行线性趋势跳过" ///
                 " (production T≥3 才有功效)"
     }
 
@@ -220,7 +220,7 @@ if `DV_OK' {
             addnotes("Progressive high-dimensional FE absorbed via reghdfe; cluster-robust SE (bank+year two-way)." ///
                      "Treatment = mean_clarity_score_full (You 2018 dictionary, _full main track; full-only gating 2026-06-29, _ctx twin = primary robustness)." ///
                      "M1 absorbs province x year; M2 bank-type x year; M3 zone x year; M4 adds bank-specific linear trend (needs T>=3)." ///
-                     "Two-way cluster on (bank, year): year clusters = `_nyr_cl' (current panel); few-cluster caveat applies when year clusters are small (T=2 trial / production T~18). With <~30 clusters in a dimension, asymptotic cluster-robust SE are unreliable; production should report wild-cluster-bootstrap (boottest) p-values for the year dimension." ///
+                     "Two-way cluster on (bank, year): year clusters = `_nyr_cl' (current panel); few-cluster caveat applies when year clusters are small (early-trial T=2 / production T=19). With <~30 clusters in a dimension, asymptotic cluster-robust SE are unreliable; production should report wild-cluster-bootstrap (boottest) p-values for the year dimension." ///
                      "Controls (CTRL_B+CTRL_Y) listwise-deleted; columns with post-estimation e(N) < `MINEST' are dropped as degenerate." ///
                      "Framework: Gormley & Matsa (2014, RFS 27(2):617-661, doi:10.1093/rfs/hht047) on controlling for unobserved heterogeneity.")
         * CSV side-channel (parse_esttab_csv 消费)

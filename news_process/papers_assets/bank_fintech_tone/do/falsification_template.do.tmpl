@@ -795,7 +795,7 @@ reghdfe Y c.sandbox_treated##c.sandbox_post##i.digital_frontier X, ///
 * notyet: 政策覆盖面广 → never-treated 结构性稀少, 用 not-yet-treated 作对照
 *   (iv_did.py:639-641 识别局限披露)。
 * 全程 capture which / capture confirm 守卫: 缺 ado (csdid/bacondecomp/drdid) 或
-*   T=2 (单期无 pre/post) 时优雅跳过, 不报错; 全量 T=19 接入后自动激活。
+*   早期试跑 T=2 (单期无 pre/post) 时优雅跳过, 不报错; 全量 T=19 接入后自动激活。
 * 学术依据:
 *   Goodman-Bacon, A. (2021). Difference-in-Differences with Variation in Treatment
 *     Timing. Journal of Econometrics, 225(2), 254-277.
@@ -829,13 +829,13 @@ foreach pol in dcep sandbox {
     display as text "  [skip] `pol'_treat_year 不在面板, 跳过 `pol' 错时 DiD 稳健估计 (12c)"
     continue
   }
-  * 多期守卫: csdid 需 ≥2 个时期且 cohort 有变异 (T=2 试跑盘只 2017-2018 → 退化跳过)
+  * 多期守卫: csdid 需 ≥2 个时期且 cohort 有变异 (早期试跑 T=2 盘只 2017-2018 → 退化跳过)
   quietly levelsof year, local(_yrs)
   local _ny : word count `_yrs'
   quietly levelsof `pol'_treat_year if `pol'_treat_year > 0, local(_gs)
   local _ng : word count `_gs'
   if `_ny' < 3 | `_ng' < 1 {
-    display as text "  [skip] `pol' 错时 DiD: 时期数=`_ny' / 处理 cohort 数=`_ng' 过少 (T=2 试跑盘正常), 全量 T=19 激活"
+    display as text "  [skip] `pol' 错时 DiD: 时期数=`_ny' / 处理 cohort 数=`_ng' 过少 (早期试跑 T=2 盘正常), 全量 T=19 激活"
     continue
   }
 

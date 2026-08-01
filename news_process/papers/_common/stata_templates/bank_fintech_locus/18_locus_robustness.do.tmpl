@@ -28,7 +28,7 @@ set seed {{RANDOM_SEED}}
 * family = 两个 locus 处理 (layer / scenario), Romano-Wolf step-down 控制族内 FWER。
 * 白话: 同时检验"底层技术主导"与"应用场景主导"两个处理时, 总有一个可能碰巧显著;
 *       rwolf 用自助 step-down 法把 p 值整体调严, 防多重检验误报。capture which 守卫:
-*       缺 rwolf ado / T=2 退化时优雅跳过, 不报错; production T=19 自动激活。
+*       缺 rwolf ado / 早期试跑 T=2 退化时优雅跳过, 不报错; production T=19 自动激活。
 capture which rwolf
 if _rc {
     capture ssc install rwolf, replace
@@ -44,7 +44,7 @@ if !_rc {
         display "  [RWOLF] Romano-Wolf FWER-adjusted p (locus family, 1000 reps): see r()/e(rw_*)"
     }
     else {
-        display "  ⚠️ rwolf 运行失败 (T=2 退化 / within 变异不足); production T=19 激活"
+        display "  ⚠️ rwolf 运行失败 (早期试跑 T=2 退化 / within 变异不足); production T=19 激活"
     }
 }
 else {
@@ -56,7 +56,7 @@ else {
 *       在多大违背下仍然显著。依赖事件研究 (19_locus_event_study) 保存的 leads/lags
 *       事件时间系数; honestdid 在其上做平滑度/相对幅度的部分识别敏感性。
 * 实现: 先复刻 19 的 INLINE 截面强度事件研究 (E1=2013, 余额宝, 窗口最长), 保存 e(),
-*       再对 leads/lags 系数向量跑 honestdid。capture 全程守卫 (缺 ado / T=2 退化跳过)。
+*       再对 leads/lags 系数向量跑 honestdid。capture 全程守卫 (缺 ado / 早期试跑 T=2 退化跳过)。
 capture confirm variable locus_layer_full
 if !_rc {
     * 事件 E1 (2013) 相对年哑变量 (镜像 19_locus_event_study INLINE 写法)
@@ -132,7 +132,7 @@ if !_rc {
                     numpreperiods(3) mvec(0 0.5 1 1.5 2) delta(rm) ///
                     coefplot saving("$tables_dir/honestdid_locus_E1.gph", replace)
                 if !_rc display "  [HONESTDID] E1 relative-magnitude sensitivity (M=0..2) → honestdid_locus_E1.gph"
-                else    display "  ⚠️ honestdid 运行失败 (T=2 退化 / OSQP-ECOS plugin / coefplot 版本); production T=19 激活"
+                else    display "  ⚠️ honestdid 运行失败 (早期试跑 T=2 退化 / OSQP-ECOS plugin / coefplot 版本); production T=19 激活"
             }
             else {
                 display "  [SKIP] event-time 子向量抽取失败 (退化样本部分交乘被 drop); production T=19 激活"
@@ -143,7 +143,7 @@ if !_rc {
         }
     }
     else {
-        display "  [SKIP] HonestDiD 前置事件研究退化 (T=2 仅 2017-2018, E1=2013 窗外); production T=19 激活"
+        display "  [SKIP] HonestDiD 前置事件研究退化 (早期试跑 T=2 仅 2017-2018, E1=2013 窗外); production T=19 激活"
     }
 }
 
@@ -258,9 +258,9 @@ esttab `models' ///
           labels("N" "R²" "Wild cluster bootstrap p" "Pre-trend joint F" "Pre-trend p")) ///
     title("Table 5 — Advanced Robustness (P4 locus + alternative classifier + Borusyak DiD)") ///
     addnotes("Column wild_boot: analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
-             "Column es_honest_E1: INLINE intensity event study (E1=2013 yuebao); Pre-trend joint F = test(leads −3/−2/−1 = 0). HonestDiD relative-magnitude (M=0..2) sensitivity (Rambachan-Roth 2023) runs on the extracted 6-coefficient event-time subvector via honestdid, b()/vcov() numpreperiods(3): activates in production T=19 (real command) and gracefully skips under T=2 degeneracy → honestdid_locus_E1.gph." ///
+             "Column es_honest_E1: INLINE intensity event study (E1=2013 yuebao); Pre-trend joint F = test(leads −3/−2/−1 = 0). HonestDiD relative-magnitude (M=0..2) sensitivity (Rambachan-Roth 2023) runs on the extracted 6-coefficient event-time subvector via honestdid, b()/vcov() numpreperiods(3): activates in production T=19 (real command) and gracefully skips under early-trial T=2 degeneracy → honestdid_locus_E1.gph." ///
              "Romano-Wolf FWER-adjusted p over the locus treatment family (rwolf, 1000 reps) actually run → supplemental log e(rw_*). Borusyak DiD output to robustness.log." ///
-             "All advanced estimators capture-guarded: absent ado / T=2 degeneracy ⇒ graceful skip; production T=19 activates.")
+             "All advanced estimators capture-guarded: absent ado / early-trial T=2 degeneracy ⇒ graceful skip; production T=19 activates.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_locus/
 * tables.py:build_table5_robustness 经 read_paper_esttab(..., 'table5_robustness.csv') 消费。

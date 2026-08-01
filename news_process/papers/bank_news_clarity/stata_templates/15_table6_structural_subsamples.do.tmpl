@@ -83,7 +83,7 @@ if _rc {
 local MINOBS 20
 
 * ── NC-TWOWAY-CLUSTER-T2-05: year 簇数 (双向 cluster 第二维) ─────────────────
-* 各 Panel 用 vce(cluster bank_id year); year 簇盘面 T=2 / 生产 ~18, 少簇 →
+* 各 Panel 用 vce(cluster bank_id year); year 簇早期试跑盘面 T=2 / 生产 ~18, 少簇 →
 * cluster-robust SE 渐近近似差 → addnotes 显式披露 year 簇数 + 少簇 caveat。
 quietly levelsof year, local(_yrs_cl)
 local NYR_CL : word count `_yrs_cl'
@@ -147,7 +147,7 @@ else {
             keep(`TX') ///
             addnotes("Each column = one bank-type subsample; cluster-robust SE (bank+year)." ///
                      "Treatment = mean_clarity_score_full (You 2018 dict, _full main track; full-only gating 2026-06-29, _ctx twin = primary robustness)." ///
-                     "Two-way cluster on (bank, year): year clusters = `NYR_CL'; few-cluster caveat (asymptotic cluster-robust SE unreliable with small year-cluster count; production T~18 should report wild-cluster-bootstrap)." ///
+                     "Two-way cluster on (bank, year): year clusters = `NYR_CL'; few-cluster caveat (asymptotic cluster-robust SE unreliable with small year-cluster count; production T=19 should report wild-cluster-bootstrap)." ///
                      "Subsamples with <`MINOBS' obs (or post-est e(N)<`MINEST' after control listwise deletion) skipped (degenerate SE).")
         esttab `models' ///
             using "output/tables/table6_panelA_bank_type.csv", replace ///
@@ -166,8 +166,8 @@ else {
 * ── NC-HUB-CROSSYEAR-03: hub 子样本逐年漂移披露 ─────────────────────────────
 * bank_is_hub 名义上是 0/1 切分, 但 hub 在生产中按"年内媒体关注 top-10%"界定 →
 * 同一家银行可能某年是 hub、另一年掉出 (跨年翻转), 故子样本成员逐年漂移、非
-* 时间不变切分。此处仍按当前盘的 bank_is_hub 值分组 (盘面 T=2 时近似不变), 但
-* addnotes 显式披露该 within-year top-decile 性质与跨年漂移 (production T~18 时
+* 时间不变切分。此处仍按当前盘的 bank_is_hub 值分组 (早期试跑盘面 T=2 时近似不变), 但
+* addnotes 显式披露该 within-year top-decile 性质与跨年漂移 (production T=19 时
 * 严格做法应改为 pooled interaction clarity#hub 或在每个 bank-year 内重新判 hub)。
 capture confirm variable bank_is_hub
 if _rc {
@@ -214,7 +214,7 @@ else {
             title("Table 6 Panel B: Hub vs Non-Hub Banks (media-network centrality split)") ///
             mtitles(`mtitles') keep(`TX') ///
             addnotes("Split on bank_is_hub (media-attention network hub status, 0/1)." ///
-                     "Hub is defined as the within-year top-10% of media attention; membership therefore drifts year to year (a bank can be a hub in one year and not another), so these subsamples are NOT time-invariant. With production T~18, prefer a pooled clarity#hub interaction (or re-evaluate hub within each bank-year)." ///
+                     "Hub is defined as the within-year top-10% of media attention; membership therefore drifts year to year (a bank can be a hub in one year and not another), so these subsamples are NOT time-invariant. With production T=19, prefer a pooled clarity#hub interaction (or re-evaluate hub within each bank-year)." ///
                      "Two-way cluster on (bank, year): year clusters = `NYR_CL'; few-cluster caveat applies (small year-cluster count; production should report wild-cluster-bootstrap)." ///
                      "Treatment = mean_clarity_score_full; cluster-robust SE (bank+year). Columns with post-est e(N)<`MINEST' (control listwise) dropped.")
         esttab `models' ///
