@@ -1,0 +1,4308 @@
+{
+  "schema": "llmsdic-judge-manifest/v2",
+  "created_at": "2026-07-23T15:25:36",
+  "run_output_file": "bank_keywords_20260723_152532.xlsx",
+  "offline_mode": true,
+  "cache_enabled": true,
+  "strict_replay": false,
+  "judge_models": [
+    "claude-fable-5",
+    "claude-opus-4-8",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gemini-3.1-pro-preview",
+    "gemini-3.5-flash",
+    "grok-4.5",
+    "kimi-k2.6",
+    "glm-5.2",
+    "qwen3.7-max",
+    "deepseek-v4-pro",
+    "MiniMax-M3",
+    "mimo-v2.5-pro"
+  ],
+  "judge_batch_size": 100,
+  "max_judge_retries": 200,
+  "temperature": "0",
+  "n_words": 696,
+  "wordlist_sha256": "ac5b1fe99442cad5c564b89a2a23df7bee4d8c4589c0d59aee08639123d69caa",
+  "wordlist": [
+    "安全多方计算",
+    "安全技术",
+    "安全运营中心",
+    "巴塞尔协议",
+    "保险科技",
+    "边缘计算",
+    "标签体系",
+    "财富管理",
+    "财富科技",
+    "财资管理",
+    "操作风险",
+    "差分隐私",
+    "产融结合",
+    "产业金融",
+    "场景化金融",
+    "场景金融",
+    "超级柜台",
+    "超级柜员机",
+    "车联网金融",
+    "程序化交易",
+    "持续集成",
+    "持续交付",
+    "穿透式监管",
+    "纯线上信贷",
+    "纯信用贷款",
+    "大模型",
+    "大数据",
+    "大语言模型",
+    "贷后管理",
+    "贷前调查",
+    "贷中监控",
+    "等保",
+    "等级保护",
+    "低代码",
+    "第三方支付",
+    "第五代移动通信",
+    "电话银行",
+    "电子保函",
+    "电子对账",
+    "电子合同",
+    "电子回单",
+    "电子票据",
+    "电子凭证",
+    "电子钱包",
+    "电子签名",
+    "电子签约",
+    "电子签章",
+    "电子渠道",
+    "电子认证",
+    "电子信用证",
+    "电子银行",
+    "电子印章",
+    "电子营业执照应用",
+    "电子账户",
+    "电子支付",
+    "动态风控",
+    "动态口令",
+    "多方安全计算",
+    "多方合作",
+    "多模态识别",
+    "多因素认证",
+    "多因子认证",
+    "多云管理",
+    "额度授信",
+    "二类户",
+    "二类账户",
+    "二维码支付",
+    "反欺诈",
+    "反洗钱",
+    "访问控制",
+    "非接触式服务",
+    "非接触式金融",
+    "非接触支付",
+    "分布式核心",
+    "分布式架构",
+    "分布式系统",
+    "分布式账本",
+    "风控模型",
+    "风控中台",
+    "风险定价",
+    "风险管理",
+    "风险画像",
+    "风险监测",
+    "风险建模",
+    "风险模型",
+    "风险评分",
+    "风险评估",
+    "风险预警",
+    "服务器无感知计算",
+    "服务器虚拟化",
+    "服务网格",
+    "服务中台",
+    "高频交易",
+    "个人信息保护",
+    "个性化推荐",
+    "供应链金融",
+    "供应链票据",
+    "供应链平台",
+    "公有云",
+    "关联网络",
+    "关系网络",
+    "光学字符识别",
+    "规则引擎",
+    "国产化",
+    "国密算法",
+    "合规管理",
+    "合规机器人",
+    "合规科技",
+    "核心系统",
+    "核心业务系统",
+    "核心一级资本",
+    "核心银行系统",
+    "核心账务系统",
+    "虹膜识别",
+    "后端开发",
+    "湖仓一体",
+    "互联网保险",
+    "互联网存款",
+    "互联网金融",
+    "互联网理财",
+    "互联网小贷",
+    "环境社会治理评价系统",
+    "混合云",
+    "活体检测",
+    "基金销售",
+    "机器人客服",
+    "机器视觉",
+    "机器学习",
+    "技术中台",
+    "计算机视觉",
+    "架构转型",
+    "加密货币",
+    "加密技术",
+    "加密算法",
+    "监管报告",
+    "监管报送",
+    "监管科技",
+    "监管沙盒",
+    "监管沙箱",
+    "检索增强生成",
+    "交易监测",
+    "交易监控",
+    "交易流水分析",
+    "交易银行",
+    "交易预警",
+    "结构性存款",
+    "接口网关",
+    "近场通信",
+    "金融安全",
+    "金融场景",
+    "金融创新",
+    "金融大脑",
+    "金融级安全",
+    "金融科技",
+    "金融生态",
+    "金融数字化",
+    "金融网关",
+    "金融新基建",
+    "金融云",
+    "金融中台",
+    "净稳定资金比例",
+    "精细化运营",
+    "净值型理财",
+    "精准营销",
+    "聚合收单",
+    "聚合支付",
+    "决策引擎",
+    "开发运维一体化",
+    "开放接口",
+    "开放金融",
+    "开放平台",
+    "开放生态",
+    "开放银行",
+    "科创金融",
+    "客服机器人",
+    "客户标签",
+    "客户关系管理",
+    "客户画像",
+    "客户尽职调查",
+    "客户旅程",
+    "客户身份识别",
+    "客户生命周期管理",
+    "客户体验",
+    "客户中台",
+    "科技风控",
+    "科技赋能",
+    "科技监管",
+    "科技金融",
+    "科技外包",
+    "科技治理",
+    "可信计算",
+    "可信数据空间",
+    "可信执行环境",
+    "可疑交易报告",
+    "空中柜台",
+    "空中银行",
+    "跨界合作",
+    "跨境金融",
+    "跨境理财通",
+    "跨境支付",
+    "跨行清算",
+    "快捷支付",
+    "理财产品",
+    "联邦风控",
+    "联邦学习",
+    "联邦营销",
+    "联合贷款",
+    "联合建模",
+    "联盟链",
+    "联名数字卡",
+    "两地三中心",
+    "量化分析",
+    "量化风控",
+    "量化交易",
+    "量化金融",
+    "量化投资",
+    "量子计算",
+    "量子加密",
+    "量子金融计算",
+    "了解你的客户",
+    "零接触银行",
+    "零售金融",
+    "零售银行",
+    "零碳银行",
+    "零信任",
+    "零知识证明",
+    "流程机器人",
+    "流程挖掘",
+    "流动性风险",
+    "流动性覆盖率",
+    "流计算",
+    "流式处理",
+    "流式计算",
+    "流式数据",
+    "漏洞扫描",
+    "绿色金融",
+    "贸易金融",
+    "贸易融资",
+    "密码技术",
+    "密码学",
+    "密钥管理",
+    "秒贷",
+    "敏捷开发",
+    "敏捷银行",
+    "敏捷中台",
+    "敏捷转型",
+    "模型风控",
+    "模型即服务",
+    "模型治理",
+    "内部评级法",
+    "农村金融",
+    "票据电子化",
+    "票据数字化",
+    "平台化经营",
+    "平台金融",
+    "平台银行",
+    "普惠金融",
+    "普惠信贷",
+    "企业级架构",
+    "前端开发",
+    "前端框架",
+    "千人千面",
+    "嵌入式金融",
+    "嵌入式银行",
+    "嵌入式支付",
+    "清算系统",
+    "清算支付",
+    "轻型网点",
+    "轻型银行",
+    "情绪识别",
+    "渠道融合",
+    "渠道协同",
+    "区块链",
+    "去中心化金融",
+    "全景银行",
+    "全局数字画像",
+    "全渠道",
+    "全息投影",
+    "全栈开发",
+    "全真互联",
+    "人工智能",
+    "人脸识别",
+    "容器",
+    "容灾备份",
+    "软件开发工具包",
+    "三类户",
+    "三类账户",
+    "扫码支付",
+    "沙盒监管",
+    "商业智能",
+    "设备指纹",
+    "深度学习",
+    "身份访问管理",
+    "身份核验",
+    "身份认证",
+    "渗透测试",
+    "生态赋能",
+    "生态合作",
+    "生态金融",
+    "生态银行",
+    "声纹核验",
+    "声纹识别",
+    "声纹支付",
+    "生物认证",
+    "生物识别",
+    "生物特征认证",
+    "生物特征识别",
+    "生物特征支付",
+    "生物支付",
+    "市场风险",
+    "时间戳",
+    "实名认证",
+    "视频柜员",
+    "视频客服",
+    "视频认证",
+    "视频银行",
+    "实时风控",
+    "实时计算",
+    "实时清算",
+    "实时支付",
+    "收单系统",
+    "手机盾",
+    "手机号码支付",
+    "手机钱包",
+    "手机银行",
+    "授信模型",
+    "授信审批",
+    "数据安全",
+    "数据备份",
+    "数据标准",
+    "数据仓库",
+    "数据分析",
+    "数据共享",
+    "数据湖",
+    "数据加密",
+    "数据建模",
+    "数据可视化",
+    "数据库",
+    "数据平台",
+    "数据驱动",
+    "数据沙盒",
+    "数据沙箱",
+    "数据脱敏",
+    "数据挖掘",
+    "数据血缘",
+    "数据要素",
+    "数据隐私",
+    "数据治理",
+    "数据质量",
+    "数据智能",
+    "数据中台",
+    "数据资产",
+    "数智化转型",
+    "数字保函",
+    "数字保理",
+    "数字保险",
+    "数字藏品",
+    "数字存款",
+    "数字贷款",
+    "数字底座",
+    "数字供应链",
+    "数字函证",
+    "数字鸿沟",
+    "数字化催收",
+    "数字化风控",
+    "数字化合规",
+    "数字化获客",
+    "数字化监管",
+    "数字化经营",
+    "数字化开户",
+    "数字化渠道",
+    "数字化审计",
+    "数字化授信",
+    "数字化体验",
+    "数字化网点",
+    "数字化银行",
+    "数字化营销",
+    "数字化运营",
+    "数字化转型",
+    "数字货币",
+    "数字金融",
+    "数字理财",
+    "数字孪生",
+    "数字票据",
+    "数字凭证",
+    "数字普惠",
+    "数字钱包",
+    "数字签名",
+    "数字渠道",
+    "数字权益",
+    "数字人",
+    "数字认证",
+    "数字身份",
+    "数字生态",
+    "数字网点",
+    "数字信贷",
+    "数字信任",
+    "数字信托",
+    "数字信用卡",
+    "数字银行",
+    "数字营销",
+    "数字营业厅",
+    "数字员工",
+    "数字原生",
+    "数字运营",
+    "数字账户",
+    "数字证书",
+    "数字征信",
+    "数字支付",
+    "数字资产",
+    "刷脸支付",
+    "双因素认证",
+    "私人银行",
+    "私有链",
+    "私有云",
+    "私域流量",
+    "私域运营",
+    "算法交易",
+    "算法模型",
+    "算法推荐",
+    "算法治理",
+    "算力网络",
+    "态势感知",
+    "碳金融",
+    "弹性伸缩",
+    "碳账户",
+    "特征工程",
+    "替代数据",
+    "提示工程",
+    "体验管理",
+    "体验设计",
+    "体验银行",
+    "条码支付",
+    "同城双活",
+    "同态加密",
+    "投行科技",
+    "图计算",
+    "图谱风控",
+    "图像识别",
+    "推荐算法",
+    "推荐系统",
+    "推荐引擎",
+    "网贷",
+    "网关支付",
+    "网联",
+    "网络安全",
+    "网络金融",
+    "网络小贷",
+    "网络小额贷款",
+    "网络支付",
+    "网上银行",
+    "网银",
+    "微服务",
+    "微信银行",
+    "文本机器人",
+    "稳定币",
+    "无代码",
+    "无感服务",
+    "无感支付",
+    "无接触服务",
+    "无接触金融",
+    "无接触银行",
+    "无界金融",
+    "无界银行",
+    "无卡取款",
+    "物联网",
+    "无人网点",
+    "无人银行",
+    "无纸化",
+    "系统重要性银行",
+    "现金循环机",
+    "线上存款",
+    "线上贷款",
+    "线上化",
+    "线上尽调",
+    "线上开户",
+    "线上理财",
+    "线上理赔",
+    "线上签约",
+    "线上线下融合",
+    "线上支付",
+    "小程序银行",
+    "消费金融",
+    "小微金融",
+    "小微企业金融",
+    "信创",
+    "信贷工厂",
+    "信贷管理系统",
+    "信贷审批",
+    "新市民金融",
+    "信息安全",
+    "信息科技",
+    "信息系统",
+    "信用风险",
+    "信用评分",
+    "信用评估",
+    "行为分析",
+    "虚拟柜员机",
+    "虚拟卡",
+    "虚拟网点",
+    "虚拟现实",
+    "虚拟信用卡",
+    "虚拟银行",
+    "虚拟营业厅",
+    "虚拟账户",
+    "压力测试",
+    "研发运营一体化",
+    "养老金融",
+    "业技融合",
+    "业务连续性",
+    "业务中台",
+    "异常检测",
+    "异地多活",
+    "异地双活",
+    "移动互联",
+    "移动金融",
+    "移动银行",
+    "移动应用",
+    "移动展业",
+    "移动支付",
+    "银发金融",
+    "银行即服务",
+    "银行数字化",
+    "银行云",
+    "银行中台",
+    "银企直联",
+    "银企直连",
+    "银税互动",
+    "隐私保护",
+    "隐私计算",
+    "隐私增强技术",
+    "硬件钱包",
+    "营销中台",
+    "应用程序接口",
+    "用户画像",
+    "用户旅程",
+    "用户体验",
+    "用户运营",
+    "用户增长",
+    "舆情监测",
+    "语义分析",
+    "语音机器人",
+    "语音交互",
+    "语音识别",
+    "语音银行",
+    "远程柜员",
+    "远程开户",
+    "远程面签",
+    "远程银行",
+    "元数据管理",
+    "元宇宙",
+    "云柜员",
+    "云计算",
+    "云闪付",
+    "云网点",
+    "云银行",
+    "云营业厅",
+    "云原生",
+    "灾备体系",
+    "灾备系统",
+    "灾难恢复",
+    "在线开户",
+    "在线理财",
+    "增强分析",
+    "增强现实",
+    "账户管理",
+    "账户体系",
+    "掌上生活",
+    "账务中台",
+    "征信科技",
+    "征信系统",
+    "制裁名单筛查",
+    "制裁筛查",
+    "支付标记化",
+    "支付结算",
+    "支付科技",
+    "支付清算",
+    "支付网关",
+    "支付中台",
+    "智慧大脑",
+    "智慧大堂",
+    "智慧柜台",
+    "智慧柜员机",
+    "智慧金融",
+    "智慧审计",
+    "智慧厅堂",
+    "智慧网点",
+    "智慧校园",
+    "智慧医疗",
+    "智慧银行",
+    "智慧营销",
+    "智慧运营",
+    "智慧政务",
+    "智慧支付",
+    "指静脉识别",
+    "智能报表",
+    "智能保管箱",
+    "智能财管",
+    "智能财务",
+    "智能催收",
+    "智能存款",
+    "智能贷后",
+    "智能定存",
+    "智能定贷",
+    "智能定价",
+    "智能定损",
+    "智能对账",
+    "智能反电信诈骗",
+    "智能风控",
+    "智能柜面",
+    "智能柜台",
+    "智能柜员",
+    "智能核保",
+    "智能核查",
+    "智能合规",
+    "智能核身",
+    "智能合同",
+    "智能核验",
+    "智能合约",
+    "智能化",
+    "智能回访",
+    "智能获客",
+    "智能机具",
+    "智能结算",
+    "智能尽调",
+    "智能决策",
+    "智能客服",
+    "智能理财",
+    "智能理赔",
+    "智能流程",
+    "智能路由",
+    "智能面签",
+    "智能排班",
+    "智能排队",
+    "智能清分",
+    "智能清收",
+    "智能清算",
+    "智能审贷",
+    "智能审单",
+    "智能审核",
+    "智能审计",
+    "智能审批",
+    "智能识别",
+    "智能收单",
+    "智能授信",
+    "智能双录",
+    "智能体",
+    "智能投顾",
+    "智能投研",
+    "智能推荐",
+    "智能外呼",
+    "智能网点",
+    "智能网关",
+    "智能信贷",
+    "智能信审",
+    "智能押品管理",
+    "智能研报",
+    "智能银行",
+    "智能营销",
+    "智能预警",
+    "智能语音",
+    "智能运维",
+    "智能运营",
+    "智能征信",
+    "智能支付",
+    "智能质检",
+    "智能终端",
+    "智能资产负债管理",
+    "智能资产配置",
+    "智能资管",
+    "知识图谱",
+    "指纹识别",
+    "指纹支付",
+    "直销银行",
+    "中台架构",
+    "中台战略",
+    "助贷",
+    "主数据管理",
+    "资本充足率",
+    "资本计量高级法",
+    "资产负债管理系统",
+    "资产管理",
+    "资产证券化",
+    "自动贷后",
+    "自动化",
+    "自动审批",
+    "自动授信",
+    "资管科技",
+    "资金存管",
+    "资金对账系统",
+    "自然语言处理",
+    "自助银行",
+    "自助智慧设备",
+    "自助终端",
+    "总损失吸收能力",
+    "最佳行动推荐"
+  ],
+  "n_batches": 7,
+  "tasks": {
+    "MiniMax-M3|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "460ce345c0ca61d9b97cdcb6cb94189dc2c7a7eb4642e82f44a1ea8d06116583",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f3400aebca9fcdd0139e6803a2af57e05adcfcd26b8ac42cd83a617273940013",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "c277a74a30d8b5563571e43aad1015f04ff8fcf410f1294bf7a4250d7fe151c6",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "ad763229b0cf284d896507809473c587542f10d6332cd2efccbd234c0d3fbc43",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "567ae0a40ab26bc37f5e5f1ac3e6897a56556a0bff73e72f1d41f4bf80fa31c9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "c53fa3d28f0700fb8d35b5146652a86f6790eafeb52bb441426299bbd796cd8e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9bedac8ee31cdd200e5642a29ea9db73f439992182407c9c8bb910f26a5f03a5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "fa990f737b29563a0e69599123fcd5b9eb40721afb4d28bb3cd50673863fda7a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a5d0b0cac237d87b4e063cbe682d1c4c9228c60573a33a11d30d9f48cf33185e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "dbd9cc919e8626cd38694eb11b3e900e075546a37eb8dafe447ec2eb4d6db633",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "102473edc5139f1405b336958acf2fce9d27d099ea0e647af6e0cb794c1fa3b2",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6190c41bf7b5933f4c65b72b28335d43e6e4926b1c10d26cf693491154f44118",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "489f0c1ec57dd5b24c66e512813157d4f25d1396bc0ec8d78ff200bc8263bbe8",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7b9b9e3f11ca26ddbe1538efa0648c3955dd3487b720a61417379c6b63ace364",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "af45d65ff58e5fb7a424e2b402c6271febfabcac10c4e1373e88f415c3d70c6a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "764cf39c89a2e268ffe08bcc6bb83ed9d68c43aece0bba4bac125b3718882f07",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f385db8fe8073a452300f3be22182290f2851e9f1b55b70cdc0561f0d8c66a02",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "527c12b95bba1b546bc151db3abaac1024a7ca4756affd657ae5e193e0baabae",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b313fd37543acd605ec5b93978ee7909a93ab64fb242209ce12d2e91980f892a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "dd96ef55015ad4bcaf84046d378967b43606a0d7e7c57584848b27d8287828e5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "MiniMax-M3|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "197b965ab0d3f5ca57e946f56d6f20211b00469274d4ac93d566ec6ad0f7201d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2c105ddfcbf11629509fad64ea672e6d205668f1f73c35420e0859b0947120c9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "56f5aab607417cebb8bd4faddd413c5aa78b49c1791bf7d3d47c49ead2a9e66d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "55a2aeb62bc159dce0d665e044b565e7f5ac864e68df8a1155c8365d284d4736",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6fc32d22b1c17ac28d56a6c2d112426c100597845fec26d62102132daeb4e645",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "69448285c6c3072af89404e43b6b8bf02705bcfc03f62db18e05ff952dfcb649",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2566ded8bcfd8c957a18275da4f33d2838b1b220b52cbc0e7495e12ee1d2cc26",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "45dcb6121db50e01c17d0feaaa59c50baa37a33ea2e6251304f763080b9dac8f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3d279bffe928ab9a2fde8463a3d284e9b9bbf66f0bb48e46e6db9e7155900655",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "0f610b79c067ef5b297b71a72967eefa884770fec580e6dd6a4259c7cc99cd33",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "d9fa91b3579d3cdd6e40574c125439abeecc12e44223f0b8283f5f0a84bb640f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9c265681c5edcf9a8a4acc4cb652ff20340978e65af9eb54bd29ed99de4dbc7a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1f97455becf4738c95bbb3fa10ff7dfc76d48bb68347f56ba0e76de583eb1b67",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "76bebd24698c07d84d6dfe026d2d3deebc807f814a73d1049f2f6c680cad9dee",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4e24201e53cb6d47318e5d81375517f2acb7a523b57e59d86d7c7224095daa13",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2a61969529f20ea6f0bd51de611e9fb3deb0e1974730c0876bac28b9adbf8477",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "ec2cc8d04014cd987de820adb46153d72c942927f8096b12a163d71ea58c71d7",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "85f00a9603a755093a37857f3daf220785524d423f08ab3ace4f84ed1d58e232",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "52bd76b81cfc4fcec6af51cfe688a394c15c81b72b7d03472861f65fb484af26",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1ab6d59404dd101a18c0972df74fbaba234e9ab520f5f989225f8838977e4459",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b8ab84d318508e99ea9b0d3833aa20f7d098c1caf28b9a81b09a3c546060a01b",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-fable-5|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "719c66b9544e4ba4d362cb4d5915b4b52aa90d8576d897e00027d740bbe1e558",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e5996bbf54e1adcae33968124ebd5cfd73a0497e1dd07d5188c385636c235544",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5c4f2dee80135da1053242a988b0dbf047b4fa024f70d36c1d743887bbf800b2",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "abfc3c665887ac8fd99061da36548e22e3353f981bfdc4ec66831b738d183569",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a65344b466f8b595c505f300d4b0d0a3b695f274c1a0ecc7e1c78ca6447312a4",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "703003247574ce2f7f6e6c337967177c2dada5c3ee7b05343c131a0c1a0912f1",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b5edb9446d69bc4c267d4567438d07f4df53b144031380fc7433638707dae903",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6490bc0fbd9b34b0181c11b5f82d3d7fd2688dac674e4f92784efca40b0ed315",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "759fe9c98da43b2395e5799a57f22c562524b0f5c7033d77b1e0e46a1a16e3dc",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e3aba84655b079b59aa7a7074dbf60dac5910acea5b34f938458889eb409c1fd",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e123d2a92fa63445287d2737eb83debc268cef729eaf0c90e2a0054c8b64c421",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "01ac78132d310c54dc1eec08840cfa4c8a8a6295dd66a6621cfbb34fb8959661",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8b0f08202d0eabb45850f1d3fee1d6aa828005e5d0a5172f250ccc442828edc7",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b7ab3d1278aae59bde3c9f5cc648a6389c7b3f5e551e2beea329a6d8a2d56aa9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5340c1755fee6c8fcb8103f969dbcc721270a28096dcd363ce2bbbb3f087422f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "0a0d6104168ed7dc0d507416abda35d6bc2c3f577d1b3d25ae6ea4ca8d28f955",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4959c73229ae53dcf08b16ae6f5cdd77fb72eb44e27c14542760f0b5ce705c03",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "421e7f85387952762330d79960eb533a33f0424724516908ba9d7e6069035590",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1dc94bf0edb98e4074dfe8ff4b64295769319a5d8b3a275838084b47a572feab",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e9d5d300af325bb09193df901e7321daa072c286e3c8620dbbed3e0fe1ef6dc6",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1ec77e6ad275de9c04599b7f5fcfaa20bdc1d889d54615ba3ccb07217df6e5fc",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "claude-opus-4-8|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b6a0c272d2e4580426d8c6f5ce786e4088b83b72c505f95062c20adbdc4088fb",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8622e876bf20caa797fcd97d39e7f3eca473c0441d310ffa85068bf531d9d9dd",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "14bb072e2af8d562ee90e36367e094e7eb40e005f45269723bf9abc2619542ce",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "ed4b523f50fc6767041bfe0322c45ca8cc0a65c0799ccb75eff349dce90481b8",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b28d600d4da81a94d576c6d59538a748eedb0c7028284cd2186d56b29dd6d3c0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "38501fb197e25b2137d3871109b44edae13beedebf8233b6c08aa058f13bf8ec",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7a839c46109861f82a1421f770e915d7d9177c6088cade1e166e22951e8dacf3",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4dfdf163e370ab165decd710a6796b74a9618ba988de9654a5bee80e01f7c59d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3e2185f87e4f78223671ca22e83f3f799e8d8192956c1bd9af13a3e609526713",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "bc6afbd8e98ff6038ca5ba764a179cd3d13b08bbae389a7fb516c330214c94cf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "80d72542d29d2f26db316b1436586e6ba14d9c74db62b1c31e78f65ee4b818de",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "734c6dcb9a64b6ad6114b13b927c6922ed9c096ee15b37d6bb54a277e6e2efdc",
+          "cached_before": true,
+          "got_response": true
+        },
+        {
+          "try": 1,
+          "key": "375bf8e43ef9f9a4d7e9e8d05148158ce4017e8c2370b22d47e005f432571faf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 1,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "861ff7f92d3a361f684f0856685844c2573c8103fe527a1c12ed882c60bbe837",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5507907923d7cf2958ff98c9762d8b21a8f5eced00b3d54415ea0d08cccf6b4a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "06a09e17ac929414df641aa0584e196e8885d56cc06988feed230e734683227e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "63f2d653fb028cfa3e7ff9b8ceb075fa936d91cc1538b895c3c32a76f158bad5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "179e0fb499f8918cf599f53a2e9bc381a495466d965ab2525adfeecaab378720",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "dcc6a068f0897a622073192c8f94604ce050ceff2fe96cd4bde0debfa7b8bc40",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "acf94c5a8b50819a2c6cfd34f2898536a0f1a49ce71d517b274ab82bd1a09786",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7272fca7bb151db827be0994787cbabbe242ca6c3c89b6859b81b48998efd74f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "26b206a1b00ab5e395b04e5b57ed26558de760b2fe7f0ebe51f11f38377368c7",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "deepseek-v4-pro|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "c4e7137a4d16306a7e85cd3ba3aa22286034363f3bc7125637d3fab0aac8614a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "31b3d00387ed5231a82401eda7d42e6db0c9cb4de953a233ca04da4e67d01c96",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2b720432a82ad30ddbaf507b187066dc55a83dcbaecb0f990b1fb94818055343",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9f20fc3052f5509e53d70dfa6624e0770248beb153639588a3bd8af712d0ba77",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "80c34192f12651b385a4b6f2019fab227172035534529c1eb392da8ca6c935a9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "ab0bde27708392b507d135323fe0a57046ac713294f3e039b2d6c44863d35b54",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1b4bf4337e612dc033cca9e9dbb8cb7f8450091b05b1eadaab05a99833219919",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "bf573e6370525557a6f27e07ae8c5e711c1115a9d0aefa314c2b6c298725866e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3c5a0918523b4e3cf0cd861386c378f9a131481fceceff9b9fc06bab96509775",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2904091b202ad01c73e4a0e7fd951c03b4811bf7a96ebe0155de4227fefd92ce",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "77b3ac63c6b1fc2b7bf0612e7b91da16b8cda227d4fe25d16effc1b87d6585d5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "223bca0fc4730ab7b718435167928063d530572e18af8dec32a0a368a3de9317",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "85e209abe1e561afb39614d3dba9fe5f2ee4aa409ec23b90c47156809f42dd30",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9946824fae379f4db8966272c87ad6343b1f6ce33fc4c24bef18a42181ea7156",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "29f406b7a0df1e65ad15d4630139f9d8e68e3260eee6dc25b938556455451dad",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "d485ab255b2f7078f55ad915815477921e8be22972938146526a096caab0fce6",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f343d20d095f643925da788c871f7445c0f48ccc2f389dac618aef8cc083f9ff",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a1b1d3824fc812c216d67e1c544d04f61791088727dfbed0bee7ce7e196e1cac",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9d49774a521f565458c3e7f1322bf9c6504b29ea3b85a0964bc7293bc5a45746",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "c6d02b6be6bd06801d6c0ce4e86d023975f597260580c5ecd8edbf9b090eb8d5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9453ba7d26805e7c945a72b97a8040e12a67b07a544d419a1ffbc95de2009e8c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.1-pro-preview|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7cb0ab52fdb186927b847fa19724709b41fc979e8f359a6e349fa98d1220e505",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6702c0e9a00abd018a706f971a62dc785ea771e7039163c717b8d69e5520a846",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "129fab2d3dcc1fa0af6a86fdee7aeb7534e7266a5bc4732c837c1f553dc4e4e8",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "55edc7ae80825a2c5a8526088fdc38640b154f12409281869438965ab12679d5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4c95af18e0a649477727aa7ecf1e3338a3e0d81fb02a0a22817120be7739157d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6b974f69c1e337627a2672d6bd13fda849d23b039c59e6de9f41769aa7817e15",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "0fe5003d6aaa029f0974c973002ab70574f22a2e7a844f787df0884519923b39",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "434ab9f61140dfa847aae3627ec60d3cf527cdd5ad127186ded36a9b62f102c0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "18fb230239220e22261b643d60b31a8257ab9921d770b15d47e2b466a3fa087f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "569eed8c318a704e765689ac5dd3ef90d8f8d688b2f72a8e82e2882a434c33b7",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "dc980bc4231d9fe83df92ef2119297987927b1df80bafe373f32c3a77c3c4876",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "680f2f4400388c6445841b00b87408e32e538a9bdbb47258fc47b3e4359fa7c0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "832d6c623338c685b84a7bd7e882e3624720d902717c0e586c07095c5d42ba9b",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "d5cd0c9d0459b7b124772c7235ef660429a48ef8798f25b97c030f16a7f7b6b9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3b629262383186ca9314c4c7b3fd52dda1746a00bc2b0e68c0d871fe2e8ebbf5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9b377bcc0d8627bf7092e068d361d7747c7c9ad29c3b7d2011ea27311de30827",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "54d4784db0c529bc3106d86f9b81fe85a2f77c704211591ec80ccf7843a6bb1a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "72c935172a5481f2d7508ff95279d1f35c8268483e04b484090658aca8769d6c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "08cfa1ac8159531b249941716728e98e38cdd2be2c31e8ecad41e522b22dd94b",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "195173bdd2a51dbcf3b097c6db329357f46821cde1dd1ef73e2b7a24ae07616c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5130851efc4ff3edd125312e17b728caa678c094482668041a75648129c62773",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gemini-3.5-flash|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "cbf101c721418d87d471db264ba91bab6b6a8e3337d053cf0e3377508d3349e5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b6a41d2ff1d08bc2d4641d78d4e3996241c57bab3c61aa8f8d95eb4aa4236b8a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f8d4afe002dbb61567315f11103a26e7d33e9490d77b28c4c656df9e6366fc46",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1876956cd13594ad6e31d4fb4f8a0f0df64ca3c56fcbd571040afd4fd0ce6a41",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9ac1d1fee0008d030596ae0320572b51c00a21872f399806b588280132b4ee75",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3b9456547e6657990e885ebfb05c6c019c06f507134169b6f432f523defbbd7a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2109824d966b5cf0df305ed11843db90ba151eb78819df40d3c513ca31fbbbd8",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "d3cf58cd9916d3c54bcdaa305db8a3fdcf1a8d53c0a1f35efa21268c323cf163",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4aede96d369770ad2ee96bc7b540c1a3eac66cefe46b0c02f69cb3c4a39ca88d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2da53c98f168ab7f0da7302425f857e5578cc08418ec0b6218e4f67d9cbc0248",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6c742fc8d4c9b747dc4967cd739dd5b4aa36fd841ffbaad8bfbdaea44c89c05d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "cea180c4c58fda21871b073864b72d97d21f7ac2633746e9411ffcb54ff326ab",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9033636d25e817d37fea2db48909ba7a2d4acb1f3eca0fb9b534737517060851",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a194c838dd6d3a3eba4d8636381c64994b8da5ef9a54fb96260c9363161a29d9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "cbe5d298a7fef7df415f7198d1b0ee3073be0f001e60ab02dce09c897168024c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "89fc68fb1ca6066428cfef85ae9fb9592c39cced631af3faa2190cac4bb97e89",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2b51dbdc12e4dd0a2e43f6ae41f3455c90d64f0b5f4b8c8733beb0afe0b5c5cf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "0516753c46d65bab23a1f46ebab91e42d9bc5f572f741ea704d7d8c8d097d689",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4d11d900658fec769804a089d9a242d284db606c319dd3a8f5344dd1333c9105",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "89e3ed3984884b0a2c01858e4b2d8e1b37b3655515ce70c4a3ce21cd39c2c6cf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a6b9c3c02d19899fd8e553126a242f84c00c54a2acf3f3ccac717bca71e4f79e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "glm-5.2|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1ba50e3a6b0b72c6261bb9bfa54ff82b5a19002d6443e85d8197bbb55625b668",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "bb036d5ecaef6a563b6808e16f320318465d8f00e042219f0f1e57a344773e5e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "72c67c37fc2cd0e9107bba401e133bceefebc3de4ed55ffacb04311bdacf4cc4",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a19a9eeff8df761889f24c97eb785a76647b1bf934484cc0f9ec38760bce3806",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "76f37cfe5550adc2c72036db028fc7d283e77878c8882d89ca17b937e31accee",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2be9a91a7f4c66065c6ff0c9aa0419bc588acb94da9e7621ab344eff46fb06ef",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "d7fe63e83293e293abed9f4a94349cd3c647de23b120c2ec1858bdc4173f33ea",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6b31376d79e4d5849072edcd3f3770641693b50eca276a9f4c254af01507f476",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f073891f4907d3f4f80c5f754a92dd85e8c838aea87794a6a6ba12b1555bfc2f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9ddf3017d176420fc8dfa2613285d0be5933334df4cfaa35dcbe484f6a5c0c87",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "52a685e3612b5fc351772a1399542b1e21bc7740fda88035752572a6bd7f6de4",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "388edc16ea484aac1d00b6e30121a596613a09b99da71f30670aa31868f4bc6e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8b0f949fd2aaf31483326451fc41f5267b4fdcbb1099b390482a91bb011fa940",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "0982b9cc5d27a6293b3242f9fc2b1bb900a7e0ac929f4ba16761f287905a9108",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e519af5c76a50ce9045b3af82f23aa263410d20df022d16e6025a404557ee7c2",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4ade09ddbeab2fbbaf8485c96bf66c63a32121a4631eb92868da50cd794ae325",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f237066c8e99f98d709323fe33392d93fd42dd13142c42114701616eab8b4f6a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7b0f39946fbe50bf04f5ac85feda05b183de7ba26f6082caba4bdefa2d389692",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "847c185f9dc69cd1fbb9706c5d24da263b12c4c55ce851e2d2c5cf5e2588587a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6ed9b5530902739fd7845f4584ba814b439938af0913e5a0921038c64f7582ee",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "997d431d17ccfeef569a22a596553472b15903d9f9133e11d9a130e23a1198d4",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-sol|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "15cceca90442766149ccfad87985db88e20dd061bd17c96794ee0c17898641e4",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "72f61b443272b14675f902e23e5e073cc4721b7973ff896812d81fa16e87d9a1",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b380f8e1124c3505c17ab3c5660c9f3d45305945a84fc895c84b6d1cc4042d1d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "697471fe20d9b534bac26eb35e592ab2dde8b739c3b6cb7d9ecc67dad3058d50",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "17429d813bb55e6489a76ad7d70825e1edf929060879076f0fdd038535aa7458",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7330380b6ff51de35d8c3a7e3354ebffd4926c07c83bda773a56bc44651d9b03",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "66092528c7620db1fc0236f543cdfb5f03a197f950118046f8fb0f1fa4589bd5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9b9ed109650e5df54f8572c460c91c81aec12954a2a78da7a681808a6d74d512",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9d4f7457cbbfe4dcd5df58dfaa3a0449e43619207be5bd92fd44cd05ce028715",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "13fcf9588d53df228635f01317c2001d662c94c42fb742416ccb7f81add1ed0e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7548956b64954943710c31996d354a3e61a85b05eca7bcb6beaae52c11a75c1d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "710f7e5f29849594729b4266d53ecf22ba255ab81b85b1a5720efeb51fee4ad8",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4b106f16ac8bae001bfb3509b318f0a984c494b75d6a8707a78c1a090cda3d55",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "de4f29319e8b7f879c85827bcfa06051047d4a5497f667bbd95fc6b31933ff79",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4b1d4df1d0dcc612d7ebd1672f7d81c9bc807c29ab2c284c3e97e1f6640f1bc1",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f3d069846d7c759d242a771048274326c01e07070fe0ca10a85a1966db65ff1c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "26cdd12c6abcea2d1ed9489aa45ddd2383a1903be939e83f28c51f8f2ec737ca",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f6b6679ec9263964371f04c5a66382ae3813e4b6b877dd098637c6bf5946020f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f8c538720ee578dd5ddd71d60728799f65c479d772d91e715c619901e3614a4c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "841c6eb728330c0df5d19ba9f52aafa775d3006a2f5f0996f06eb62dc3c0146c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "02b03064d5bf606d625efe836dda8d9d750c9108565b8f5f512ca02fd292ea4c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "gpt-5.6-terra|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "38621dc8e6c7bc02cd186b9d864260b8273d29667f0c731cf8aca62d0948f18a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a041334d0a6ec32af5874f88bd70432e2405857055bae429646ccaf7303da62c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "16b8f521aabbfa5f102af32ec76793f8daeeed22cb6bd39b41dc05de8861601d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "fdbce263adecdeb238306b64c2dca4624ba49be38aa07c88fa9f0be742081e3a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "dad1039a05f237828071a3aed2295165d1c1962351fe35799581bfaf4c611c96",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5be01b76e4f304d344deb0a6dd8de5d28842ad46e88e243c94bb94e38ee34451",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b3f71baba5bd98053aa85244ec35d1d56cfe8e7546848b0e047af2009dde57c3",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8bc5bc52244bd34d51b4ca28f9e74091ea71b627752d6c928718b3f683e31f11",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "aeb5df12a5aa943f081f6860971c565df6955c55a12a40b8a7054c1aa38e5846",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "86a2f5c44136da3f7c8b91ad3667f187a55206bb493387616673b9a2305ec533",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9366d2056789a745a04dd61a608695718e603d026d04ed1119631e9f17e9aa50",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "af5419ce89a2bdaca522246d4e4eb03ece0370c674d66949eca0356d5aa377fe",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "aaf656cb6cad3dfc9b11a12cf8214fb26e8c7bf19563c4b2a5ca96812da5d2e5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3644346dbfb59b1830f6a5bf8b136ee8bc2979c53f3b13a1de20422d3c5c1b6d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2b9f2f1522bd74663e662a07eb21022f0633733095ce3678b775802a932b5b75",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7182ea9ce533f2543630090a772232b7b1539c6f9b81e236694658e715a35a66",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2fb0c30a9f7471e2f00f74bcdcb64cf88eeb70dc5077051e8f905adc8c71450b",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2f734fea65fa42b52128d00c246e7a18b113aad1b437d4b4d298c39fd7daa8bf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "005cf07388d9d8313e55932fa542febc6a75a91925e534fb9b0fd056ffb679b6",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "ff341aa8c6b92a009a0b24edc1446a1c656d3960c72d8f2c8f2183857c928c99",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9d225d2bfcff8c8d3fa910f89ff59fb2191c26e82b5301f4b68fca768b1e36e5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "grok-4.5|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "67c98a074a3083158e49894a94d77f59225817ab7c18b8e6d6cf3feaa7ab216a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f7cc3f0496a797bf8151ffa5bcd133eaab6922cc5a8115c617e372d89c2bdd62",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3f1b3b04f7b48a93c028fa671c019029c40c633f01e33d5fc61dbc8a5435e8a7",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3b329b232f41411fa1baac52c3294792a8cfd31ed04ee0ad518e7383cecd25a7",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "62eb292a45b8475d00efb0e02173bfefcdebb1dd81eefc6d3c3a711bcb7ff8a5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8c524a21d83c2c9e49e6292b1f035312b611cd24249aa454d85d502227be17cc",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7f761d8af3a7f0e8cd7da3c9803ff69ee95562f443cde36df5a95f5d15310b11",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "34bcd1414c251760ef2287e8427a42a770a5d038d8e5c39d4df1f9f78bc4125a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1bf2c8075fb79d4c3b328970d23b625695295b63cb1bf9414bd381ef17947c19",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1b90be622e238affb8822a2041021bcf502cb5397c4445d5b55881c9ce22e703",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e4f74aa2ad885e8a03fb27a7fdbbd3707168eeab8b4ffe51a27ba0a0d5175c26",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "712456e7a15e258cecffa0c14b02666705ab2be77fd8ec76f9e871010322fbe2",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e8bc9293c8247368e6612c22d88df46413e4266bbd72812eb5eb21794ec75eba",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2db364a6da7c54dbd704c31f52e7abde59c7c475d43e7a748b092fe815159294",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "899a48943d6d13d593befef7c29205c11591dfeecab80f2200e4070ba9034437",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "29947b05520a126f4b52b846e377de4ff42ecd89f47af2d5a8ce454eafbf1afb",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5809d3c56b8732547fe843b9eb49d93db3dac9496ee312d7b37557beff7d46d0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7469f56f2df65db9e3757824465c54e7a56b2be44cbbb7c1591812ed60091b44",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "3f87e164d3864151d73eaad14fed6b679cac0d628d670c1a4017983db593f85c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "d7f59d74b5a2e0bf74e26e88f8349d800c6177a69c3bd67787d981f81c1be25a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "e2633765b0d4cad7b6b3e846b51ee7675a590d35a26eeaae7442098c3bfb7aaf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "kimi-k2.6|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "0481125735549472eb0a0e091f29f59e723035ab001669025deae436a0779836",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7ccc2f65dd7a5d9f4b67ca77127bd6f1c46b4b7352920fcb7eb5cb38a92e6bb9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "841bed448b3b9aa7af73dda87a9656c86955a0a3e661320102af831a53815b89",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1e92ef47b4cf96228dae856cd3bc03602fb5ae700a9e84a0ebe8d810632f54e0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "33b9fdb9d603cb553922986c40d1a8162c4a7805bafa7ff1a13b0d8be7cba49a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "79e1d6fdfe61407779069c3d720cce23b7d4ecc3b0e9504c72df32cd7395db29",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "aa9bf33df03dd4b047ae6097ca9a7a2149930ecb30a59e2defed87d1394d3a3e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "62fed126306f5f200695843e686910d950d7b0e3939309722da0b1868b9593a0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "de7e09d5b67e0be78d65c91d34011142344858d43c26cd32491ee2ba92d74c6e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "27499429c8c2763e513b26eb737396365dcce145a54f51fc3bd80304d6077a13",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "a4c6f6129c7308cd7e976c557600be629aeaa4954413711b72065dfcd5128bc1",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8ab240bcae5eb9dab99418b413f85644fe9e98066db1a3638414921de8fb9d4c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "1e2c8eb873385bb6f656ca08a3432e25cbd5df07b790e4c5541f23d65ad87a91",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "4fe0325e9a29e98125ddd2190f79ced833b444ef9a5719713d013b0bab7f5142",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b1edd25cd49ad6dca2f680f6a2e5b211244b8161eccf00be7be6b7ecc9d6b15e",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "04c3f862048575935df34451cc19f1d95e2267cc85bdb5b0991fe5f46f38c289",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6f7a3c5418234c7cb83e7a39b64b94aaaba491e98fc1d8e329b68bd6d96aaf83",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "b7089a659151d164d65bcc0726de89a90b45335b670c47aae4617e5545c8908a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5b33325d7a3b467dc1d42e45cb59b6a5bbcb2232ede485c4c2989f6d9995cd59",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8b4fbd81e5eb5e47cfa7803ab2cea824c39beab8233161a204a3cac235b0c293",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "440a7f775ea312489d9216063d73c9aa606173fc24d617b3407d336cb8bcbc7c",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "mimo-v2.5-pro|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "f204bfb0019826f0a10b9ff9d4b593b920f31c405080a91724c9a7fec50c24c2",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch0|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "2402486630d2fc7aa37f758159b393688e70330468ea8334ee4316af5a6ee679",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch0|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5cda141dc25f44742756ec4aa2f20deb3d6967f53c92a817bdf07ff9d4896edf",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch0|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "7ae3c6bcde6ac5aefbba92d3600403e58cbecb631f02d0335a46b825bbba41da",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch1|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "158b47955934c17a95f5dfff7c6a47c4c8a82dd25eb152ceec0e19ca1924aba4",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch1|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "553c8c78730a1745893bdc4345c6006c35cb02f4d08c482b0091c8cfe5b793f9",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch1|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "5c477001260a3af2aaeb897fd4fb496779ceb5910554b8e65555eb9c6a5cedf5",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch2|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "6975f6261a74833d95634ab5be436491272e8114adc3979bb5d50834ef36fc32",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch2|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "357f8b73da17f44b33e68d6f37375613c5afb33739af018fb63cb488dda68bf2",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch2|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "c302c670dd6aa410dc93a62c37b96f4dcc0e7403a49e845dcfc2ecf277eac86d",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch3|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "dfa431a01cf580088e8fd41031cb1bcd387f8c321186ace0ee8f1ac65a3b7f6a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch3|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "adb30ac3d363a68ab8f5ca719fe60bd185cc7f7996788ee43192c5248f9d976a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch3|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "160bcb81962c7d5ce804770d192239f0461faebbe23f1b8c142fe92d45bd38a0",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch4|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "89901b0af3d543ff25e312c9c48c704d198f63cd67abc43c054e0c47bf392eb8",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch4|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "000bc91f094d5e6fb9485c3dce917a890614327929bbbba7d8abb21f01397fda",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch4|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "42d928e65cf198967ac54dd9f5e752a9b1929f16b1b3b89f55080eb3ec3d489f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch5|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "9b1ca25ddeb29692c86fac1fca643b6afac89ace746de174b6c7c8ef8bef7583",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch5|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "506fe5352d77f42d1e8639e8698e8cfecb0a23e36daf7efb0b438fc4fd5b866f",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch5|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "8dfe144b8cf5048ada677fc53b92f73b5238df74c09e765c8cb6865e2a0439c6",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch6|rep0": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "89a05676faf5bd8dd59748d184a20f622d197dc7bace3766ffd6d77dd3e5194a",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch6|rep1": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "abb3520ae390f44bfb279129a6bafe008a50372f37ee7636b4c8349721044f47",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    },
+    "qwen3.7-max|batch6|rep2": {
+      "attempts": [
+        {
+          "try": 0,
+          "key": "00037dac94625702c5183f9f8dee44397bb817917bde9c1a0f6d53c57f12c747",
+          "cached_before": true,
+          "got_response": true
+        }
+      ],
+      "outcome": "full",
+      "consumed_try": 0,
+      "coverage": 1.0
+    }
+  },
+  "verdict": {
+    "reproducible": true,
+    "outcome_counts": {
+      "full": 273
+    },
+    "expected_cells": 27144,
+    "actual_cells": 27144,
+    "bad_tasks": [],
+    "no_response_attempts": [],
+    "missing_cells": [],
+    "n_judge_reps": 3
+  },
+  "env": {
+    "python": "3.13.9",
+    "pypinyin": "0.55.0",
+    "pandas": "2.2.3"
+  },
+  "n_judge_reps": 3,
+  "rep_majority": 2,
+  "final_vote_threshold": {
+    "rule": "total_score > n_models * 0.5",
+    "n_models": 13,
+    "min_votes": 7
+  }
+}
