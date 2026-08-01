@@ -1,5 +1,16 @@
 # 八入口顺序真跑 — 审计与整改执行计划 (2026-07-10 · 修订版 R5 · 八路评审收口, 已获用户完全授权实施)
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 > 日期 2026-07-10 · 环境 OFFLINE+确定性 (NEWS_PROCESS_LLM_OFFLINE=1 / HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1 / PYTHONHASHSEED=0 / MKL·OPENBLAS·NUMEXPR·OMP=1 / PYTHONIOENCODING=utf-8) · 解释器 F:\Anaconda3\python.exe (conda base 3.13) · cwd=news_process\ · 每入口 2h cap。
 >
 > 本轮 = 用户指定顺序 8 入口 (五入口再验证 2026-07-10 之后**首次**含 80/81/82 + 双 company 步骤 04 的全谱真跑)。审计方法 = 1 路静态数据流预审 + 4 路分入口日志深审 (逐条对 F1-F16 台账/codebook §7/T=2 白名单对账) + 主笔逐条源码/产物亲核承重发现。

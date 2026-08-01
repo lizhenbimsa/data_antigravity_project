@@ -83,7 +83,7 @@ def sample() -> None:
     rng = np.random.RandomState(SEED)
 
     if n_pop <= TARGET_N:
-        print(f'⚠ 被拒宇宙 {n_pop} ≤ 目标 {TARGET_N}: 全选 (T=2 dev 属预期; '
+        print(f'⚠ 被拒宇宙 {n_pop} ≤ 目标 {TARGET_N}: 全选 (早期试跑 T=2 属预期; '
               '生产 T=19 重抽才有效度意义)')
         sample_df = rejected.copy()
     else:

@@ -1,5 +1,16 @@
 # 网络指标扩展执行计划 (Network Metrics Expansion)
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 `v3 · 2026-06-21` · 审核轨迹: **v1 (9+3-agent)** → **顶刊级 52-agent 评审 (8 维 find → refute-first verify → 完整性批判)** → **v2 (21 条修订)** → **独立 32-agent ROUND-2 评审 (5 维 fresh, 再验 v2 修复是否落地无回归 + 主源再核)** → **v3 (round-2 确认 0 P0 / 0 净新 P1 correctness, 据 ~10 条 P2/NIT 精修)**。
 transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b6d2-531` (v3 round-2)。
 权威前序 = `scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md` (本计划是其 **follow-on**, 非重做)。

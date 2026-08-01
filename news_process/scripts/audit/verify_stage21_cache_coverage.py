@@ -55,7 +55,7 @@ def _load_stage21_input(input_path: str | None = None) -> tuple[pd.DataFrame, st
     """复刻 stage 21 main(): 读 15_fintech_intensity, idempotent 物化 content_ctx。
 
     fix(2026-06-14 审计 DET-1): 支持 ``input_path`` 覆盖 — 缺省读配置的盘面
-    15_fintech_intensity (在裸机上即 T=2 试跑帧), 生产端须传全量 18.2M 语料帧
+    15_fintech_intensity (在早期裸机上是早期试跑 T=2 帧), 生产端须传全量 18.2M 语料帧
     以使覆盖率证明对生产规模有效。返回 (df, 实际路径)。
     """
     cfg = tone_llms.CONFIG
@@ -82,7 +82,7 @@ def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
     (覆盖率证明仅对该 *子生产* 帧有效, 不足以 bless 全量 golden — DET-1)。
 
     fix(2026-06-14 审计 DET-1): 新增 ``input_path`` (指定语料帧) 与 ``min_rows``
-    (生产规模门槛)。原实现对盘面任意帧报绝对命中, 在 T=2 试跑帧上恒打印
+    (生产规模门槛)。原实现对盘面任意帧报绝对命中, 在早期试跑 T=2 帧上恒打印
     7020/7020 PASS, 即便 18.2M 生产帧未覆盖 → 确定性证明在生产规模上空洞。
     现要求显式传全量帧并以 ``min_rows`` 把关。
     """

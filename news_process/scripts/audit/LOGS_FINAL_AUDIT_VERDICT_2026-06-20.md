@@ -1,5 +1,16 @@
 # 日志群最终审计裁决 (第三轮 · 收口)
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 > 续 `LOG_FILES_ENRICH_AUDIT_TOPTIER_2026-06-20.md`(首轮) + `LOG_FIXES_REAUDIT_TOPTIER_2026-06-20.md`(再审) + `DEFERRED_ITEMS_COMPLETION_2026-06-20.md`(延后收口)。
 > 方法: 46-agent 最终审计工作流 (5 延后核验 + 39 日志终扫 + 终极对抗批判 + 终审) + 主控 WebSearch 引用核验 + 收口新发现 golden-safe 项。
 > 工件: `scripts/audit/_logaudit_20260620/` (final_sweep / final_critic / final_verdict / reaudit_* / FIXES_20260620.diff / _final_junit.xml)。工作流: 富集+审计 wf_eec23a98-048 · 再审 wf_3105aba8-6ca · 终审 wf_313c48ba-bb1。

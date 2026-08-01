@@ -1,5 +1,16 @@
 # 全项目提示词资产两轮审计 · 整改执行计划（2026-07-12）
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 > **审计方法**：两轮多智能体评审（第一轮 6 个分簇深审 + 第二轮 3 个终审：P1 对抗复核 / P2 对抗复核 / 完备性扫描+手稿引用核对），合计 9 agents，全程只读零改动。
 > **审计范围**（6 簇全覆盖）：① stage 21 主 prompt v8（`config/prompts/unified_cot.txt` + `tone_llms.py`）；② `validation/` 族（prompt_sensitivity / radius_sensitivity_llm / llms_human / llms_evaluation / tone_validation / entity_masking）；③ benefit_society 锚点/dimension_analysis/ncd_text_extractor/placebo + policy_alignment 锚文本；④ llm_peer_iv PEER_PROMPT + fintech_rating_prompt.jinja2 + llm_archive 归档链 + 嵌入 instruction 面；⑤ `LLMs_for_FinTech_dic/` 独立管道 + L&M 词典提示词；⑥ 横向（版本字面量矩阵 / temperature 纪律 / EOL / CLAUDE.md 铁律逐条核验 / 手稿引用一致性 / 治理基础设施）。
 > **总盘**：P1 终判 4 项（M1–M4）+ P2 应修 14 项（S1–S14）+ P3/披露 10 项（D1–D10）；1 项第一轮 P1 被第二轮**实证推翻**（EOL 缓存风险）。

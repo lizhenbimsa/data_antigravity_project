@@ -1,5 +1,16 @@
 # news_process 项目顶刊重审 (全量 T=19 前提) — 权威审计报告
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 > PROJECT_REAUDIT_TOPTIER_T18_2026-06-14
 
 ---
@@ -9,7 +20,7 @@
 - **审计对象**: news_process 银行—金融科技新闻面板研究流水线 + 11 篇论文组合 (8 fully-coded + 3 provisional)
 - **审计日期**: 2026-06-14
 - **审计身份**: JF / QJE / AER / RFS 资深 referee + Associate Editor
-- **关键前提 (全量 T=19)**: 真实分析样本 = 2007–2025 年 (T=19) / 18,198,978 条新闻语料 / bank-year 面板。**当前硬盘产物为 T=2 试跑帧** (174 行 / year∈{2017,2018} / 87 banks / 9,427 篇 / 0.052% 子样本)。本报告一律以"论文宣称的 T=19 全量样本"为评判基准, 对 T=2 试跑产生的伪象单独标注, 不据其判缺陷。
+- **关键前提 (全量 T=19)**: 真实分析样本 = 2007–2025 年 (T=19) / 18,198,978 条新闻语料 / bank-year 面板。**早期试跑期硬盘产物为 T=2 试跑帧** (174 行 / year∈{2017,2018} / 87 banks / 9,427 篇 / 0.052% 子样本)。本报告一律以"论文宣称的 T=19 全量样本"为评判基准, 对 T=2 试跑产生的伪象单独标注, 不据其判缺陷。
 - **方法学**: 12 个维度, 每条 finding 经 **find → verify (对抗式复核) → synth** 三段流程; 本报告**只采信 verdict ∈ {CONFIRMED, DOWNGRADED}** 的发现, 严重度以 `verdict.final_severity` 为准; verdict ∈ {REJECTED, ALREADY_MITIGATED} 的发现归入附录 (已复核排除 / 已化解)。
 - **12 维度**: ① IV 工具变量 ② DiD/事件研究 ③ 情感构念效度 (SENT) ④ 注意力/文本构念效度 (ATTN) ⑤ 样本宇宙/选择偏误 (SAMPLE) ⑥ 跨年可比性/结构断裂 (XYEAR) ⑦ 推断/聚类/FWER (INFER) ⑧ 稳健性 battery 完备性 (ROBUST) ⑨ 计量设定/坏控制 (SPEC) ⑩ 论文组合/salami (PORT) ⑪ 可复现/诚信/引用 (INTEG) ⑫ 数据规模/T=19 就绪 (SCALE)。
 - **跨引用基线**: 本轮在既有权威审计 `MEDIA_ATTENTION_AUDIT_TOPTIER_2026-06-14.md` / `REDUNDANCY_AUDIT_TOPJOURNAL_2026-06-05_v2_FULLCORPUS.md` / `MEASUREMENT_VALIDATION_AUDIT_TOPTIER_2026-06-13.md` 基础上扩展, 多条 finding 与其重叠 (已在逐条注明), 重叠项不重复计为全新缺陷。

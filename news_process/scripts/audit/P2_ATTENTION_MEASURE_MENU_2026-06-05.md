@@ -1,5 +1,16 @@
 # P2 attention 4 度量 — 顶刊支撑方法全菜单（任务 0 决策依据）
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 > **勘误注记 (2026-07-16 追加, 正文保持历史原貌)**: 本文档内"全量 2007–2024"为撰写时的旧口径, 已作废 — 目标语料口径经 2026-07-16 用户裁定为 **18,198,978 条 / 2007–2025 / T=19** (= 原始语料普查全量, 见 CLAUDE.md「Disk 状态」与 `build/manual_facts/key_stats.md`)。下文年限表述以此为准。
 
 **日期**: 2026-06-05  **用途**: P2 (bank_fintech_attention, 对标 Hassan 2019 QJE firm-level exposure, 主张 "cumulative attention **WITHOUT sign**", 投 JCF/JFE) 的 4 个处理变量 `attention_index_full / attention_index_ctx / attention_disp_full / attention_pct_full` 的构造选单。

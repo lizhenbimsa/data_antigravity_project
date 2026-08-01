@@ -8,7 +8,7 @@
 
 ## 背景 (为什么)
 
-当前硬盘产物内部不自洽: 主面板 `40_panel_yearly.parquet` 比其上游 stage 21/24 旧 →
+早期试跑期硬盘产物内部不自洽: 主面板 `40_panel_yearly.parquet` 比其上游 stage 21/24 旧 →
 `test_panel_reproducibility.py` 闸门当前 RED。这是**已披露的设计性过渡态** (golden 重生 deferred
 到 M0 付费 stage-21 之后), 但**投稿前必须闭合**。主财务 outcome (roa/funding_cost/
 cost_income_ratio_change_3yr/citation_weighted_patent/m_and_a_fintech/tobin_q/z_score) 依赖尚未到盘的

@@ -7,7 +7,7 @@
 
 口径: 读 40_panel_yearly, 在 bank-year 连续列上算 Pearson + Spearman 相关矩阵, 报告
 非极性维度 × 情感极性锚点的最大 |corr| (低 = 正交); |corr|>0.5 显式标记。
-[WARN] T=2 盘面仅证方法 + 给 T=2 实测值; 生产 T=19 须重跑回填论文表。
+[WARN] 口径随盘上 40_panel_yearly 实读 (运行时打印面板维度); 2026-07-27/28 起盘面即 T=19 全量。
 """
 from __future__ import annotations
 
@@ -58,7 +58,8 @@ def main() -> int:
         for i, c, v in sorted(flagged, key=lambda x: -x[2]):
             print(f'     {i} × {c}: {v:.3f}')
     else:
-        print('  [OK] 全部 |corr| ≤ 0.5 → 非极性维度与情感极性正交 (T=2 盘面)')
+        print(f'  [OK] 全部 |corr| ≤ 0.5 → 非极性维度与情感极性正交 '
+              f'(盘面 {len(df):,} 行 / {int(df["year"].min())}-{int(df["year"].max())})')
 
     # 非极性内部高共线对 (诊断, 不进同回归)
     npblock = pear.loc[npy, npy].abs()

@@ -1,5 +1,13 @@
 # news_process 流水线编号 .py 文件参考 (2026-06-15)
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是**小样试跑面板**
+> (2017–2018 两年, 文中或以「disk 1170 篇 / 172 行 / dev 盘」等措辞出现)。**2026-07-27/28 生产
+> 全链跑通后, 本机盘面即为 T=19 全量** —— `40_panel_yearly` 23,693 行 × 4,183 列 /
+> 1,247 banks × 19 years (2007–2025), 2026-08-01 以 pyreadstat 直读 `.dta` 元数据复核。
+> 下文一切「盘上/当前/dev」规模陈述均为**成文当时**的事实记录, **不代表当前状态**, 且不得再被
+> 援引为「样本太小/识别力不足/待全量复核」的现成理由。
+
+
 本文档汇编 `news_process/` 根目录下全部 35 个编号 `NN_*.py` 脚本的权威参考。这 35 个文件都是 **thin shim** (极薄转发脚本, 每个 ≤30 行): 真正的业务逻辑全部位于 `news_process.pipeline.*` 与 `news_process.validation.*` 子包中, shim 只做 `sys.path` 注入后导入并调用对应实现模块的入口函数。
 
 其中 **32 个已在 DAG 注册** = 16 个 `STAGES_MAIN` (生产主链) + 16 个 `STAGES_VALIDATION` (验证支线); 另有 **3 个设计上未注册** (`27c_placebo_and_alt_anchor.py` / `52_stata_data_audit.py` / `53_export_stats_excel.py`): 它们刻意游离于编排器之外 —— `27c` 是 benefit_society 论文的 audit-only 旁支, `52`/`53` 是用户按需手动调用的 CLI 工具, `core/schemas.py:156-158` 显式注释排除 52/53。

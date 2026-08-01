@@ -175,7 +175,7 @@ def main(force_regenerate: bool = False):
         'innovation_substantiveness')
     LOCUS_COL = _resolve_col(
         df, ['innovation_locus_full', 'innovation_locus'], 'innovation_locus')
-    # collab 列仅用于 v7ref 参考 + stage3c_collab 标注, 不进分层 (8 格 T=2 枯竭)
+    # collab 列仅用于 v7ref 参考 + stage3c_collab 标注, 不进分层 (8 格早期试跑 T=2 枯竭)
     COLLAB_COL = next(
         (c for c in ['innovation_collab_mode_full', 'innovation_collab_mode']
          if c in df.columns), None)
@@ -290,7 +290,7 @@ def main(force_regenerate: bool = False):
 
     # WS-D 纯随机层 (R4-P2-05): 10-20% 不按任何 LLM 标签随机抽,
     # 供无偏估计 LLM 漏判率 (分层抽样按 LLM 标签定义 frame 无法估漏判)。
-    # ⚠ T=2/N≈400 下仅作 face-validity 哨兵, 漏判率点估计不附推断 CI,
+    # ⚠ 早期试跑 T=2/N≈400 下仅作 face-validity 哨兵, 漏判率点估计不附推断 CI,
     #   真值 deferred-T18 全样本。
     already = set(out['orig_index'])
     pure_pool = df.loc[~df.index.isin(already)]

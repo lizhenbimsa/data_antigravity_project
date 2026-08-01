@@ -1,5 +1,16 @@
 # 五入口顺序执行 — 诊断与整改执行计划 (最终版)
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 > 日期 2026-07-09 · HEAD 2eeb65e9 · 执行环境: OFFLINE+确定性 (NEWS_PROCESS_LLM_OFFLINE=1 / PYTHONHASHSEED=0 / MKL·OPENBLAS·NUMEXPR·OMP_NUM_THREADS=1 / HF_HUB_OFFLINE=1)
 > 用户决策: 真跑+保留新产物 · company 全链含 01 · run_paper dry-run 全部 + 实跑 bank_fintech_tone
 > 本版已吸收: 16 问题对抗验证 + 三轮独立最高标准评审(完整性/技术正确性/可执行性) + 首席综合(20 agent, 裁决=ship-after-revisions)

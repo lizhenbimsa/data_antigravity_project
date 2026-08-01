@@ -596,7 +596,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--min-rows", type=int, default=5000,
                     help="非 --dry-run 模式下的生产规模门槛 (帧行数 < 此值且未传 --dry-run 时拒绝跑, 退出码 3)")
     ap.add_argument("--dry-run", action="store_true",
-                    help="T=2 dev 规模验证跑通模式: 跳过 --min-rows 门槛, 产物文件名加 _dryrun 后缀")
+                    help="早期试跑 T=2 规模验证跑通模式: 跳过 --min-rows 门槛, 产物文件名加 _dryrun 后缀")
     args = ap.parse_args(argv)
 
     df, input_path = _load_input(args.input)

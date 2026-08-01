@@ -1,5 +1,16 @@
 # 人工标注顶刊级收口执行计划 (HUMAN_ANNOTATION_TOPTIER_CLOSEOUT)
 
+> ⚠ **2026-08-01 状态订正 (全仓 T=2 → T=19 清扫)**: 本文成文时, 本机盘上是 **T=2 试跑面板**
+> (2017–2018 两年; 各文成文时点的具体行数以文内记载为准 —— 本仓 168/172/176 三值并存)。
+> **2026-07-27/28 生产全链跑通后, 本机盘面即为 T=19 全量**
+> —— `data/processed/40_panel_yearly` 23,693 行 × 4,183 列, 覆盖 1,247 banks × 19 years
+> (2007–2025), 2026-08-01 实读复核 (`26_staleness_panel` 6,224 行 / year∈[2007,2025];
+> `51_panel_with_controls` 23,693×4,194)。下文一切「T=2 / dev 盘面 / 试跑盘」表述均为**成文
+> 当时**的事实记录, **不代表当前状态**, 且不得再被援引为「识别力不足/退化属预期/生产放大
+> 后自然恢复」的现成理由 —— 其中 Bartik one-hot 退化一项已被 T=19 实跑证伪 (见
+> `pipeline/panel/iv_did.py` 模块头第 3 条)。
+
+
 **日期**: 2026-07-03 | **状态**: 计划态 (未实施) | **触发**: 用户要求按国际顶刊标准审计人工标注做法 → 审核改进点 → 本计划 → 二次审核
 **前置计划**: `scripts/audit/MEASUREMENT_VALIDITY_PARITY_EXECUTION_PLAN_2026-06-22.md` (下称 **MVP-0622**)。本计划 = MVP-0622 在 **tone 双工具 (61/09)** 侧的补全收口 + 三个 MVP-0622 未覆盖的新缺口 (权重接线 / stage 13 漏检审计 / 误分类校正反哺)。**不重做、不推翻 MVP-0622 任何已落地交付**。
 
@@ -10,7 +21,7 @@
 - **对象** = tone/verification 人工标注双工具: ① `61_human_samples.xlsx` (shim `61_news_llms_human.py` → `validation/llms_human.py`, 双编码员 × {验证,情感} 金标准考卷, config `validation.yaml::human_validation` sample_size=1000/seed=42); ② `09_sentiment_verify_{full,ctx,ss}.xlsx` (shim `64_tone_validation.py` → `validation/tone_validation.py::write_human_verification_sample`, 单编码员三轨情感复核, 现盘各 300 行 = 一致 100 + 分歧 200)。
 - **时机关键 (零沉没成本)**: 两工具全部人工标注列 **0 非空** (2026-07-03 实测: 61 为 0/1000×4 列; 09 为 0/300×2 列×3 轨) → 现在重设计不作废任何已有人工劳动。
 - **硬约束 (违诺风险)**: tone 手稿已承诺盲标 — `papers_assets/bank_fintech_tone/drafts/zh/manuscript.tex:346-354` "人工标注样本经 61_human_samples 抽样、由独立标注者**盲标**"。现行 61 工作台含 **98 列机器判定** (三家 LLM verified/sentiment/confidence × 三轨, 实测) → 若按现工作台启动标注, 手稿披露即不实。**⇒ WP-A 是任何真实标注启动的硬前置。**
-- **生产时序**: 现盘 T=2 dev 语料 (61 抽样框 = `21_tone_llms_full.parquet`)。本计划全部代码改动 + 工作台重生成本机可完成并验证 ($0); **真实标注**沿用 MVP-0622 deferred 时序 (生产 T=19 重生 21 parquet → 重生成工作台 → 发编码员; G0 tone 先行例外不变)。
+- **生产时序**: 早期试跑盘曾为 T=2 dev 语料 (61 抽样框 = `21_tone_llms_full.parquet`)。本计划全部代码改动 + 工作台重生成本机可完成并验证 ($0); **真实标注**沿用 MVP-0622 deferred 时序 (生产 T=19 重生 21 parquet → 重生成工作台 → 发编码员; G0 tone 先行例外不变)。
 
 ## §1 审计终判 (7 项改进点, 2026-07-03 对抗核实后)
 
