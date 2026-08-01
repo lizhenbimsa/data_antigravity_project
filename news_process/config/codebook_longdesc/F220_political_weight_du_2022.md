@@ -144,7 +144,7 @@ new_dois: []
 ## VAR: du_2022_polw00_tone_ss
 
 【变体差分】
-本列 = 政治词权重 w_pol=0.0 臂 × ss 轨的 bank-year 篇均语调。权重语义同 polw00 家族:政治正面词完全剔除、as-if-absent,度量语调下界。轨道维度上,ss 轨的文本载体是 content_ss (标题 prepend + 银行与金科同句共现窗口 ±N 句,N 由 config filtering.yaml context_window.ss_sentence_radius 控制,默认 1),是三轨中最严格的聚焦轨——只取银行与金科词严格同句 (含邻近窗) 的片段。其回退语义镜像 ctx:当某篇无银行与金科同句共现时 content_ss 回退为全文 body,ss_is_fallback 置 True,与 ctx 共享 n_articles 分母口径。本列与 polw00_full、polw00_ctx 三轨各自 just-identified 并排、互为稳健性不分主次;与同轨 polw05_ss、polw10_ss 构成权重梯子并排。三轨与三权重两维度均禁混进同一 over-identified Hansen J。在开发期 T=2 小样本上 ss 轨可能因回退比例高而退化,属预期现象;生产 T=19 语料下 ss 轨提供最贴近银行-金科语义焦点的语调测度。ss 轨受 full-only 门控约束,为 conditional-on-full 测度轨,分母取 ss 轨自身有效篇数。
+本列 = 政治词权重 w_pol=0.0 臂 × ss 轨的 bank-year 篇均语调。权重语义同 polw00 家族:政治正面词完全剔除、as-if-absent,度量语调下界。轨道维度上,ss 轨的文本载体是 content_ss (标题 prepend + 银行与金科同句共现窗口 ±N 句,N 由 config filtering.yaml context_window.ss_sentence_radius 控制,默认 1),是三轨中最严格的聚焦轨——只取银行与金科词严格同句 (含邻近窗) 的片段。其回退语义镜像 ctx:当某篇无银行与金科同句共现时 content_ss 回退为全文 body,ss_is_fallback 置 True,与 ctx 共享 n_articles 分母口径。本列与 polw00_full、polw00_ctx 三轨各自 just-identified 并排、互为稳健性不分主次;与同轨 polw05_ss、polw10_ss 构成权重梯子并排。三轨与三权重两维度均禁混进同一 over-identified Hansen J。在早期试跑 T=2 小样本上 ss 轨可能因回退比例高而退化,属预期现象;生产 T=19 语料下 ss 轨提供最贴近银行-金科语义焦点的语调测度。ss 轨受 full-only 门控约束,为 conditional-on-full 测度轨,分母取 ss 轨自身有效篇数。
  由于 ss 轨取材最窄,单篇有效词数往往偏少,幅度归一化后 score 的方差通常大于 full/ctx 轨,篇均值也更易受少数长文主导;因此 polw00_ss 与其余两轨的差异既含权重效应也含取材粒度效应,解读时须与同权重的 polw00_full/polw00_ctx 并置对照,而非孤立判读。政治正面词在严格同句共现片段中的出现频率通常低于全文,故 ss 轨上 polw00 与 polw10 的极端差往往是三轨中最小的,这与 ss 轨聚焦银行-金科事实性语句、政治表态密度较低的语义直觉一致。
 
 ## VAR: du_2022_polw05_tone_ctx
@@ -162,8 +162,8 @@ new_dois: []
 ## VAR: du_2022_polw05_tone_ss
 
 【变体差分】
-本列 = 政治词权重 w_pol=0.5 臂 × ss 轨的 bank-year 篇均语调。权重维度取生产 canonical 折中 0.5,逐篇 score 与无后缀 du_2022_score 字节一致。轨道维度上,ss 轨载体为 content_ss (标题 prepend + 银行与金科同句共现 ±N 句窗口,默认 N=1),是三轨中语义焦点最严格的轨:它只在银行与金科词真正同句 (含邻近窗) 处取材,最贴近"银行-金科报道语调"这一目标构念。回退语义镜像 ctx:无同句共现时 content_ss 回退为全文 body,ss_is_fallback 置 True,共享 n_articles 分母。本列与 polw05_full、polw05_ctx 三轨各自 just-identified 并排、互为稳健性不分主次;与同轨 polw00_ss、polw10_ss 构成权重梯子并排。三轨与三权重两维度均禁混进同一 over-identified Hansen J。在开发期 T=2 上 ss 轨因回退比例高可能与 ctx 轨高度相关甚至退化,属预期;生产 T=19 下本列提供 0.5 权重口径下最聚焦的语调稳健性证据。ss 轨受 full-only 门控,为 conditional-on-full 测度轨。
- 因 ss 轨取材最严格,本列在开发期 T=2 上有效样本稀薄、可能与 polw05_ctx 高度相关甚至数值退化,此时不应据其单独下结论;须待生产 T=19 语料下有效篇数充足后,本列方能作为 0.5 权重口径下语义焦点最集中的语调稳健性证据。回退机制保证即使无同句共现,该篇仍以全文 body 参与聚合并标记 ss_is_fallback,避免样本骤减导致的选择性偏误;分析时可据 ss_is_fallback 比例判断本列在特定银行-年的可信度,回退比例过高的格应审慎解读。
+本列 = 政治词权重 w_pol=0.5 臂 × ss 轨的 bank-year 篇均语调。权重维度取生产 canonical 折中 0.5,逐篇 score 与无后缀 du_2022_score 字节一致。轨道维度上,ss 轨载体为 content_ss (标题 prepend + 银行与金科同句共现 ±N 句窗口,默认 N=1),是三轨中语义焦点最严格的轨:它只在银行与金科词真正同句 (含邻近窗) 处取材,最贴近"银行-金科报道语调"这一目标构念。回退语义镜像 ctx:无同句共现时 content_ss 回退为全文 body,ss_is_fallback 置 True,共享 n_articles 分母。本列与 polw05_full、polw05_ctx 三轨各自 just-identified 并排、互为稳健性不分主次;与同轨 polw00_ss、polw10_ss 构成权重梯子并排。三轨与三权重两维度均禁混进同一 over-identified Hansen J。在早期试跑 T=2 上 ss 轨因回退比例高可能与 ctx 轨高度相关甚至退化,属预期;生产 T=19 下本列提供 0.5 权重口径下最聚焦的语调稳健性证据。ss 轨受 full-only 门控,为 conditional-on-full 测度轨。
+ 因 ss 轨取材最严格,本列在早期试跑 T=2 上有效样本稀薄、可能与 polw05_ctx 高度相关甚至数值退化,此时不应据其单独下结论;须待生产 T=19 语料下有效篇数充足后,本列方能作为 0.5 权重口径下语义焦点最集中的语调稳健性证据。回退机制保证即使无同句共现,该篇仍以全文 body 参与聚合并标记 ss_is_fallback,避免样本骤减导致的选择性偏误;分析时可据 ss_is_fallback 比例判断本列在特定银行-年的可信度,回退比例过高的格应审慎解读。
 
 ## VAR: du_2022_polw10_tone_ctx
 
@@ -180,7 +180,7 @@ new_dois: []
 ## VAR: du_2022_polw10_tone_ss
 
 【变体差分】
-本列 = 政治词权重 w_pol=1.0 臂 × ss 轨的 bank-year 篇均语调。权重维度取上界 1.0:政治正面词全权计入正侧,与普通正面词等同,用于检验不折减政治词权重时主结论是否稳健。轨道维度上,ss 轨载体为 content_ss (标题 prepend + 银行与金科同句共现 ±N 句窗口,默认 N=1),是三轨中语义焦点最严格的轨,只在银行与金科词同句处取材。回退语义镜像 ctx:无同句共现时回退为全文 body,ss_is_fallback 置 True,共享 n_articles 分母。本列与 polw10_full、polw10_ctx 三轨各自 just-identified 并排、互为稳健性不分主次;与同轨 polw00_ss、polw05_ss 构成权重梯子并排。三轨与三权重两维度均禁混进同一 over-identified Hansen J。在开发期 T=2 上 ss 轨因回退比例高可能退化,属预期;生产 T=19 下本列提供 1.0 权重口径、最聚焦语义焦点下的语调稳健性上界证据。ss 轨受 full-only 门控,为 conditional-on-full 测度轨,分母取 ss 轨自身有效篇数,空格 NaN 被聚合 mean 跳过不污染。
+本列 = 政治词权重 w_pol=1.0 臂 × ss 轨的 bank-year 篇均语调。权重维度取上界 1.0:政治正面词全权计入正侧,与普通正面词等同,用于检验不折减政治词权重时主结论是否稳健。轨道维度上,ss 轨载体为 content_ss (标题 prepend + 银行与金科同句共现 ±N 句窗口,默认 N=1),是三轨中语义焦点最严格的轨,只在银行与金科词同句处取材。回退语义镜像 ctx:无同句共现时回退为全文 body,ss_is_fallback 置 True,共享 n_articles 分母。本列与 polw10_full、polw10_ctx 三轨各自 just-identified 并排、互为稳健性不分主次;与同轨 polw00_ss、polw05_ss 构成权重梯子并排。三轨与三权重两维度均禁混进同一 over-identified Hansen J。在早期试跑 T=2 上 ss 轨因回退比例高可能退化,属预期;生产 T=19 下本列提供 1.0 权重口径、最聚焦语义焦点下的语调稳健性上界证据。ss 轨受 full-only 门控,为 conditional-on-full 测度轨,分母取 ss 轨自身有效篇数,空格 NaN 被聚合 mean 跳过不污染。
  综合三权重 × 三轨九列的整体设计意图:政治词权重梯子沿一个理论明确的自由度 (Du et al. 2022 弱信号折减) 提供 0.0/0.5/1.0 三点稳健性剖面,三轨则沿文本聚焦度提供 full/ctx/ss 三点剖面,两组剖面正交交叉但绝不合并进单一过度识别检验,共同支撑"银行金融报道词典法语调的主结论既不被政治词权重取值、也不被文本取材粒度所驱动"这一双重稳健性论断。本列作为最严格取材 × 最高权重的角落格,是九列中数值最易受少数长文与回退主导的一格,须结合 ss_is_fallback 比例与有效篇数谨慎解读。
 
 <!-- rendered-citations:begin -->

@@ -177,7 +177,7 @@ IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内�
 ## VAR: dict_avg_idf_tone_app_ss
 
 【变体差分】
-本列是「应用维度 (_app) 子样本 × ss 轨」的跨词典 IDF 加权语调。ss 轨 (same-sentence) 的文本口径最严: 标题 prepend + 银行实体与金融科技词在同一句子 ±N 窗内共现的片段 (config filtering.yaml::context_window.ss_sentence_radius, 默认 1)。ss 轨的回退语义严格镜像 ctx: 当某文章不存在银行∧金科同句共现时, content_ss 退回为全文正文, ss_is_fallback 置 True, 且与 ctx 共享 n_articles 留篇分母。叠加 _app 子样本后, 本列度量的是「在银行与金科应用维度紧邻共现的句子层面」所表达的情感倾向, 是三轨里语义定位最精准、但也最易因窗口过窄而方差偏高、退化为回退全文的一轨。它与 _app_full、_app_ctx 构成应用维度三轨规格稳健梯, 与 _tech_ss 构成同轨内分类维度对照。在开发期 T=2 小样本上, ss 轨常因共现稀疏而大量回退, 属预期退化而非缺陷; 生产期 T=19 全语料上信号更充分。⚠ 铁律: 本列与同族变体各自 just-identified 并排、互为稳健性不分主次, 三轨严禁混进同一 over-identified Hansen J。
+本列是「应用维度 (_app) 子样本 × ss 轨」的跨词典 IDF 加权语调。ss 轨 (same-sentence) 的文本口径最严: 标题 prepend + 银行实体与金融科技词在同一句子 ±N 窗内共现的片段 (config filtering.yaml::context_window.ss_sentence_radius, 默认 1)。ss 轨的回退语义严格镜像 ctx: 当某文章不存在银行∧金科同句共现时, content_ss 退回为全文正文, ss_is_fallback 置 True, 且与 ctx 共享 n_articles 留篇分母。叠加 _app 子样本后, 本列度量的是「在银行与金科应用维度紧邻共现的句子层面」所表达的情感倾向, 是三轨里语义定位最精准、但也最易因窗口过窄而方差偏高、退化为回退全文的一轨。它与 _app_full、_app_ctx 构成应用维度三轨规格稳健梯, 与 _tech_ss 构成同轨内分类维度对照。在早期试跑 T=2 小样本上, ss 轨常因共现稀疏而大量回退, 属预期退化而非缺陷; 生产期 T=19 全语料上信号更充分。⚠ 铁律: 本列与同族变体各自 just-identified 并排、互为稳健性不分主次, 三轨严禁混进同一 over-identified Hansen J。
 补充地: ss 轨叠加应用维度子样本后样本最稀疏, 逆文档频率仍在样本内估计, 稀有的场景专属情感词获高权以提升退化前的信号浓度; 本列与等权重对应列互为词层加权稳健, 且与 _tech_ss 共同支持技术—应用维度的情感分野检验。
 
 ## VAR: dict_avg_idf_tone_ctx
@@ -221,7 +221,7 @@ IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内�
 ## VAR: dict_avg_idf_tone_hw_ss
 
 【变体差分】
-本列是「_hw 文章级加权 × ss 轨」的跨词典 IDF 加权语调。ss 轨文本口径最严——标题 prepend + 银行与金科同句 ±N 窗共现片段, 回退语义镜像 ctx (无同句共现则 content_ss 退回全文正文、ss_is_fallback 置 True、共享 n_articles 分母)。叠加 _hw 文章级加权后, 本列度量的是「在银行—金科同句共现的最精准语义定位上, 按 _hw 权重加权得到的集成词典情感」。它与等权版 dict_avg_idf_tone_ss 的差别仅在文章级聚合权重 (_hw vs 等权), 与 _hw_full、_hw_ctx 的差别仅在文本轨。ss 轨在开发期 T=2 上常因同句共现稀疏而大量回退全文、方差偏高, 属预期退化; 生产期 T=19 信号更充分。本列在 _hw 加权族里承担「最严语义窗 × 报道重要性加权」的组合稳健性, 与同族其余变体共同勾画规格曲线。⚠ 铁律: 三轨与四加权各自 just-identified 并排、互为稳健性不分主次, 严禁把任意两个变体混进同一 over-identified Hansen J; ss 为 conditional-on-full 稳健轨。
+本列是「_hw 文章级加权 × ss 轨」的跨词典 IDF 加权语调。ss 轨文本口径最严——标题 prepend + 银行与金科同句 ±N 窗共现片段, 回退语义镜像 ctx (无同句共现则 content_ss 退回全文正文、ss_is_fallback 置 True、共享 n_articles 分母)。叠加 _hw 文章级加权后, 本列度量的是「在银行—金科同句共现的最精准语义定位上, 按 _hw 权重加权得到的集成词典情感」。它与等权版 dict_avg_idf_tone_ss 的差别仅在文章级聚合权重 (_hw vs 等权), 与 _hw_full、_hw_ctx 的差别仅在文本轨。ss 轨在早期试跑 T=2 上常因同句共现稀疏而大量回退全文、方差偏高, 属预期退化; 生产期 T=19 信号更充分。本列在 _hw 加权族里承担「最严语义窗 × 报道重要性加权」的组合稳健性, 与同族其余变体共同勾画规格曲线。⚠ 铁律: 三轨与四加权各自 just-identified 并排、互为稳健性不分主次, 严禁把任意两个变体混进同一 over-identified Hansen J; ss 为 conditional-on-full 稳健轨。
 补充地: ss 轨叠加 _hw 加权后样本较稀疏, 逆文档频率仍在样本内估计以升权稀有情感词; 本列与 dict_avg_tone_hw_ss 互为词层加权稳健, 与 _hw_full、_hw_ctx 只在文本轨不同, 共同在 _hw 加权族里勾画最严语义窗下的规格曲线。
 由于 ss 轨在小样本上易退化为回退全文, 本列的 _hw 加权在退化区间会趋近于 full 轨的加权语气, 这一行为是回退语义镜像 ctx 公理的直接后果, 而非度量缺陷, 生产期全语料上同句共现更充分时该趋近减弱。
 
@@ -248,9 +248,9 @@ IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内�
 ## VAR: dict_avg_idf_tone_ss
 
 【变体差分】
-本列是家族在 ss 轨的等权 (无加权后缀) 跨词典 IDF 加权语调, 即 canonical 度量的同句共现轨稳健版本。ss (same-sentence) 轨文本口径最严: 标题 prepend + 银行实体与金融科技词在同一句子 ±N 窗内共现的片段 (config filtering.yaml::context_window.ss_sentence_radius, 默认 1), 在 stage 14 物化为 content_ss。其回退语义严格镜像 ctx: 无银行∧金科同句共现时, content_ss 退回全文正文、ss_is_fallback 置 True, 并与 ctx 共享 n_articles 留篇分母。相对 canonical dict_avg_idf_tone_full, 差别是轨道 (ss vs full); 相对 dict_avg_idf_tone_ctx, 差别是语义窗更严 (同句 vs 实体窗)。它不含文章级加权、不做分类子样本、不做标准化, 是家族在 ss 轨上最基线的形态。它与 full、ctx 版本构成核心三轨稳健梯。ss 轨语义定位最精准但最易因窗口过窄而退化为回退全文, 开发期 T=2 上尤甚, 属预期。⚠ 铁律: 三轨各自 just-identified 并排、互为稳健性不分主次, 禁混同一 over-identified Hansen J; ss 为 conditional-on-full 稳健轨。
+本列是家族在 ss 轨的等权 (无加权后缀) 跨词典 IDF 加权语调, 即 canonical 度量的同句共现轨稳健版本。ss (same-sentence) 轨文本口径最严: 标题 prepend + 银行实体与金融科技词在同一句子 ±N 窗内共现的片段 (config filtering.yaml::context_window.ss_sentence_radius, 默认 1), 在 stage 14 物化为 content_ss。其回退语义严格镜像 ctx: 无银行∧金科同句共现时, content_ss 退回全文正文、ss_is_fallback 置 True, 并与 ctx 共享 n_articles 留篇分母。相对 canonical dict_avg_idf_tone_full, 差别是轨道 (ss vs full); 相对 dict_avg_idf_tone_ctx, 差别是语义窗更严 (同句 vs 实体窗)。它不含文章级加权、不做分类子样本、不做标准化, 是家族在 ss 轨上最基线的形态。它与 full、ctx 版本构成核心三轨稳健梯。ss 轨语义定位最精准但最易因窗口过窄而退化为回退全文, 早期试跑 T=2 上尤甚, 属预期。⚠ 铁律: 三轨各自 just-identified 并排、互为稳健性不分主次, 禁混同一 over-identified Hansen J; ss 为 conditional-on-full 稳健轨。
 补充地: 本列的 IDF 权重在样本内估计, 稀有领域情感词较高频泛化词升权, 相对等权计数对套话式语气更不敏感; 它与 dict_avg_tone_ss (去 IDF 等权重) 互为词层加权稳健, 二者给出词权重敏感性证据, 但因高度相关不可同时进入同一 RHS。
-作为 ss 轨基线形态, 本列在开发期 T=2 上大量回退全文时会与 dict_avg_idf_tone_full 高度趋近, 属回退语义镜像 ctx 的必然结果; 只有在生产期同句共现充分时, ss 轨才真正兑现其「银行与金科紧邻共现句层情感」的最精准语义定位。
+作为 ss 轨基线形态, 本列在早期试跑 T=2 上大量回退全文时会与 dict_avg_idf_tone_full 高度趋近, 属回退语义镜像 ctx 的必然结果; 只有在生产期同句共现充分时, ss 轨才真正兑现其「银行与金科紧邻共现句层情感」的最精准语义定位。
 
 ## VAR: dict_avg_idf_tone_ss_z
 
@@ -273,7 +273,7 @@ IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内�
 ## VAR: dict_avg_idf_tone_tech_ss
 
 【变体差分】
-本列是「技术维度 (_tech) 子样本 × ss 轨」的跨词典 IDF 加权语调。ss 轨文本口径最严——标题 prepend + 银行与金科同句 ±N 窗共现片段, 回退语义镜像 ctx (无同句共现则 content_ss 退回全文、ss_is_fallback 置 True、共享 n_articles 分母)。叠加 _tech 技术维度子样本后, 本列度量的是「在银行与金科技术维度紧邻共现的句子层面所表达的情感倾向」, 是技术维度三轨里语义定位最精准、但也最易因窗口过窄而方差偏高、退化为回退全文的一轨。它与 _tech_full、_tech_ctx 构成技术维度三轨稳健梯, 与同轨的 _app_ss 构成技术—应用维度对照。在开发期 T=2 小样本上, ss 轨叠加技术维度子样本后样本极稀疏、常大量回退, 属预期退化而非缺陷; 生产期 T=19 全语料信号更充分。分类计数列 n_articles_tech 缺席时本列优雅退化为 NaN。⚠ 铁律: 本列与同族变体各自 just-identified 并排、互为稳健性不分主次, 三轨与两分类维度严禁混进同一 over-identified Hansen J; ss 为 conditional-on-full 稳健轨。
+本列是「技术维度 (_tech) 子样本 × ss 轨」的跨词典 IDF 加权语调。ss 轨文本口径最严——标题 prepend + 银行与金科同句 ±N 窗共现片段, 回退语义镜像 ctx (无同句共现则 content_ss 退回全文、ss_is_fallback 置 True、共享 n_articles 分母)。叠加 _tech 技术维度子样本后, 本列度量的是「在银行与金科技术维度紧邻共现的句子层面所表达的情感倾向」, 是技术维度三轨里语义定位最精准、但也最易因窗口过窄而方差偏高、退化为回退全文的一轨。它与 _tech_full、_tech_ctx 构成技术维度三轨稳健梯, 与同轨的 _app_ss 构成技术—应用维度对照。在早期试跑 T=2 小样本上, ss 轨叠加技术维度子样本后样本极稀疏、常大量回退, 属预期退化而非缺陷; 生产期 T=19 全语料信号更充分。分类计数列 n_articles_tech 缺席时本列优雅退化为 NaN。⚠ 铁律: 本列与同族变体各自 just-identified 并排、互为稳健性不分主次, 三轨与两分类维度严禁混进同一 over-identified Hansen J; ss 为 conditional-on-full 稳健轨。
 补充地: ss 轨叠加技术维度子样本后样本极稀疏, 逆文档频率仍在样本内估计以升权稀有专业情感词; 本列与 dict_avg_tone_tech_ss 互为词层加权稳健, 与 _app_ss 构成最严语义窗下的技术—应用维度对照, 共同支撑分类维度情感差异的稳健性叙事。
 
 ## VAR: dict_avg_idf_tone_vw_ctx

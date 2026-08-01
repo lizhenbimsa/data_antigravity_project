@@ -72,7 +72,7 @@ ctx 轨的窗口截取发生在 stage 14 `ctx_materializer` (物化 `content_ctx
 【变体差分】
 本列是 l2_neg 家族在 ss 轨道 (标题+银行与金融科技词同句 ±1 句窗共现片段, `content_ss`) 上的负面占比测度, 是三轨中文本窗口最窄、判据最严格的一支——要求银行实体与金融科技词汇在同一句 (或默认 ±1 句半径窗口) 内共同出现才截取该片段供 LLM 判读。其分子分母的行宇宙同样沿用 full 轨的留篇判定子集, 但当某篇留篇文章内银行与金科词并未同句共现时, `content_ss` 依 `_ss` 镜像 `_ctx` 的回退语义退化为使用全文 body (`ss_is_fallback = True`, 与 `n_articles` 共享同一分母口径, 不产生分子分母不对称); 若 stage 21 未产出同句轨 (`FINTECH_AC=None`), `*_is_fallback` 全部为 True, `neg_frac_ss` 因而退化为等同全文口径的近似值。该轨用于检验"负面判定是否由银行与金融科技概念紧邻共现的最狭义证据支撑"这一最严格的稳健性问题, 与 `neg_frac_full`/`neg_frac_ctx` 互为稳健性并排, 不分主次, 禁止混入同一过度识别检验框架。
 
-判定"是否同句共现"的原语函数与 stage 13 硬过滤所用的 `has_bank_fintech_cooccurrence_within_radius` 是不同口径 (禁止互相复用): `_ss` 轨依据的是严格同句 (或 ±N 句窗, N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 配置, 默认 1) 抽取的共现原语, 与 stage 13 用于决定文章是否整体保留的硬过滤半径参数是两个独立的配置键, 不应混淆。由于 ss 轨窗口最窄, 其文本量在三轨中最小、对无关段落的抗污染能力最强, 但也最容易触发上文所述的回退到全文 body 的退化情形——尤其在 dev 开发语料 (T=2) 上, ss 轨常表现出与 full 轨高度重合甚至零方差的退化特征, 这属于样本量不足导致的预期现象, 生产全量语料 (T=19) 上 ss 轨的窄窗口优势才能充分体现。
+判定"是否同句共现"的原语函数与 stage 13 硬过滤所用的 `has_bank_fintech_cooccurrence_within_radius` 是不同口径 (禁止互相复用): `_ss` 轨依据的是严格同句 (或 ±N 句窗, N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 配置, 默认 1) 抽取的共现原语, 与 stage 13 用于决定文章是否整体保留的硬过滤半径参数是两个独立的配置键, 不应混淆。由于 ss 轨窗口最窄, 其文本量在三轨中最小、对无关段落的抗污染能力最强, 但也最容易触发上文所述的回退到全文 body 的退化情形——尤其在 dev 早期试跑语料 (T=2) 上, ss 轨常表现出与 full 轨高度重合甚至零方差的退化特征, 这属于样本量不足导致的预期现象, 生产全量语料 (T=19) 上 ss 轨的窄窗口优势才能充分体现。
 
 <!-- rendered-citations:begin -->
 Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B. (2025). Investor negativity derived from news shapes firm distress dynamics under bounded rationality. Journal of Economics and Development, 27(4), 309–321. https://doi.org/10.1108/JED-06-2025-0296

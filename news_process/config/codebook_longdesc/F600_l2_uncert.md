@@ -114,7 +114,7 @@ uncert_frac 家族衡量一篇银行/金融科技相关新闻报道在文本层�
 
 当一篇文章不存在银行∧金科词同句共现 (即无法定位符合条件的句子) 时, `content_ss` 依约定"镜像 ctx"的回退规则退化为全文 body, 该行同时置位 `ss_is_fallback=True`; 这一回退语义与 ctx 轨在无目标银行句命中时的回退结构完全对称, 保证 `n_articles` 等分母口径在两轨间共享一致的样本覆盖逻辑, 但也意味着 `ss_is_fallback=True` 的观测行, 其 `uncert_frac_ss` 数值实质上是在全文文本上计算得到, 应与 `uncert_frac_full` 做交叉核对, 避免误读为"银行金科同句语境下的真实不确定性水平"。若上游 `FINTECH_AC` (金科词识别的 Aho-Corasick 自动机) 未能正确初始化 (为 None), 则 `*_is_fallback` 全体置 True, 三轨优雅降级为等价于全文轨, 这是项目对金科词典缺失场景的统一容错设计, 而非本列独有行为。
 
-在识别与稳健性叙事上, `uncert_frac_ss` 与 `uncert_frac_full`、`uncert_frac_ctx` 三者互为稳健性并排, 各自 just-identified, 严禁混入同一个 over-identified Hansen J 检验; 与家族其它两轨相比, ss 轨的样本有效覆盖率 (即非回退观测占比) 通常最低, 因为"银行与金科同句共现"是比"银行实体所在句"更严苛的筛选条件, 这一点在小样本 (如本机 T=2 开发环境) 上尤其容易出现大量 fallback 观测甚至零方差退化, 属预期现象; 在生产全量语料 (T=19, 覆盖 2007–2025 年) 上, 随着金融科技话题报道量随时间增长, ss 轨的真实 (非回退) 观测占比预期显著提升, 该列作为"银行×金科交叉话题下的语气模糊度"测度的解释力也随之增强。方法学上该列与另两轨共享同一套 `_compute_lm_non_sentiment_for_text` 底层扫词逻辑与 tone_dicts.json 不确定性子词典, 唯一变量仍是输入文本的窗口界定方式。
+在识别与稳健性叙事上, `uncert_frac_ss` 与 `uncert_frac_full`、`uncert_frac_ctx` 三者互为稳健性并排, 各自 just-identified, 严禁混入同一个 over-identified Hansen J 检验; 与家族其它两轨相比, ss 轨的样本有效覆盖率 (即非回退观测占比) 通常最低, 因为"银行与金科同句共现"是比"银行实体所在句"更严苛的筛选条件, 这一点在小样本 (如早期试跑 T=2 开发环境) 上尤其容易出现大量 fallback 观测甚至零方差退化, 属预期现象; 在生产全量语料 (T=19, 覆盖 2007–2025 年) 上, 随着金融科技话题报道量随时间增长, ss 轨的真实 (非回退) 观测占比预期显著提升, 该列作为"银行×金科交叉话题下的语气模糊度"测度的解释力也随之增强。方法学上该列与另两轨共享同一套 `_compute_lm_non_sentiment_for_text` 底层扫词逻辑与 tone_dicts.json 不确定性子词典, 唯一变量仍是输入文本的窗口界定方式。
 
 <!-- rendered-citations:begin -->
 Rambachan, A., & Roth, J. (2025). Design-based uncertainty for quasi-experiments. Journal of the American Statistical Association, 121(553), 477-491. https://doi.org/10.1080/01621459.2025.2526700

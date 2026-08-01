@@ -103,7 +103,7 @@ new_dois: []
 
 【变体差分】
 本列是家族的 ss (same-sentence, 银行∧金科词同句共现窗口, ±N 句半径由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1) 轨, 情感极性判定取自 stage 21 对 `content_ss` 的三家 LLM 投票结果。ss 轨的回退语义严格镜像 ctx 轨: 当某篇报道中不存在银行与金科词同句 (或半径窗内) 共现时, `content_ss` 回退为全文 body, 对应 `ss_is_fallback` 标记为 True, 并与 `n_articles` 共享同一分母口径; 若 `FINTECH_AC` 词典整体缺失, 则 `*_is_fallback` 全量置 True, 测度优雅降级为等同于全文口径, 而非报错或产出空值。ss 轨与 full、ctx 轨同样"各自 just-identified 并排、互为稳健性、不分主次", 三者结果禁止混入同一个 over-identified Hansen J 检验框架。
-本列相较家族 canonical (full 轨) 的精确差分在于: ss 轨的文本窗口最窄, 情感判定聚焦在银行与金科词严格共现的句子邻域, 理论上最能剔除与"银行-金科"主题无关的语境噪声, 但也因窗口收窄而更依赖共现是否成立——当共现缺失触发回退时, 该篇报道在 ss 轨上的情感判定退化为与 full 轨相同, 此时 ss 轨与 full 轨在该篇报道上不再提供额外区分度, 是研究者在解释 ss 轨与 full 轨差异幅度时需要留意的机制性来源 (差异幅度部分取决于回退发生的比例)。分子分母的地理归属判据 (noncity) 与轨道无关, 仍由发稿媒体与银行总部城市比对决定; 分母口径与 full/ctx 轨一致, 均以 full-only 留篇门控划定的行宇宙为准。在开发样本 (T=2) 上, 由于报道量有限, ss 轨回退比例可能偏高, 该轨与 full 轨的数值差异幅度在生产语料 (T=19) 上预期更具区分力。
+本列相较家族 canonical (full 轨) 的精确差分在于: ss 轨的文本窗口最窄, 情感判定聚焦在银行与金科词严格共现的句子邻域, 理论上最能剔除与"银行-金科"主题无关的语境噪声, 但也因窗口收窄而更依赖共现是否成立——当共现缺失触发回退时, 该篇报道在 ss 轨上的情感判定退化为与 full 轨相同, 此时 ss 轨与 full 轨在该篇报道上不再提供额外区分度, 是研究者在解释 ss 轨与 full 轨差异幅度时需要留意的机制性来源 (差异幅度部分取决于回退发生的比例)。分子分母的地理归属判据 (noncity) 与轨道无关, 仍由发稿媒体与银行总部城市比对决定; 分母口径与 full/ctx 轨一致, 均以 full-only 留篇门控划定的行宇宙为准。在早期试跑样本 (T=2) 上, 由于报道量有限, ss 轨回退比例可能偏高, 该轨与 full 轨的数值差异幅度在生产语料 (T=19) 上预期更具区分力。
 
 <!-- rendered-citations:begin -->
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x

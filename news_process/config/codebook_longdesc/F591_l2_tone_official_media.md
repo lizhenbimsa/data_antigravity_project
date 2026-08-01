@@ -77,7 +77,7 @@ new_dois: []
 数值来源是 stage 21 三家 LLM (`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`) 多数投票产出的逐篇语调分 `llm_vote_score{track}` (与嵌入模型无关, 详见项目铁律"嵌入 ≠ LLM"), 而非词典或 BERT 情感; 因此本族列反映的是"LLM 语调测度在官方媒体子样本上的条件均值", 与该家族之外的市场化 (`market`)、深度报道 (`deepdive`)、高频日报 (`daily`) 等其余媒体异质性维度共用同一底层语调原语, 只是切分子样本的判据不同。
 
 【方法学与计算】
-计算分两步。第一步是文章级归类: 对每篇留篇 (full-only 门控下 `llm_verified_full==True` 判定为"一篇银行金科报道", 详见项目铁律) 的报道, 依据其"媒体(中文)"字段是否落在 `OFFICIAL − MARKET` 集合内赋 `_is_official ∈ {0,1}`。第二步是条件聚合: 按 `(target_bank, year)` 分组, 在 `_is_official==1` 的子样本内对 `llm_vote_score{track}` 取算术均值, 得到 `tone_official_media{track}`; 该聚合对每个 track 独立执行 (三轨互不借用彼此的官方子样本或语调分)。若某银行-年份组合内官方媒体报道篇数为零, 该格聚合结果为缺失 (NaN), 不做插补——这是子样本条件均值类测度的常见退化, 在小样本 (如本机 T=2 dev 语料) 或官方媒体覆盖稀疏的银行-年上尤为常见。
+计算分两步。第一步是文章级归类: 对每篇留篇 (full-only 门控下 `llm_verified_full==True` 判定为"一篇银行金科报道", 详见项目铁律) 的报道, 依据其"媒体(中文)"字段是否落在 `OFFICIAL − MARKET` 集合内赋 `_is_official ∈ {0,1}`。第二步是条件聚合: 按 `(target_bank, year)` 分组, 在 `_is_official==1` 的子样本内对 `llm_vote_score{track}` 取算术均值, 得到 `tone_official_media{track}`; 该聚合对每个 track 独立执行 (三轨互不借用彼此的官方子样本或语调分)。若某银行-年份组合内官方媒体报道篇数为零, 该格聚合结果为缺失 (NaN), 不做插补——这是子样本条件均值类测度的常见退化, 在小样本 (如早期试跑 T=2 语料) 或官方媒体覆盖稀疏的银行-年上尤为常见。
 
 与之配对的还有非官方语调 `tone_nonoff_media{track}` 与语调缺口 `tone_gap_official_nonoff{track} = tone_official_media{track} − tone_nonoff_media{track}` (本家族之外的姊妹列), 三者共同构成"官方 vs 非官方"这一媒体异质性子分析的完整测度组; 本家族仅覆盖其中的官方语调本体三列。
 

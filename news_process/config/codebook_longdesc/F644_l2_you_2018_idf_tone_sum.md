@@ -5,7 +5,7 @@ columns:
 - you_2018_idf_tone_sum_full
 - you_2018_idf_tone_sum_ss
 unit: 语调加总得分 (连续, 未归一化, 量纲随文章长度与语料 IDF 分布浮动; 聚合至 bank-year 取篇均值后落入面板)
-formula: 逐篇 idf_tone_sum = Σ_{w∈pos∩you_2018} idf(w)·tf(w,article) − Σ_{w∈neg∩you_2018} idf(w)·tf(w,article); idf(w) 以 config/tone_dicts.json::you_2018 词表在 content_full (标题+全文, 含标题拼接) 语料上统一计算一次, raw_idf(w)=log₁₀(N/(1+df(w))) (smooth IDF), 再做均值归一化 normalized_idf(w)=raw_idf(w)/mean(raw_idf), 最后 P1/P99 Winsorize 得 final idf(w); N=去重后 (同 content 视为同一文档) 文章总数, df(w)=含词 w 的去重文章数; **三轨 (full/ctx/ss) 共享同一份基于 content_full 计算的 idf(w), 绝不按轨分语料重算** — 三轨列差异只来自各轨自身文本上逐篇计算的 tf(w,article), 而非 idf(w) 本身; positive∩negative 交叉词按用户 2026-06-24 决策两侧保留, 同时计入正负两侧加总 (对该词典个体分值净拉向中性, 不武断消歧); 面板列为 bank-year 内 idf_tone_sum 的算术均值。
+formula: 逐篇 idf_tone_sum = Σ_{w∈pos∩you_2018} idf(w)·tf(w,article) − Σ_{w∈neg∩you_2018} idf(w)·tf(w,article); idf(w) 以 config/tone_dicts.json::you_2018 词表在 content_full (标题+全文, 含标题拼接) 语料上统一计算一次, raw_idf(w)=log₁₀(N/(1+df(w))) (smooth IDF), 再做均值归一化 normalized_idf(w)=raw_idf(w)/mean(raw_idf), 最后 P1/P99 Winsorize 得 final idf(w); N=去重后 (同 content 视为同一文档) 文章总数, df(w)=含词 w 的去重文章数; 三轨 (full/ctx/ss) 共享同一份基于 content_full 计算的 idf(w), 绝不按轨分语料重算 — 三轨列差异只来自各轨自身文本上逐篇计算的 tf(w,article), 而非 idf(w) 本身; positive∩negative 交叉词按用户 2026-06-24 决策两侧保留, 同时计入正负两侧加总 (对该词典个体分值净拉向中性, 不武断消歧); 面板列为 bank-year 内 idf_tone_sum 的算术均值。
 producer: pipeline\sentiment\tone_words.py（词典加载/IDF 计算/逐篇打分）; pipeline\panel\export.py（bank-year 聚合与列物化）
 upstream:
 - news_process/config/tone_dicts.json::you_2018

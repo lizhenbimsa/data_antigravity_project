@@ -84,7 +84,7 @@ new_dois: []
 【变体差分】
 本列是家族汉字口径篇内冗余在 ctx 轨上的银行-年均值。ctx 轨的文本是 content_ctx: 标题 prepend 后, 正文收缩到目标银行等实体的邻近上下文窗口 (实体窗口拼接), 而非整篇全文。相对 full 轨, ctx 轨聚焦在银行实体周边的表述, 剔除了与目标实体距离较远的段落, 因此其篇内冗余刻画的是"围绕该银行的局部叙述是否自我重复", 口径比 full 更窄、更聚焦于实体语境。在 full-only 门控下, 本列属 conditional-on-full 的测度轨: 行宇宙是 full 轨留篇集的子集, 仅在该银行该年 ctx 文本可用的篇上计算并取均值; 若某篇 ctx 上下文为空或过短无法构成有效汉字 3-gram, 则该篇以 NaN 表达并沿 NaN 传播, 不借用 full 分母凑数。
 
-轨道口径之外, 本列的汉字口径 (剔数字/标点/拉丁)、3-gram 唯一比率公式、以及与字符口径孪生列的高相关诊断地位, 均与家族 CORE 所述一致。三轨 (full/ctx/ss) 之间是各自 just-identified 并排、互为稳健性、不分主次的关系: 三轨分别进入各自的自回归或设定, 用以证明主结论不被"取哪条文本轨"这一选择所驱动; 铁律是三轨禁混进同一 over-identified 的 Hansen J 过度识别检验, 也禁与字符口径冗余同进一回归式 (hanzi-char-dual 高共线)。在开发期 T=2 的浅面板上, ctx 轨因窗口更窄、有效篇更少, 可能出现方差退化, 属预期现象; 生产期 T=19 语料上该轨恢复正常刻画力。
+轨道口径之外, 本列的汉字口径 (剔数字/标点/拉丁)、3-gram 唯一比率公式、以及与字符口径孪生列的高相关诊断地位, 均与家族 CORE 所述一致。三轨 (full/ctx/ss) 之间是各自 just-identified 并排、互为稳健性、不分主次的关系: 三轨分别进入各自的自回归或设定, 用以证明主结论不被"取哪条文本轨"这一选择所驱动; 铁律是三轨禁混进同一 over-identified 的 Hansen J 过度识别检验, 也禁与字符口径冗余同进一回归式 (hanzi-char-dual 高共线)。在早期试跑 T=2 的浅面板上, ctx 轨因窗口更窄、有效篇更少, 可能出现方差退化, 属预期现象; 生产期 T=19 语料上该轨恢复正常刻画力。
 
 ## VAR: avg_within_doc_redund_han_full
 
@@ -98,7 +98,7 @@ new_dois: []
 【变体差分】
 本列是家族汉字口径篇内冗余在 ss 轨上的银行-年均值。ss 轨文本为 content_ss: 标题 prepend 后, 正文收缩到"目标银行与金科词严格同句共现"的句子及其上下 N 句窗口 (句半径由 filtering.yaml 的 ss_sentence_radius 控制, 默认 1), 是三轨中最聚焦、口径最窄的一轨, 专门刻画银行与金融科技在同一叙述语境下的表述。其篇内冗余因此度量的是"银行金科同句语境的局部行文是否自我重复"。ss 轨采用镜像 ctx 的优雅回退语义: 当一篇报道内不存在银行与金科的同句共现时, content_ss 回退为全文正文, 该篇的 ss_is_fallback 置为 True, 并与 ctx 共享 n_articles 分母口径; 若金科 AC 自动机为空导致无法判定, 则相关 *_is_fallback 全部置 True 作整体降级。这一回退保证本列在稀疏共现下不静默清空, 而是可解释地退回全篇口径。
 
-在 full-only 门控下, 本列同为 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集, 仅在该银行该年 ss 文本 (含回退后的全文) 可用的篇上计算并取均值, 无有效汉字 3-gram 时以 NaN 表达并传播。汉字口径、3-gram 唯一比率公式、以及与字符口径孪生列的高相关诊断地位与家族 CORE 一致。三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 铁律是三轨禁混进同一 over-identified 的 Hansen J, 也禁与字符口径冗余同进一回归式。开发期 T=2 上, ss 轨因同句共现约束最紧、有效篇最少, 可能出现零方差或近似退化, 属预期现象; 生产期 T=19 语料上恢复正常刻画力。
+在 full-only 门控下, 本列同为 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集, 仅在该银行该年 ss 文本 (含回退后的全文) 可用的篇上计算并取均值, 无有效汉字 3-gram 时以 NaN 表达并传播。汉字口径、3-gram 唯一比率公式、以及与字符口径孪生列的高相关诊断地位与家族 CORE 一致。三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 铁律是三轨禁混进同一 over-identified 的 Hansen J, 也禁与字符口径冗余同进一回归式。早期试跑 T=2 上, ss 轨因同句共现约束最紧、有效篇最少, 可能出现零方差或近似退化, 属预期现象; 生产期 T=19 语料上恢复正常刻画力。
 
 <!-- rendered-citations:begin -->
 Lesmy, D., Muchnik, L., & Mugerman, Y. (2025). Lost in the fog: Growing complexity in financial reporting — A comparative study. Humanities and Social Sciences Communications, 12, 1-15. https://doi.org/10.1057/s41599-025-06094-y

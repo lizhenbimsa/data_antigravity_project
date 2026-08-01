@@ -225,11 +225,11 @@ new_dois:
 再补两组易混淆的相邻测度以彻底划界。其六, 与注意力/曝光量家族 (P2 attention 侧, 如 n_articles、fintech_share、attention_pct、ln_coverage) 区分: 那一族度量的是"媒体谈了多少、谈得多密"的数量维度, 与本家族"谈得多褒或多贬"的态度维度正交; 一家银行可以被大量报道却语调中性, 也可以只被少数报道却语调极端, 因此曝光量与语调是两条独立信号, 论文常把二者交互 (如 ln_coverage × tone) 构造复合暴露, 但绝不能互相替代, 更不能因语调列缺失就用曝光量列顶替。其七, 与羊群衰减权重列本身及金融科技强度 (fintech_intensity, stage 15) 区分: herd_weight 是本家族 _hw 变体的输入权重, 度量报道相对同题跟风稿的独立性, 属"信息新鲜度"维度而非态度; fintech_intensity 是报道中金融科技语义浓度的连续测度, 属"主题相关度"维度; 二者都可能与语调相关, 但构念上分属信息结构与主题结构, 不是语调的组成部分。厘清这两组边界后, 本家族与项目内数量、独立性、主题浓度三类非态度测度之间就不存在语义重叠, 使用时可放心把它们作为控制变量或交互项与语调联用, 而不必担心同义反复。
 
 【已知局限与稳健性梯子】
-已知局限有四。第一, 词典法对反讽、隐喻、复杂条件句的处理弱于语义模型, 这正是需要 LLM/BERT 三法交叉的原因。第二, 姜富伟等 (2021) 词典的覆盖与时代性有限, 对新兴金融科技术语可能欠收录, 故须与更新的中文词典 (如 du 2022、ma 2025) 并排。第三, 在盘面 T=2 的开发数据上, ss 轨与 tech/app 子集常因样本稀薄而出现大量 NaN 或零方差, 属预期退化, 结论一律以全量约 1,819 万条语料 / T=19 (2007–2025) 为准。第四, 加权变体的解释力依赖权重来源列的质量 (mention_density、media_authority_weight、herd_weight), 权重缺失时相应变体优雅回退或置 NaN。稳健性梯子的完整叙事是: 以 canonical full 轨为锚, 沿文本粒度 (三轨)、聚合权重 (vw/mw/hw)、内容子集 (tech/app)、离散度 (std) 与跨词典 (六部) 五个正交维度展开, 每一维都是并排的 just-identified 臂, 共同支撑"主结论不被任一测量自由度驱动"的论断。
+已知局限有四。第一, 词典法对反讽、隐喻、复杂条件句的处理弱于语义模型, 这正是需要 LLM/BERT 三法交叉的原因。第二, 姜富伟等 (2021) 词典的覆盖与时代性有限, 对新兴金融科技术语可能欠收录, 故须与更新的中文词典 (如 du 2022、ma 2025) 并排。第三, 在早期试跑盘面 T=2 的开发数据上, ss 轨与 tech/app 子集常因样本稀薄而出现大量 NaN 或零方差, 属预期退化, 结论一律以全量约 1,819 万条语料 / T=19 (2007–2025) 为准。第四, 加权变体的解释力依赖权重来源列的质量 (mention_density、media_authority_weight、herd_weight), 权重缺失时相应变体优雅回退或置 NaN。稳健性梯子的完整叙事是: 以 canonical full 轨为锚, 沿文本粒度 (三轨)、聚合权重 (vw/mw/hw)、内容子集 (tech/app)、离散度 (std) 与跨词典 (六部) 五个正交维度展开, 每一维都是并排的 just-identified 臂, 共同支撑"主结论不被任一测量自由度驱动"的论断。
 
-还须补充两点操作性局限。第一, 加权变体在盘面小样本上可能因权重来源列的稀疏 (例如 herd_weight 需要 stage 24 跟风衰减计算充分、media_authority_weight 需要媒体来源被权威分级表覆盖) 而部分退化, 此时相应 _vw/_mw/_hw 列可能等于或接近 canonical 均值, 不应据此推断"加权无影响", 而应在全量 T=19 上重新评估; 反过来, 当权重来源充分时, 若加权与等权结论显著背离, 才是值得关注的稳健性信号, 提示语调可能被特定密度、特定媒体或特定跟风结构驱动。第二, tech/app 子集依赖 locus 分类器标注的质量, 分类器在盘面小样本上标注稀薄、甚至整类缺席属预期; 使用 tech/app 语调时须先核查对应 n_articles_tech / n_articles_app 的非零覆盖, 覆盖过低时子集均值的抽样误差极大, 不宜进入主结论, 只作探索性对照。综上, 本家族的正确使用姿势是: 以 jiang_2021_tone_full 为词典法主替代, 其余各列按其明确的测量维度作并排稳健性臂, 逐一替换主测度检验结论稳定性, 而非把它们合并或塞进同一过度识别方程; 一切回归级数值结论以全量约 1,819 万条语料 / T=19 (2007–2025) 的实测为准, 盘面 T=2 仅验证管道正确性与 schema 完整性。
+还须补充两点操作性局限。第一, 加权变体在盘面小样本上可能因权重来源列的稀疏 (例如 herd_weight 需要 stage 24 跟风衰减计算充分、media_authority_weight 需要媒体来源被权威分级表覆盖) 而部分退化, 此时相应 _vw/_mw/_hw 列可能等于或接近 canonical 均值, 不应据此推断"加权无影响", 而应在全量 T=19 上重新评估; 反过来, 当权重来源充分时, 若加权与等权结论显著背离, 才是值得关注的稳健性信号, 提示语调可能被特定密度、特定媒体或特定跟风结构驱动。第二, tech/app 子集依赖 locus 分类器标注的质量, 分类器在盘面小样本上标注稀薄、甚至整类缺席属预期; 使用 tech/app 语调时须先核查对应 n_articles_tech / n_articles_app 的非零覆盖, 覆盖过低时子集均值的抽样误差极大, 不宜进入主结论, 只作探索性对照。综上, 本家族的正确使用姿势是: 以 jiang_2021_tone_full 为词典法主替代, 其余各列按其明确的测量维度作并排稳健性臂, 逐一替换主测度检验结论稳定性, 而非把它们合并或塞进同一过度识别方程; 一切回归级数值结论以全量约 1,819 万条语料 / T=19 (2007–2025) 的实测为准, 早期试跑盘面 T=2 仅验证管道正确性与 schema 完整性。
 
-最后把稳健性梯子放进项目"词典 + LLM + BERT 三法交叉"的更大三角里给出使用序。第一步, 在词典法族内先做跨词典替换 (六部词典逐一顶替 canonical), 证明结论不被姜富伟等 (2021) 这一部词表的构建选择驱动; 这是 frankel et al. (2022) 与 van atteveldt et al. (2021) 反复强调的"任何单一情感测量都须与替代方法交叉验证"的最低要求。第二步, 跨方法交叉: 用 LLM 三家投票语调与 BERT 三模型语调重跑同一规格, 检验"词典法 vs 语义模型"这一更根本的方法学分野是否改变结论, 呼应 barbaglia et al. (2025)、zheng et al. (2024) 关于词典法与词嵌入法各有优劣的发现。第三步, 在选定的主测量上沿本家族的三轨、三权重、tech/app、std 五个正交维度做规格稳健性展开。三步各自回答不同层级的稳健性问题 —— 词表选择、方法范式、规格自由度 —— 层层收敛却互不替代, 共同支撑"主结论不被任一测量自由度驱动"这一论断。需再次强调: 上述所有替换臂都是并排的 just-identified 或标准规格, 稳健性来自"换测量、结论稳", 多重假设的显著性风险由根级 FWER 模板统一校正, 任何环节都不得把这些高度共线的替代测量拼进同一 over-identified Hansen J 冒充过度识别信息; ss 轨与 tech/app 子集在盘面 T=2 上的整体缺失或零方差是样本稀薄导致的预期退化 (ss 回退语义镜像 ctx: 无同句共现即回退全文并置 fallback 标志、共享 n_articles 分母), 绝非缺陷, 一切阈值化的定量结论须待全量 T=19 语料上线后方可下笔。
+最后把稳健性梯子放进项目"词典 + LLM + BERT 三法交叉"的更大三角里给出使用序。第一步, 在词典法族内先做跨词典替换 (六部词典逐一顶替 canonical), 证明结论不被姜富伟等 (2021) 这一部词表的构建选择驱动; 这是 frankel et al. (2022) 与 van atteveldt et al. (2021) 反复强调的"任何单一情感测量都须与替代方法交叉验证"的最低要求。第二步, 跨方法交叉: 用 LLM 三家投票语调与 BERT 三模型语调重跑同一规格, 检验"词典法 vs 语义模型"这一更根本的方法学分野是否改变结论, 呼应 barbaglia et al. (2025)、zheng et al. (2024) 关于词典法与词嵌入法各有优劣的发现。第三步, 在选定的主测量上沿本家族的三轨、三权重、tech/app、std 五个正交维度做规格稳健性展开。三步各自回答不同层级的稳健性问题 —— 词表选择、方法范式、规格自由度 —— 层层收敛却互不替代, 共同支撑"主结论不被任一测量自由度驱动"这一论断。需再次强调: 上述所有替换臂都是并排的 just-identified 或标准规格, 稳健性来自"换测量、结论稳", 多重假设的显著性风险由根级 FWER 模板统一校正, 任何环节都不得把这些高度共线的替代测量拼进同一 over-identified Hansen J 冒充过度识别信息; ss 轨与 tech/app 子集在早期试跑盘面 T=2 上的整体缺失或零方差是样本稀薄导致的预期退化 (ss 回退语义镜像 ctx: 无同句共现即回退全文并置 fallback 标志、共享 n_articles 分母), 绝非缺陷, 一切阈值化的定量结论须待全量 T=19 语料上线后方可下笔。
 
 ## VAR: jiang_2021_tone_full
 
@@ -249,35 +249,35 @@ new_dois:
 【变体差分】
 本列相对 canonical jiang_2021_tone_full 的唯一差分是文本轨: 由 full 轨换成 ctx 轨。ctx 文本是 content_ctx, 即标题 prepend 之后, 仅保留围绕目标银行实体提及的上下文窗口 (实体窗), 剔除与该银行无关的段落。其构念意图是: 只让"确实在谈论这家银行"的语句进入语调打分, 减少全文中无关噪声段落的稀释, 因此 ctx 轨语调通常比 full 轨更聚焦、方差特征也不同。词典、三规则、聚合均值口径与 canonical 完全一致, 差异纯粹来自被打分的文本范围。
 
-在项目留篇门控 full-only 口径下, ctx 轨是 conditional-on-full 的稳健性轨: 其行宇宙是 full 留篇集的子集, 语调 per-track 独立计算。本列与 full 轨、ss 轨互为文本粒度维度上的稳健性并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J。作为词典法测度, 它与其它五部词典的 _ctx 列构成跨词典稳健性平行臂, 同样禁止拼入同一过度识别方程。使用建议: 当担心 full 轨因长文中大量与银行无关内容而语调被摊平时, 以本 ctx 轨作为"聚焦口径"的稳健性对照; 但在盘面 T=2 上 ctx 轨可能样本稀薄, 数值结论以全量 T=19 为准。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 均值 + 全样本。在实践中当本列与 full 轨语调出现方向性背离时, 往往提示全文中存在大量与该银行无关的背景段落把 full 轨语调摊平, 此时 ctx 轨更贴近针对该银行的真实态度, 值得在稳健性表中并排呈现并加以讨论。
+在项目留篇门控 full-only 口径下, ctx 轨是 conditional-on-full 的稳健性轨: 其行宇宙是 full 留篇集的子集, 语调 per-track 独立计算。本列与 full 轨、ss 轨互为文本粒度维度上的稳健性并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J。作为词典法测度, 它与其它五部词典的 _ctx 列构成跨词典稳健性平行臂, 同样禁止拼入同一过度识别方程。使用建议: 当担心 full 轨因长文中大量与银行无关内容而语调被摊平时, 以本 ctx 轨作为"聚焦口径"的稳健性对照; 但在早期试跑盘面 T=2 上 ctx 轨可能样本稀薄, 数值结论以全量 T=19 为准。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 均值 + 全样本。在实践中当本列与 full 轨语调出现方向性背离时, 往往提示全文中存在大量与该银行无关的背景段落把 full 轨语调摊平, 此时 ctx 轨更贴近针对该银行的真实态度, 值得在稳健性表中并排呈现并加以讨论。
 
 ## VAR: jiang_2021_tone_ss
 
 【变体差分】
 本列相对 canonical 的唯一差分是文本轨换成 ss (same-sentence) 轨。ss 文本是 content_ss, 即标题 prepend 之后, 仅保留"目标银行与金融科技词出现在同一句 (含正负若干句窗, 窗口半径由 config filtering ss_sentence_radius 控制, 默认 1)"的语句。其构念意图是最严格地锁定"银行 × 金融科技"共现语境下的语调, 排除银行在与金融科技无关段落中被提及时的态度。ss 轨的回退语义镜像 ctx 轨: 当某报道不存在银行与金融科技的同句共现时, content_ss 优雅回退为全文 body 且 ss_is_fallback=True (与 ctx 共享 n_articles 分母口径), 当金融科技 AC 自动机为空时 ss_is_fallback 全 True 优雅降级。
 
-词典、三规则、聚合均值口径与 canonical 完全一致, 仅文本范围最窄。本列与 full/ctx 轨互为文本粒度稳健性并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J; 与其它五部词典的 _ss 列构成跨词典平行臂。特别提示: ss 轨是三轨中最依赖付费 LLM 缓存播种与共现命中的一轨, 在盘面 T=2 开发数据上 ss 相关列常整体缺失或零方差属预期 (REQUIRED_PANEL_COLUMNS 刻意不含 _ss, 不阻塞导出), 全量 T=19 上线后方为非退化, 一切数值结论以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 均值 + 全样本。作为三轨中语境最严格的一条, 本列与 full 轨语调若在全量样本上出现系统性差异, 可用于论证"银行金融科技叙事本身的褒贬与报道整体基调存在分层", 是三轨梯子中最贴近核心构念的稳健性对照。
+词典、三规则、聚合均值口径与 canonical 完全一致, 仅文本范围最窄。本列与 full/ctx 轨互为文本粒度稳健性并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J; 与其它五部词典的 _ss 列构成跨词典平行臂。特别提示: ss 轨是三轨中最依赖付费 LLM 缓存播种与共现命中的一轨, 在早期试跑盘面 T=2 数据上 ss 相关列常整体缺失或零方差属预期 (REQUIRED_PANEL_COLUMNS 刻意不含 _ss, 不阻塞导出), 全量 T=19 上线后方为非退化, 一切数值结论以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 均值 + 全样本。作为三轨中语境最严格的一条, 本列与 full 轨语调若在全量样本上出现系统性差异, 可用于论证"银行金融科技叙事本身的褒贬与报道整体基调存在分层", 是三轨梯子中最贴近核心构念的稳健性对照。
 
 ## VAR: jiang_2021_tone_std_full
 
 【变体差分】
 本列相对 canonical jiang_2021_tone_full 的差分在聚合算子: 由算术均值换成同一银行-年内文章级 jiang_2021_score_full 的标准差 (bank-year SD), 文本轨仍为 full。因此本列度量的构念不是语调水平, 而是"该银行该年 full 轨报道之间语调的离散程度", 可解读为媒体叙事的分歧度或不确定性 —— 高 std 表示同期报道褒贬并存、叙事不一致, 低 std 表示口径高度一致。这一离散度在下游可用于构造"金融科技叙事暴露"复合指标 (如 fintech_exposure = ln_coverage × tone_std), 也可单独作为叙事分歧的代理。
 
-计算上取 pandas groupby 的 std (样本标准差, ddof=1), 分母为该银行-年 full 轨报道数减一; 当报道数为 1 时 SD 为 NaN, 当零报道时同样 NaN。须严格区分本列与语调水平列: 二者构念不同, 不可互替, 论文中若同时使用须明确说明一为水平、一为分歧。本列与 std_ctx、std_ss 构成三轨离散度并排臂, 各自 just-identified, 禁混同一 over-identified Hansen J; 与其它五部词典的 _tone_std_full 列构成跨词典离散度平行臂。相对家族其它列, 本列识别特征是 full 轨 + 等权 + 标准差算子 (非均值) + 全样本。作为离散度族在最完整文本轨上的锚, 本列可与语调水平列 jiang_2021_tone_full 配对使用, 前者答"分歧有多大", 后者答"平均偏向哪边", 二者联用能刻画媒体叙事的水平与不确定性两个维度。盘面 T=2 上因每格报道极少, SD 常为 NaN, 结论以全量 T=19 为准。
+计算上取 pandas groupby 的 std (样本标准差, ddof=1), 分母为该银行-年 full 轨报道数减一; 当报道数为 1 时 SD 为 NaN, 当零报道时同样 NaN。须严格区分本列与语调水平列: 二者构念不同, 不可互替, 论文中若同时使用须明确说明一为水平、一为分歧。本列与 std_ctx、std_ss 构成三轨离散度并排臂, 各自 just-identified, 禁混同一 over-identified Hansen J; 与其它五部词典的 _tone_std_full 列构成跨词典离散度平行臂。相对家族其它列, 本列识别特征是 full 轨 + 等权 + 标准差算子 (非均值) + 全样本。作为离散度族在最完整文本轨上的锚, 本列可与语调水平列 jiang_2021_tone_full 配对使用, 前者答"分歧有多大", 后者答"平均偏向哪边", 二者联用能刻画媒体叙事的水平与不确定性两个维度。早期试跑盘面 T=2 上因每格报道极少, SD 常为 NaN, 结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_std_ctx
 
 【变体差分】
 本列是 jiang_2021_tone_std_full 的 ctx 轨孪生: 聚合算子同为 bank-year 标准差, 但对象换成 ctx 轨的文章级得分 jiang_2021_score_ctx。它度量的是"在仅保留银行实体上下文窗口的聚焦文本口径下, 该银行该年报道之间语调的离散度"。相比 std_full, 本列剔除了全文中与银行无关段落对语调分布的影响, 因此其离散度更纯粹地反映了针对该银行的叙事分歧, 而非全文话题多样性带来的伪离散。
 
-在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 本列的样本宇宙是 full 留篇集子集。计算口径 (ddof=1 样本标准差, 单篇为 NaN, 零篇为 NaN) 与 std_full 一致。本列与 std_full、std_ss 构成三轨离散度稳健性并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J; 与其它五部词典的 _tone_std_ctx 列构成跨词典离散度平行臂, 同样禁止拼入同一过度识别方程。使用时须与语调水平列区分, 本列度量分歧而非水平。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 标准差算子 + 全样本。相比 std_full, 本列的离散度更纯粹地反映针对该银行报道之间的态度分歧, 剔除了全文话题多样性带来的伪离散, 因此在检验"叙事分歧假说"时是 std_full 的更聚焦对照臂。盘面 T=2 上 ctx 轨样本稀薄, 本列多为 NaN 或零方差, 属预期退化, 数值结论以全量 T=19 为准。
+在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 本列的样本宇宙是 full 留篇集子集。计算口径 (ddof=1 样本标准差, 单篇为 NaN, 零篇为 NaN) 与 std_full 一致。本列与 std_full、std_ss 构成三轨离散度稳健性并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J; 与其它五部词典的 _tone_std_ctx 列构成跨词典离散度平行臂, 同样禁止拼入同一过度识别方程。使用时须与语调水平列区分, 本列度量分歧而非水平。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 标准差算子 + 全样本。相比 std_full, 本列的离散度更纯粹地反映针对该银行报道之间的态度分歧, 剔除了全文话题多样性带来的伪离散, 因此在检验"叙事分歧假说"时是 std_full 的更聚焦对照臂。早期试跑盘面 T=2 上 ctx 轨样本稀薄, 本列多为 NaN 或零方差, 属预期退化, 数值结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_std_ss
 
 【变体差分】
 本列是语调离散度族的 ss 轨成员: 聚合算子为 bank-year 标准差, 对象为 ss 轨文章级得分 jiang_2021_score_ss。它度量"在银行与金融科技严格同句共现的最窄文本口径下, 该银行该年报道之间语调的离散度", 是三条离散度轨中语境最聚焦的一条 —— 只有确实在同句谈论银行金融科技活动的语句才进入 SD 计算, 因此本列反映的是金融科技叙事本身的褒贬分歧, 而非报道整体基调的分散。
 
-ss 轨回退语义镜像 ctx: 无同句共现时 content_ss 回退全文并置 ss_is_fallback=True。计算口径 (样本标准差 ddof=1, 单篇/零篇为 NaN) 与其它离散度列一致。本列与 std_full、std_ctx 构成三轨离散度并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J; 与其它五部词典的 _tone_std_ss 列构成跨词典离散度平行臂。须注意 ss 轨是最依赖付费缓存播种与共现命中的一轨, 盘面 T=2 上本列几乎必然整体缺失或零方差, 属预期; 全量 T=19 上线后方为有效离散度测度, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 标准差算子 + 全样本。它是三条离散度轨中语境最聚焦者, 度量的是银行金融科技同句共现语境下媒体态度的分歧程度, 在全量样本上可用于识别"金融科技叙事本身是否存在褒贬两极分化"。使用时须与语调水平列区分, 本列度量分歧而非水平。
+ss 轨回退语义镜像 ctx: 无同句共现时 content_ss 回退全文并置 ss_is_fallback=True。计算口径 (样本标准差 ddof=1, 单篇/零篇为 NaN) 与其它离散度列一致。本列与 std_full、std_ctx 构成三轨离散度并排臂, 各自 just-identified, 严禁三轨混入同一 over-identified Hansen J; 与其它五部词典的 _tone_std_ss 列构成跨词典离散度平行臂。须注意 ss 轨是最依赖付费缓存播种与共现命中的一轨, 早期试跑盘面 T=2 上本列几乎必然整体缺失或零方差, 属预期; 全量 T=19 上线后方为有效离散度测度, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 标准差算子 + 全样本。它是三条离散度轨中语境最聚焦者, 度量的是银行金融科技同句共现语境下媒体态度的分歧程度, 在全量样本上可用于识别"金融科技叙事本身是否存在褒贬两极分化"。使用时须与语调水平列区分, 本列度量分歧而非水平。
 
 ## VAR: jiang_2021_tone_vw_full
 
@@ -291,14 +291,14 @@ ss 轨回退语义镜像 ctx: 无同句共现时 content_ss 回退全文并置 s
 【变体差分】
 本列是密度加权语调族的 ctx 轨成员: 权重为 mention_density, 对象为 ctx 轨文章级得分。它度量"在仅保留银行实体上下文窗口的聚焦文本口径下, 以银行提及密度加权后的银行-年语调"。相比 vw_full, 本列先在文本层剔除与银行无关段落 (ctx 轨), 再在聚合层按密度加权, 是"文本聚焦 × 聚合聚焦"的双重聚焦口径, 用于检验主结论是否对"给更相关报道更大权重"这一自由度稳健。
 
-计算口径为 Σ(score_ctx·mention_density)/Σ(mention_density), 与 vw_full 同构, 仅文本轨不同; 权重缺失时优雅回退或置 NaN。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 vw_full、vw_ss 构成三轨密度加权并排臂; 与 canonical 等权、_mw 媒体权、_hw 羊群权构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同权重/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_vw_ctx 列构成跨词典平行臂。相对家族其它列, 本列识别特征是 ctx 轨 + 密度权 + 加权均值 + 全样本。它把文本聚焦 (ctx 轨剔除无关段落) 与聚合聚焦 (按银行提及密度加权) 叠加, 是"双重聚焦"稳健性臂, 用于检验主结论在最严格相关性口径下是否依然成立。盘面 T=2 上 ctx 轨样本稀薄, 本列多退化, 数值结论以全量 T=19 为准。
+计算口径为 Σ(score_ctx·mention_density)/Σ(mention_density), 与 vw_full 同构, 仅文本轨不同; 权重缺失时优雅回退或置 NaN。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 vw_full、vw_ss 构成三轨密度加权并排臂; 与 canonical 等权、_mw 媒体权、_hw 羊群权构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同权重/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_vw_ctx 列构成跨词典平行臂。相对家族其它列, 本列识别特征是 ctx 轨 + 密度权 + 加权均值 + 全样本。它把文本聚焦 (ctx 轨剔除无关段落) 与聚合聚焦 (按银行提及密度加权) 叠加, 是"双重聚焦"稳健性臂, 用于检验主结论在最严格相关性口径下是否依然成立。早期试跑盘面 T=2 上 ctx 轨样本稀薄, 本列多退化, 数值结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_vw_ss
 
 【变体差分】
 本列是密度加权语调族的 ss 轨成员: 权重为 mention_density, 对象为 ss (银行与金融科技同句共现) 轨文章级得分。它度量"在最窄的同句共现文本口径下, 以银行提及密度加权后的银行-年语调", 是三条密度加权轨中语境最聚焦者, 兼具"文本最聚焦"与"聚合按相关性加权"两重收敛。构念上, 它最贴近"媒体对这家银行的金融科技活动本身的加权态度"。
 
-计算口径为 Σ(score_ss·mention_density)/Σ(mention_density), 与 vw_full/vw_ctx 同构; ss 轨回退语义镜像 ctx (无同句共现时回退全文并置 ss_is_fallback=True), 权重缺失时优雅回退或置 NaN。本列与 vw_full、vw_ctx 构成三轨密度加权并排臂; 与 canonical 等权、_mw、_hw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_vw_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 盘面 T=2 上本列几乎必然缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 密度权 + 加权均值 + 全样本。它是密度加权族里语境最窄的一条, 兼具同句共现的文本聚焦与按银行提及密度的聚合聚焦, 在全量样本上最贴近"媒体对该银行金融科技活动本身的加权态度"。
+计算口径为 Σ(score_ss·mention_density)/Σ(mention_density), 与 vw_full/vw_ctx 同构; ss 轨回退语义镜像 ctx (无同句共现时回退全文并置 ss_is_fallback=True), 权重缺失时优雅回退或置 NaN。本列与 vw_full、vw_ctx 构成三轨密度加权并排臂; 与 canonical 等权、_mw、_hw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_vw_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 早期试跑盘面 T=2 上本列几乎必然缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 密度权 + 加权均值 + 全样本。它是密度加权族里语境最窄的一条, 兼具同句共现的文本聚焦与按银行提及密度的聚合聚焦, 在全量样本上最贴近"媒体对该银行金融科技活动本身的加权态度"。
 
 ## VAR: jiang_2021_tone_mw_full
 
@@ -312,14 +312,14 @@ ss 轨回退语义镜像 ctx: 无同句共现时 content_ss 回退全文并置 s
 【变体差分】
 本列是媒体权威加权语调族的 ctx 轨成员: 权重为 media_authority_weight, 对象为 ctx 轨文章级得分。它度量"在银行实体上下文窗口的聚焦文本口径下, 以媒体权威性加权后的银行-年语调"。相比 mw_full, 本列先在文本层剔除与银行无关段落 (ctx 轨), 再按媒体权威加权, 检验主结论对"文本聚焦 + 权威媒体加权"联合口径的稳健性。
 
-计算口径 Σ(score_ctx·media_authority_weight)/Σ(media_authority_weight) 与 mw_full 同构, 仅文本轨不同; 权重缺失以 1.0 兜底或优雅置 NaN。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 mw_full、mw_ss 构成三轨媒体加权并排臂; 与 canonical 等权、_vw、_hw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同权重/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_mw_ctx 列构成跨词典平行臂。媒体权威加权与密度加权正交, 使用时须明确区分。相对家族其它列, 本列识别特征是 ctx 轨 + 媒体权 + 加权均值 + 全样本。它把文本聚焦与权威媒体优先叠加, 是"文本聚焦 × 媒体权威"双重口径稳健性臂, 用于检验主结论在既剔除无关段落又给权威媒体更大权重时的稳定性。盘面 T=2 上 ctx 轨样本稀薄, 本列多退化, 数值结论以全量 T=19 为准。
+计算口径 Σ(score_ctx·media_authority_weight)/Σ(media_authority_weight) 与 mw_full 同构, 仅文本轨不同; 权重缺失以 1.0 兜底或优雅置 NaN。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 mw_full、mw_ss 构成三轨媒体加权并排臂; 与 canonical 等权、_vw、_hw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同权重/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_mw_ctx 列构成跨词典平行臂。媒体权威加权与密度加权正交, 使用时须明确区分。相对家族其它列, 本列识别特征是 ctx 轨 + 媒体权 + 加权均值 + 全样本。它把文本聚焦与权威媒体优先叠加, 是"文本聚焦 × 媒体权威"双重口径稳健性臂, 用于检验主结论在既剔除无关段落又给权威媒体更大权重时的稳定性。早期试跑盘面 T=2 上 ctx 轨样本稀薄, 本列多退化, 数值结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_mw_ss
 
 【变体差分】
 本列是媒体权威加权语调族的 ss 轨成员: 权重为 media_authority_weight, 对象为 ss (银行与金融科技同句共现) 轨文章级得分。它度量"在最窄同句共现文本口径下, 以媒体权威性加权后的银行-年语调", 是三条媒体加权轨中语境最聚焦者, 兼具"文本最聚焦"与"权威媒体优先"两重口径, 最贴近"权威媒体对这家银行金融科技活动本身的态度"。
 
-计算口径 Σ(score_ss·media_authority_weight)/Σ(media_authority_weight) 与 mw_full/mw_ctx 同构; ss 轨回退语义镜像 ctx (无同句共现时回退全文并置 ss_is_fallback=True), 权重缺失以 1.0 兜底或优雅置 NaN。本列与 mw_full、mw_ctx 构成三轨媒体加权并排臂; 与 canonical 等权、_vw、_hw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_mw_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 盘面 T=2 上本列几乎必然缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 媒体权 + 加权均值 + 全样本。它是媒体加权族里语境最窄的一条, 兼具同句共现的文本聚焦与权威媒体优先, 在全量样本上最贴近"权威媒体对该银行金融科技活动本身的态度"。
+计算口径 Σ(score_ss·media_authority_weight)/Σ(media_authority_weight) 与 mw_full/mw_ctx 同构; ss 轨回退语义镜像 ctx (无同句共现时回退全文并置 ss_is_fallback=True), 权重缺失以 1.0 兜底或优雅置 NaN。本列与 mw_full、mw_ctx 构成三轨媒体加权并排臂; 与 canonical 等权、_vw、_hw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_mw_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 早期试跑盘面 T=2 上本列几乎必然缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 媒体权 + 加权均值 + 全样本。它是媒体加权族里语境最窄的一条, 兼具同句共现的文本聚焦与权威媒体优先, 在全量样本上最贴近"权威媒体对该银行金融科技活动本身的态度"。
 
 ## VAR: jiang_2021_tone_hw_full
 
@@ -333,56 +333,56 @@ ss 轨回退语义镜像 ctx: 无同句共现时 content_ss 回退全文并置 s
 【变体差分】
 本列是羊群加权语调族的 ctx 轨成员: 权重为 herd_weight_ctx (stage 24 三轨独立产出的 ctx 轨羊群衰减权重), 对象为 ctx 轨文章级得分。它度量"在银行实体上下文窗口的聚焦文本口径下, 对跟风报道降权后的银行-年语调"。相比 hw_full, 本列先在文本层剔除与银行无关段落 (ctx 轨), 再按羊群衰减降权, 检验主结论对"文本聚焦 + 抑制跟风重复"联合口径的稳健性。
 
-计算口径 Σ(score_ctx·herd_weight_ctx)/Σ(herd_weight_ctx) 与 hw_full 同构, 仅文本轨与对应权重轨不同; legacy 单列时退化并记 WARN, 权重缺失以 1.0 兜底。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 hw_full、hw_ss 构成三轨羊群加权并排臂; 与 canonical 等权、_vw、_mw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同权重/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_hw_ctx 列构成跨词典平行臂。羊群衰减与媒体权威、密度加权正交。相对家族其它列, 本列识别特征是 ctx 轨 + 羊群权 + 加权均值 + 全样本。它把文本聚焦与抑制跟风重复叠加, 是"文本聚焦 × 独立信息"双重口径稳健性臂, 用于检验主结论在既剔除无关段落又对跟风稿降权时的稳定性。盘面 T=2 上 ctx 轨样本稀薄, 本列多退化, 数值结论以全量 T=19 为准。
+计算口径 Σ(score_ctx·herd_weight_ctx)/Σ(herd_weight_ctx) 与 hw_full 同构, 仅文本轨与对应权重轨不同; legacy 单列时退化并记 WARN, 权重缺失以 1.0 兜底。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 hw_full、hw_ss 构成三轨羊群加权并排臂; 与 canonical 等权、_vw、_mw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同权重/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_hw_ctx 列构成跨词典平行臂。羊群衰减与媒体权威、密度加权正交。相对家族其它列, 本列识别特征是 ctx 轨 + 羊群权 + 加权均值 + 全样本。它把文本聚焦与抑制跟风重复叠加, 是"文本聚焦 × 独立信息"双重口径稳健性臂, 用于检验主结论在既剔除无关段落又对跟风稿降权时的稳定性。早期试跑盘面 T=2 上 ctx 轨样本稀薄, 本列多退化, 数值结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_hw_ss
 
 【变体差分】
 本列是羊群加权语调族的 ss 轨成员: 权重为 herd_weight_ss (stage 24 镜像 ctx 产出的同句轨羊群衰减权重; 缺列时优雅回退 herd_weight_full), 对象为 ss (银行与金融科技同句共现) 轨文章级得分。它度量"在最窄同句共现文本口径下, 对跟风报道降权后的银行-年语调", 是三条羊群加权轨中语境最聚焦者, 兼具"文本最聚焦"与"抑制跟风重复"两重口径。
 
-计算口径 Σ(score_ss·herd_weight_ss)/Σ(herd_weight_ss) 与 hw_full/hw_ctx 同构; ss 轨回退语义镜像 ctx (无同句共现时 content_ss 回退全文并置 ss_is_fallback=True); herd_weight_ss 缺列时回退 herd_weight_full (与 legacy 单轨退化同口径), 权重缺失以 1.0 兜底。本列与 hw_full、hw_ctx 构成三轨羊群加权并排臂; 与 canonical 等权、_vw、_mw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_hw_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 盘面 T=2 上本列几乎必然缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 羊群权 + 加权均值 + 全样本。它是羊群加权族里语境最窄的一条, 兼具同句共现的文本聚焦与对跟风稿的降权, 在全量样本上最贴近"剔除跟风重复后媒体对该银行金融科技的独立态度"。
+计算口径 Σ(score_ss·herd_weight_ss)/Σ(herd_weight_ss) 与 hw_full/hw_ctx 同构; ss 轨回退语义镜像 ctx (无同句共现时 content_ss 回退全文并置 ss_is_fallback=True); herd_weight_ss 缺列时回退 herd_weight_full (与 legacy 单轨退化同口径), 权重缺失以 1.0 兜底。本列与 hw_full、hw_ctx 构成三轨羊群加权并排臂; 与 canonical 等权、_vw、_mw 构成聚合权重维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_hw_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 早期试跑盘面 T=2 上本列几乎必然缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 羊群权 + 加权均值 + 全样本。它是羊群加权族里语境最窄的一条, 兼具同句共现的文本聚焦与对跟风稿的降权, 在全量样本上最贴近"剔除跟风重复后媒体对该银行金融科技的独立态度"。
 
 ## VAR: jiang_2021_tone_tech_full
 
 【变体差分】
 本列相对 canonical 的差分在样本子集: 由全样本收窄到"金融科技定位 (locus) 二元分类为底层技术 (tech) 的报道子集", 文本轨为 full, 等权均值。构念意图对接主线 P4 (locus) —— 把银行金融科技报道按其谈论对象是"底层技术研发"还是"应用场景落地"二分, 本列只在被判为底层技术的报道子集上求姜富伟等 (2021) 词典语调均值, 从而回答"当媒体谈论银行的底层金融科技时, 语调如何"。tech 子集由 locus 分类器标注 (成员资格由 full 轨标签 innovation_locus_full 决定), 计数列为 n_articles_tech, 本列在 encode.aggregate_panel 的 locus 分类聚合块中生成, 仅当该子集非空时物化。
 
-计算口径与 canonical 一致 (full 轨、等权、算术均值), 仅样本被限定在 tech 子集。本列与 tech_ctx、tech_ss 构成三轨底层技术子集并排臂; 与应用场景子集 _app、以及全样本 canonical 构成"内容子集维度"的并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁 tech/app/全样本不同子集变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_tech_full 列构成跨词典平行臂。须注意 tech 与 app 子集互斥, 二者语调之差 (tone_gap) 在别处专列度量 (P4 主 DV), 本列只提供 tech 侧的水平。相对家族其它列, 本列识别特征是 full 轨 + 等权 + 均值 + 底层技术子集。盘面 T=2 上 locus 标注可能稀薄, 本列常大量 NaN, 结论以全量 T=19 为准。
+计算口径与 canonical 一致 (full 轨、等权、算术均值), 仅样本被限定在 tech 子集。本列与 tech_ctx、tech_ss 构成三轨底层技术子集并排臂; 与应用场景子集 _app、以及全样本 canonical 构成"内容子集维度"的并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁 tech/app/全样本不同子集变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_tech_full 列构成跨词典平行臂。须注意 tech 与 app 子集互斥, 二者语调之差 (tone_gap) 在别处专列度量 (P4 主 DV), 本列只提供 tech 侧的水平。相对家族其它列, 本列识别特征是 full 轨 + 等权 + 均值 + 底层技术子集。早期试跑盘面 T=2 上 locus 标注可能稀薄, 本列常大量 NaN, 结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_tech_ctx
 
 【变体差分】
 本列是底层技术子集语调族的 ctx 轨成员: 样本限定在 locus 分类为底层技术的报道, 对象为 ctx 轨文章级得分, 等权均值。它度量"在银行实体上下文窗口的聚焦文本口径下, 媒体谈论银行底层金融科技时的语调"。相比 tech_full, 本列先在文本层剔除与银行无关段落 (ctx 轨), 再限定 tech 子集, 是"文本聚焦 × 内容子集"双重收窄口径。
 
-计算口径与 tech_full 同构 (ctx 轨、等权、均值), 仅被聚合的语调源列换成 ctx 轨得分; 由 encode.aggregate_panel 的 locus 分类聚合块生成。须强调子集成员资格由 full 轨 locus 标签 (innovation_locus_full == 底层技术) 锁定, 本 ctx 轨列只是在该 full-locus 子集内改取 ctx 轨语调源, 并非按 ctx 轨自身重切 tech 子集; 依赖该 full-locus tech 子集非空。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 tech_full、tech_ss 构成三轨底层技术子集并排臂; 与 _app 子集、全样本 canonical 构成内容子集维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同子集/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_tech_ctx 列构成跨词典平行臂。tech 与 app 子集互斥, 本列只提供 tech 侧 ctx 轨水平。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 均值 + 底层技术子集。它把文本聚焦与内容限定叠加, 在全量样本上度量"仅在谈论该银行底层金融科技的聚焦文本里"媒体的语调, 是 tech_full 的更聚焦对照臂。盘面 T=2 上 ctx 轨与 locus 标注双重稀薄, 本列几乎必然大量退化, 数值结论以全量 T=19 为准。
+计算口径与 tech_full 同构 (ctx 轨、等权、均值), 仅被聚合的语调源列换成 ctx 轨得分; 由 encode.aggregate_panel 的 locus 分类聚合块生成。须强调子集成员资格由 full 轨 locus 标签 (innovation_locus_full == 底层技术) 锁定, 本 ctx 轨列只是在该 full-locus 子集内改取 ctx 轨语调源, 并非按 ctx 轨自身重切 tech 子集; 依赖该 full-locus tech 子集非空。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 tech_full、tech_ss 构成三轨底层技术子集并排臂; 与 _app 子集、全样本 canonical 构成内容子集维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同子集/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_tech_ctx 列构成跨词典平行臂。tech 与 app 子集互斥, 本列只提供 tech 侧 ctx 轨水平。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 均值 + 底层技术子集。它把文本聚焦与内容限定叠加, 在全量样本上度量"仅在谈论该银行底层金融科技的聚焦文本里"媒体的语调, 是 tech_full 的更聚焦对照臂。早期试跑盘面 T=2 上 ctx 轨与 locus 标注双重稀薄, 本列几乎必然大量退化, 数值结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_tech_ss
 
 【变体差分】
 本列是底层技术子集语调族的 ss 轨成员: 样本限定在 locus 分类为底层技术的报道, 对象为 ss (银行与金融科技同句共现) 轨文章级得分, 等权均值。它度量"在最窄同句共现文本口径下, 媒体谈论银行底层金融科技时的语调", 是三条底层技术子集轨中语境最聚焦者, 兼具"文本最聚焦"与"内容限定底层技术"两重收窄。
 
-计算口径与 tech_full/tech_ctx 同构 (ss 轨、等权、均值); ss 轨回退语义镜像 ctx (无同句共现时 content_ss 回退全文并置 ss_is_fallback=True); 由 encode.aggregate_panel 的 locus 分类聚合块生成。子集成员资格同样由 full 轨 locus 标签 (innovation_locus_full == 底层技术) 锁定, 本 ss 轨列只是在该 full-locus 子集内改取 ss 轨语调源, 而非按 ss 轨自身重切 tech 子集; 依赖该 full-locus tech 子集非空。本列与 tech_full、tech_ctx 构成三轨底层技术子集并排臂; 与 _app 子集、全样本 canonical 构成内容子集维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_tech_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 叠加 locus 标注稀薄, 盘面 T=2 上本列几乎必然整体缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 均值 + 底层技术子集。它是底层技术子集族里语境最窄的一条, 兼具同句共现的文本聚焦与内容限定底层技术, 在全量样本上最贴近"媒体在同句谈论该银行底层金融科技时的态度"。
+计算口径与 tech_full/tech_ctx 同构 (ss 轨、等权、均值); ss 轨回退语义镜像 ctx (无同句共现时 content_ss 回退全文并置 ss_is_fallback=True); 由 encode.aggregate_panel 的 locus 分类聚合块生成。子集成员资格同样由 full 轨 locus 标签 (innovation_locus_full == 底层技术) 锁定, 本 ss 轨列只是在该 full-locus 子集内改取 ss 轨语调源, 而非按 ss 轨自身重切 tech 子集; 依赖该 full-locus tech 子集非空。本列与 tech_full、tech_ctx 构成三轨底层技术子集并排臂; 与 _app 子集、全样本 canonical 构成内容子集维度并排臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_tech_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 叠加 locus 标注稀薄, 早期试跑盘面 T=2 上本列几乎必然整体缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 均值 + 底层技术子集。它是底层技术子集族里语境最窄的一条, 兼具同句共现的文本聚焦与内容限定底层技术, 在全量样本上最贴近"媒体在同句谈论该银行底层金融科技时的态度"。
 
 ## VAR: jiang_2021_tone_app_ctx
 
 【变体差分】
 本列是应用场景子集语调族的 ctx 轨成员: 样本限定在 locus 分类为应用场景 (app) 的报道, 对象为 ctx 轨文章级得分, 等权均值。它与 tech 侧互补, 度量"在银行实体上下文窗口的聚焦文本口径下, 媒体谈论银行金融科技应用场景落地时的语调"。app 与 tech 子集互斥, 二者共同覆盖被 locus 分类器标注的报道; 本列只提供 app 侧 ctx 轨水平, 二者之差 (tone_gap) 在别处专列度量作 P4 主 DV。
 
-计算口径与 canonical 同构 (等权、算术均值), 仅被聚合的语调源列换成 ctx 轨得分且样本限定 app 子集; 由 encode.aggregate_panel 的 locus 分类聚合块生成。子集成员资格由 full 轨 locus 标签 (innovation_locus_full == 应用场景) 锁定, 本 ctx 轨列只是在该 full-locus 子集内改取 ctx 轨语调源, 而非按 ctx 轨自身重切 app 子集; 依赖该 full-locus app 子集非空。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 app_full、app_ss 构成三轨应用场景子集并排臂; 与底层技术子集 _tech、全样本 canonical 构成内容子集维度并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同子集/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_app_ctx 列构成跨词典平行臂。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 均值 + 应用场景子集。它把文本聚焦与内容限定叠加, 在全量样本上度量"仅在谈论该银行金融科技应用场景的聚焦文本里"媒体的语调, 是 app_full 的更聚焦对照臂。盘面 T=2 上 ctx 轨与 locus 标注双重稀薄, 本列几乎必然大量退化, 数值结论以全量 T=19 为准。
+计算口径与 canonical 同构 (等权、算术均值), 仅被聚合的语调源列换成 ctx 轨得分且样本限定 app 子集; 由 encode.aggregate_panel 的 locus 分类聚合块生成。子集成员资格由 full 轨 locus 标签 (innovation_locus_full == 应用场景) 锁定, 本 ctx 轨列只是在该 full-locus 子集内改取 ctx 轨语调源, 而非按 ctx 轨自身重切 app 子集; 依赖该 full-locus app 子集非空。在 full-only 留篇门控下, ctx 轨为 conditional-on-full 稳健性轨, 样本宇宙是 full 留篇集子集。本列与 app_full、app_ss 构成三轨应用场景子集并排臂; 与底层技术子集 _tech、全样本 canonical 构成内容子集维度并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁不同子集/不同轨变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_app_ctx 列构成跨词典平行臂。相对家族其它列, 本列识别特征是 ctx 轨 + 等权 + 均值 + 应用场景子集。它把文本聚焦与内容限定叠加, 在全量样本上度量"仅在谈论该银行金融科技应用场景的聚焦文本里"媒体的语调, 是 app_full 的更聚焦对照臂。早期试跑盘面 T=2 上 ctx 轨与 locus 标注双重稀薄, 本列几乎必然大量退化, 数值结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_app_full
 
 【变体差分】
 本列是应用场景子集语调族的 full 轨成员: 样本限定在 locus 分类为应用场景 (app) 的报道, 对象为 full 轨文章级得分, 等权均值。它度量"当媒体谈论银行金融科技的应用场景落地时, 姜富伟等 (2021) 词典语调如何", 是 app 侧内容子集在最完整文本轨上的水平, 与同轨的底层技术子集 tech_full 互补 (二者互斥, 共同覆盖被 locus 标注的报道)。
 
-计算口径与 canonical jiang_2021_tone_full 完全一致 (full 轨、等权、算术均值), 唯一差分是样本被限定在 app 子集 (成员资格由 full 轨标签 innovation_locus_full == 应用场景 决定); 由 encode.aggregate_panel 的 locus 分类聚合块生成, 依赖该 full-locus app 子集非空。tech 与 app 语调之差在别处专列度量作 P4 (locus) 主 DV, 本列只提供 app 侧水平, 不可与该差值混淆。本列与 app_ctx、app_ss 构成三轨应用场景子集并排臂; 与底层技术子集 _tech、全样本 canonical 构成内容子集维度并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁 tech/app/全样本不同子集变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_app_full 列构成跨词典平行臂。相对家族其它列, 本列识别特征是 full 轨 + 等权 + 均值 + 应用场景子集。它与同轨底层技术子集 tech_full 构成 P4 定位二分的两个语调分量, 单独度量应用场景侧的语调水平, 而二者之差 (定位偏向) 由别处专列承担, 使用时不可混淆水平与差值。盘面 T=2 上 locus 标注可能稀薄, 本列常大量 NaN, 结论以全量 T=19 为准。
+计算口径与 canonical jiang_2021_tone_full 完全一致 (full 轨、等权、算术均值), 唯一差分是样本被限定在 app 子集 (成员资格由 full 轨标签 innovation_locus_full == 应用场景 决定); 由 encode.aggregate_panel 的 locus 分类聚合块生成, 依赖该 full-locus app 子集非空。tech 与 app 语调之差在别处专列度量作 P4 (locus) 主 DV, 本列只提供 app 侧水平, 不可与该差值混淆。本列与 app_ctx、app_ss 构成三轨应用场景子集并排臂; 与底层技术子集 _tech、全样本 canonical 构成内容子集维度并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁 tech/app/全样本不同子集变体混进同一 over-identified Hansen J; 与其它五部词典的 _tone_app_full 列构成跨词典平行臂。相对家族其它列, 本列识别特征是 full 轨 + 等权 + 均值 + 应用场景子集。它与同轨底层技术子集 tech_full 构成 P4 定位二分的两个语调分量, 单独度量应用场景侧的语调水平, 而二者之差 (定位偏向) 由别处专列承担, 使用时不可混淆水平与差值。早期试跑盘面 T=2 上 locus 标注可能稀薄, 本列常大量 NaN, 结论以全量 T=19 为准。
 
 ## VAR: jiang_2021_tone_app_ss
 
 【变体差分】
 本列是应用场景子集语调族的 ss 轨成员: 样本限定在 locus 分类为应用场景 (app) 的报道, 对象为 ss (银行与金融科技同句共现) 轨文章级得分, 等权均值。它度量"在最窄同句共现文本口径下, 媒体谈论银行金融科技应用场景时的语调", 是三条应用场景子集轨中语境最聚焦者, 兼具"文本最聚焦"与"内容限定应用场景"两重收窄, 与同轨底层技术子集 tech_ss 互补互斥。
 
-计算口径与 app_full/app_ctx 同构 (ss 轨、等权、均值); ss 轨回退语义镜像 ctx (无同句共现时 content_ss 回退全文并置 ss_is_fallback=True); 由 encode.aggregate_panel 的 locus 分类聚合块生成。子集成员资格由 full 轨 locus 标签 (innovation_locus_full == 应用场景) 锁定, 本 ss 轨列只是在该 full-locus 子集内改取 ss 轨语调源, 而非按 ss 轨自身重切 app 子集; 依赖该 full-locus app 子集非空。本列与 app_full、app_ctx 构成三轨应用场景子集并排臂; 与底层技术子集 _tech、全样本 canonical 构成内容子集维度并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_app_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 叠加 locus 标注稀薄, 盘面 T=2 上本列几乎必然整体缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 均值 + 应用场景子集。
+计算口径与 app_full/app_ctx 同构 (ss 轨、等权、均值); ss 轨回退语义镜像 ctx (无同句共现时 content_ss 回退全文并置 ss_is_fallback=True); 由 encode.aggregate_panel 的 locus 分类聚合块生成。子集成员资格由 full 轨 locus 标签 (innovation_locus_full == 应用场景) 锁定, 本 ss 轨列只是在该 full-locus 子集内改取 ss 轨语调源, 而非按 ss 轨自身重切 app 子集; 依赖该 full-locus app 子集非空。本列与 app_full、app_ctx 构成三轨应用场景子集并排臂; 与底层技术子集 _tech、全样本 canonical 构成内容子集维度并排稳健性臂, 各自 just-identified, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 与其它五部词典的 _tone_app_ss 列构成跨词典平行臂。特别提示: ss 轨最依赖付费缓存播种与共现命中, 叠加 locus 标注稀薄, 早期试跑盘面 T=2 上本列几乎必然整体缺失或零方差, 属预期退化, 全量 T=19 上线后方有效, 结论一律以全量为准。相对家族其它列, 本列识别特征是 ss 轨 + 等权 + 均值 + 应用场景子集。
 
 <!-- rendered-citations:begin -->
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739

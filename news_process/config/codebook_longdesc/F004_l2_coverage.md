@@ -119,7 +119,7 @@ new_dois: []
 ## VAR: ln_news_coverage_z
 
 【变体差分】
-本列是 ln_news_coverage 的年内截面标准化版, 与 canonical 列的唯一差分是一次 Fama-MacBeth 型标准化变换。它在 pipeline/panel/geography.py::standardize_panel_variables (步骤 7b) 生成: 按 Fama 与 MacBeth (1973) 的两阶段思想, 在每一个年度截面内把 ln_news_coverage 归至 μ=0、σ=1, 生成 _z 后缀列而保留原始列不变。关键操作细节有三: 其一, 只处理有新闻覆盖的行 (n_articles > 0), 零报道行保持 NaN, 不让零报道伪值污染截面矩; 其二, 每个年度截面内有效观测须 ≥3 才做标准化, 否则该年该列留 NaN (小样本 T=2 下常触发); 其三, 上游 nullable ExtensionArray dtype 先经 to_numeric 归至 float64 再算术, 使 z-score 对 dtype 不敏感且不触发 LossySetitem。它的存在理由是使系数可直接读为"1σ 关注度变化→β 单位因变量", 并缓解跨年度尺度漂移与测量噪声致的衰减偏误 (Shapiro 等 2022)。相较 high_coverage 的二元门限, 本列保留连续信息, 是关注度进入回归的连续标准化通道; 相较原始 ln_news_coverage, 它牺牲了绝对量级的可解释性、换来跨年度截面的尺度可比性, 二者互为参照, 视回归设计选用。需要强调本列只做年内截面标准化而非全样本标准化, 因此它移除的是"哪一年整体报道更多"这一年度均值漂移, 保留的是"同一年里哪家银行相对更受关注"这一截面变异, 这与 Fama-MacBeth 两阶段回归对截面可比性的要求一致。无量纲 (标准分), 零报道行与年内有效观测不足 (<3) 的年份留 NaN。
+本列是 ln_news_coverage 的年内截面标准化版, 与 canonical 列的唯一差分是一次 Fama-MacBeth 型标准化变换。它在 pipeline/panel/geography.py::standardize_panel_variables (步骤 7b) 生成: 按 Fama 与 MacBeth (1973) 的两阶段思想, 在每一个年度截面内把 ln_news_coverage 归至 μ=0、σ=1, 生成 _z 后缀列而保留原始列不变。关键操作细节有三: 其一, 只处理有新闻覆盖的行 (n_articles > 0), 零报道行保持 NaN, 不让零报道伪值污染截面矩; 其二, 每个年度截面内有效观测须 ≥3 才做标准化, 否则该年该列留 NaN (小样本早期试跑 T=2 下常触发); 其三, 上游 nullable ExtensionArray dtype 先经 to_numeric 归至 float64 再算术, 使 z-score 对 dtype 不敏感且不触发 LossySetitem。它的存在理由是使系数可直接读为"1σ 关注度变化→β 单位因变量", 并缓解跨年度尺度漂移与测量噪声致的衰减偏误 (Shapiro 等 2022)。相较 high_coverage 的二元门限, 本列保留连续信息, 是关注度进入回归的连续标准化通道; 相较原始 ln_news_coverage, 它牺牲了绝对量级的可解释性、换来跨年度截面的尺度可比性, 二者互为参照, 视回归设计选用。需要强调本列只做年内截面标准化而非全样本标准化, 因此它移除的是"哪一年整体报道更多"这一年度均值漂移, 保留的是"同一年里哪家银行相对更受关注"这一截面变异, 这与 Fama-MacBeth 两阶段回归对截面可比性的要求一致。无量纲 (标准分), 零报道行与年内有效观测不足 (<3) 的年份留 NaN。
 
 ## VAR: nf_ln_coverage
 

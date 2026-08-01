@@ -188,7 +188,7 @@ new_dois: []
 ## VAR: avg_llm_prob_score_ss
 
 【变体差分】
-本列是概率映射情感分在同句窗 (ss) 轨上的银行-年组内均值。ss 轨取材最窄: 只保留目标银行与金科词在同一句子 (±N 句同句窗) 共现的片段, 因此语调最贴近银行-金科关系本身, 排除了同篇中银行其它业务的语调干扰。逐篇分同样由 compute_prob_score 产出, 喂入文本为 content_ss; 关键回退语义是当某篇无银行与金科同句共现时, content_ss 回退取全文 body (与 content_full 同源, 而非取 ctx 的实体窗内容) 并标记 fallback, 分母共享 n_articles 口径; 所谓「镜像 ctx」只指两轨同享『无命中即回退全文』这一回退公理, 不代表内容与 ctx 相等。该列与 full、ctx 互为稳健性、不分主次, 三轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因留篇门控为 full-only, 本列度量的是在全文轨已保留的报道集合上, 用最严格同句取材重算的语调, 是三轨中信噪比取向最极端的一端: 当同句语调与全文轨一致时增强主结论可信度, 背离时提示报道语调更多由银行非金科语境驱动。dev T=2 上 ss 轨可能出现零方差退化属预期, 生产 T=19 恢复正常。
+本列是概率映射情感分在同句窗 (ss) 轨上的银行-年组内均值。ss 轨取材最窄: 只保留目标银行与金科词在同一句子 (±N 句同句窗) 共现的片段, 因此语调最贴近银行-金科关系本身, 排除了同篇中银行其它业务的语调干扰。逐篇分同样由 compute_prob_score 产出, 喂入文本为 content_ss; 关键回退语义是当某篇无银行与金科同句共现时, content_ss 回退取全文 body (与 content_full 同源, 而非取 ctx 的实体窗内容) 并标记 fallback, 分母共享 n_articles 口径; 所谓「镜像 ctx」只指两轨同享『无命中即回退全文』这一回退公理, 不代表内容与 ctx 相等。该列与 full、ctx 互为稳健性、不分主次, 三轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因留篇门控为 full-only, 本列度量的是在全文轨已保留的报道集合上, 用最严格同句取材重算的语调, 是三轨中信噪比取向最极端的一端: 当同句语调与全文轨一致时增强主结论可信度, 背离时提示报道语调更多由银行非金科语境驱动。早期试跑 T=2 上 ss 轨可能出现零方差退化属预期, 生产 T=19 恢复正常。
 在面板使用上, 本列是三轨中信噪比取向最激进的稳健性轨: 它剔除银行其它业务语境, 只留银行-金科同句语调, 因此当它与全文轨系数背离时, 强烈提示总语调更多由银行非金科报道驱动, 是识别银行-金科关系净语调效应的关键旁证。聚合口径为 conditional-on-full, 分母取该银行-年 ss 轨有效篇数, fallback 篇按共享 n_articles 口径纳入, 不单边孤立。因取材最窄, 本列在稀薄语料下方差不稳, 使用时宜配合有效篇数阈值过滤。
 
 
@@ -209,7 +209,7 @@ new_dois: []
 ## VAR: avg_llm_prob_score_std_ss
 
 【变体差分】
-本列是概率映射情感分在同句窗 (ss) 轨上的银行-年组内标准差。它度量最严格取材下, 银行-年内逐篇语调的离散程度: 因 ss 轨只看银行与金科同句共现片段, 本列反映的是纯银行-金科关系语调在同年不同报道间的分歧。计算上先由 compute_prob_score 得逐篇 ss 轨分 (无同句共现的篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)), 再在银行-年组内取样本标准差。它与 full、ctx 轨标准差互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。由于 ss 轨样本最窄、每银行-年有效篇数最少, 本列在 dev T=2 上极易出现 NaN 或零方差退化 (单篇或零篇时标准差未定义), 属预期行为, 生产 T=19 语料密度足够时恢复。相较均值列, 本列同样定位为二阶矩的稳健性 / 异质性诊断轨, 不进语调水平主回归; 其与 full、ctx 标准差的比较可揭示语调分歧是集中于银行-金科同句语境还是弥散于全文。
+本列是概率映射情感分在同句窗 (ss) 轨上的银行-年组内标准差。它度量最严格取材下, 银行-年内逐篇语调的离散程度: 因 ss 轨只看银行与金科同句共现片段, 本列反映的是纯银行-金科关系语调在同年不同报道间的分歧。计算上先由 compute_prob_score 得逐篇 ss 轨分 (无同句共现的篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)), 再在银行-年组内取样本标准差。它与 full、ctx 轨标准差互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。由于 ss 轨样本最窄、每银行-年有效篇数最少, 本列在早期试跑 T=2 上极易出现 NaN 或零方差退化 (单篇或零篇时标准差未定义), 属预期行为, 生产 T=19 语料密度足够时恢复。相较均值列, 本列同样定位为二阶矩的稳健性 / 异质性诊断轨, 不进语调水平主回归; 其与 full、ctx 标准差的比较可揭示语调分歧是集中于银行-金科同句语境还是弥散于全文。
 在计量应用上, 本列度量银行-金科同句语境内的语调分歧, 是三条标准差轨中最贴近银行-金科关系本身、也最易稀疏的一支; 它可作最严取材下语调不确定性的代理, 与 full、ctx 标准差比较可判断分歧集中于同句语境还是弥散全文。聚合为 conditional-on-full 逐轨自算, 单篇 / 零篇未定义返回 NaN, fallback 篇按共享分母纳入。因样本双重受限 (留篇门控加同句取材), 使用本列须严格配合有效篇数门槛, 避免以极少样本的标准差作强推断。
 
 
@@ -237,14 +237,14 @@ new_dois: []
 ## VAR: llm_prob_score_app_ls_ss
 
 【变体差分】
-本列是 app (应用场景) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 而应用场景位点分类门控 (ls = locus-ss) 显式取自 ss 轨的 innovation_locus 判定。它与 llm_prob_score_app_ss 的差别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验位点子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨位点判为应用场景后筛出; 无同句共现的篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容; 「镜像 ctx」仅指共享回退全文的公理)处理。它与 tech_ls_ss (ss 门控底层技术臂) 构成位点对照, 与 app 族其它轨 / 门控变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因 ss 轨样本最窄且经位点再切分, 本列在 dev T=2 上极易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下应用场景语调的分类稳健性诊断轨, 不进主回归。
-在稳健性表中, 本列用于最窄取材下的分类归属敏感性核验: 与同轨条件的 app_ss 并置, 检验应用场景划分对 ss 轨位点分类的依赖; 因取材与门控双落 ss 轨, 本列对语料密度最敏感, 是位点异质结论在极端取材端是否成立的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨位点判应用场景的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified 并排, 从不并入同一 over-identified 检验。dev T=2 上样本极稀属预期。
+本列是 app (应用场景) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 而应用场景位点分类门控 (ls = locus-ss) 显式取自 ss 轨的 innovation_locus 判定。它与 llm_prob_score_app_ss 的差别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验位点子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨位点判为应用场景后筛出; 无同句共现的篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容; 「镜像 ctx」仅指共享回退全文的公理)处理。它与 tech_ls_ss (ss 门控底层技术臂) 构成位点对照, 与 app 族其它轨 / 门控变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因 ss 轨样本最窄且经位点再切分, 本列在早期试跑 T=2 上极易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下应用场景语调的分类稳健性诊断轨, 不进主回归。
+在稳健性表中, 本列用于最窄取材下的分类归属敏感性核验: 与同轨条件的 app_ss 并置, 检验应用场景划分对 ss 轨位点分类的依赖; 因取材与门控双落 ss 轨, 本列对语料密度最敏感, 是位点异质结论在极端取材端是否成立的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨位点判应用场景的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified 并排, 从不并入同一 over-identified 检验。早期试跑 T=2 上样本极稀属预期。
 
 
 ## VAR: llm_prob_score_app_ss
 
 【变体差分】
-本列是概率映射情感分在同句窗 (ss) 轨上, 限定应用场景 (application locus) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 位点分类同取 ss 轨 innovation_locus (同轨条件, 区别于 app_ls_ss 的显式跨轨标注), 只纳入被判应用场景的报道后取概率映射情感分。它是 app 子样本在最严格取材端的一支, 与 app_full、app_ctx 互为稳健性、不分主次, 也与 tech_ss (底层技术臂) 构成位点对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加应用场景位点双重限定的 conditional 测度, 信噪比取向最严: 它回答仅看银行-金科同句语境时, 聚焦应用落地的报道语调如何。dev T=2 上样本可能稀疏退化属预期, 生产 T=19 恢复正常密度。在异质性分析中, 本列是位点分层在最严取材端的应用臂, 与 tech_ss 对照检验银行-金科同句语境下应用场景与底层技术报道的语调分化。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨位点判应用场景的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因位点以应用场景为二元正类, 本臂与技术臂互为对立子集, 此消彼长。因取材与切分双重受限, 使用本列须严格配合有效篇数门槛, 避免以极少样本作强推断; 它是位点异质结论在信噪比最严端的检验旁证。
+本列是概率映射情感分在同句窗 (ss) 轨上, 限定应用场景 (application locus) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 位点分类同取 ss 轨 innovation_locus (同轨条件, 区别于 app_ls_ss 的显式跨轨标注), 只纳入被判应用场景的报道后取概率映射情感分。它是 app 子样本在最严格取材端的一支, 与 app_full、app_ctx 互为稳健性、不分主次, 也与 tech_ss (底层技术臂) 构成位点对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加应用场景位点双重限定的 conditional 测度, 信噪比取向最严: 它回答仅看银行-金科同句语境时, 聚焦应用落地的报道语调如何。早期试跑 T=2 上样本可能稀疏退化属预期, 生产 T=19 恢复正常密度。在异质性分析中, 本列是位点分层在最严取材端的应用臂, 与 tech_ss 对照检验银行-金科同句语境下应用场景与底层技术报道的语调分化。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨位点判应用场景的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因位点以应用场景为二元正类, 本臂与技术臂互为对立子集, 此消彼长。因取材与切分双重受限, 使用本列须严格配合有效篇数门槛, 避免以极少样本作强推断; 它是位点异质结论在信噪比最严端的检验旁证。
 
 ## VAR: llm_prob_score_sub_ctx
 
@@ -270,15 +270,15 @@ new_dois: []
 ## VAR: llm_prob_score_sub_ss
 
 【变体差分】
-本列是概率映射情感分在同句窗 (ss) 轨上, 限定实质性创新 (substantive) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 实质性分类同取 ss 轨 innovation_substantiveness (同轨条件, 区别于 sub_ss_ss 的显式跨轨标注), 只纳入被判实质性的报道后取概率映射情感分。它是 sub 子样本在最严格取材端的一支, 与 sub_full、sub_ctx 互为稳健性、不分主次, 也与 symb_ss (象征臂) 构成实质-象征对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加实质性维度双重限定的 conditional 测度, 回答仅看银行-金科同句语境时实质性举措的报道语调如何。dev T=2 上因样本经双重切分极易稀疏退化, 属预期, 生产 T=19 恢复。
-在异质性分析中, 本列是实质-象征分层在最严取材端的实质臂, 与 symb_ss 对照检验银行-金科同句语境下实质创新与象征表态的语调分化。聚合遵循 conditional-on-full 且实质性门控与情感取材同为 ss 轨, 分母为该银行-年 ss 轨被判实质性的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因实质性以象征性为正类, 本臂为象征臂对立子集, 二者此消彼长。因取材与切分双重受限, 本列在 dev T=2 上极易稀疏退化, 使用须配合有效篇数门槛, 生产 T=19 恢复正常密度。
+本列是概率映射情感分在同句窗 (ss) 轨上, 限定实质性创新 (substantive) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 实质性分类同取 ss 轨 innovation_substantiveness (同轨条件, 区别于 sub_ss_ss 的显式跨轨标注), 只纳入被判实质性的报道后取概率映射情感分。它是 sub 子样本在最严格取材端的一支, 与 sub_full、sub_ctx 互为稳健性、不分主次, 也与 symb_ss (象征臂) 构成实质-象征对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加实质性维度双重限定的 conditional 测度, 回答仅看银行-金科同句语境时实质性举措的报道语调如何。早期试跑 T=2 上因样本经双重切分极易稀疏退化, 属预期, 生产 T=19 恢复。
+在异质性分析中, 本列是实质-象征分层在最严取材端的实质臂, 与 symb_ss 对照检验银行-金科同句语境下实质创新与象征表态的语调分化。聚合遵循 conditional-on-full 且实质性门控与情感取材同为 ss 轨, 分母为该银行-年 ss 轨被判实质性的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因实质性以象征性为正类, 本臂为象征臂对立子集, 二者此消彼长。因取材与切分双重受限, 本列在早期试跑 T=2 上极易稀疏退化, 使用须配合有效篇数门槛, 生产 T=19 恢复正常密度。
 
 
 ## VAR: llm_prob_score_sub_ss_ss
 
 【变体差分】
-本列是 sub (实质性) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 且实质性分类门控 (前一个 ss = substantiveness-ss) 显式取自 ss 轨的 innovation_substantiveness 判定, 故列名出现双 ss (前者标分类来源轨、后者标情感取材轨)。它与同轨条件的 llm_prob_score_sub_ss 的区别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验实质性子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨实质性判定后筛出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 symb_ss_ss (ss 门控象征臂) 构成实质-象征对照, 与 sub 族其它变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因双重 ss 切分, 本列在 dev T=2 上最易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下实质性语调的分类稳健性诊断轨, 不进主回归。
-在稳健性表中, 本列用于最窄取材下的实质性分类归属敏感性核验: 与同轨条件的 sub_ss 并置, 检验实质性划分对 ss 轨分类的依赖; 双 ss 意味着分类与情感取材均落最窄轨, 是脱耦结论在极端取材端是否成立的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨判实质的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 symb_ss_ss 互为对立子集。本列属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified, 从不并入同一 over-identified 检验; dev T=2 上最易稀疏属预期。
+本列是 sub (实质性) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 且实质性分类门控 (前一个 ss = substantiveness-ss) 显式取自 ss 轨的 innovation_substantiveness 判定, 故列名出现双 ss (前者标分类来源轨、后者标情感取材轨)。它与同轨条件的 llm_prob_score_sub_ss 的区别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验实质性子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨实质性判定后筛出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 symb_ss_ss (ss 门控象征臂) 构成实质-象征对照, 与 sub 族其它变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因双重 ss 切分, 本列在早期试跑 T=2 上最易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下实质性语调的分类稳健性诊断轨, 不进主回归。
+在稳健性表中, 本列用于最窄取材下的实质性分类归属敏感性核验: 与同轨条件的 sub_ss 并置, 检验实质性划分对 ss 轨分类的依赖; 双 ss 意味着分类与情感取材均落最窄轨, 是脱耦结论在极端取材端是否成立的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨判实质的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 symb_ss_ss 互为对立子集。本列属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified, 从不并入同一 over-identified 检验; 早期试跑 T=2 上最易稀疏属预期。
 
 
 ## VAR: llm_prob_score_symb_ctx
@@ -305,15 +305,15 @@ new_dois: []
 ## VAR: llm_prob_score_symb_ss
 
 【变体差分】
-本列是概率映射情感分在同句窗 (ss) 轨上, 限定象征性创新 (symbolic) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 象征性分类同取 ss 轨 innovation_substantiveness (同轨条件, 区别于 symb_ss_ss 的显式跨轨标注), 只纳入被判象征性的报道后取概率映射情感分。它是 symb 子样本在最严格取材端的一支, 与 symb_full、symb_ctx 互为稳健性、不分主次, 也与 sub_ss (实质臂) 构成实质-象征对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加象征性维度双重限定的 conditional 测度, 回答仅看银行-金科同句语境时象征性表态类报道的语调如何。dev T=2 上因样本经双重切分极易稀疏退化, 属预期, 生产 T=19 恢复。
-在异质性分析中, 本列是实质-象征分层在最严取材端的象征臂, 与 sub_ss 对照检验银行-金科同句语境下象征表态与实质举措的语调分化。聚合遵循 conditional-on-full 且象征性门控与情感取材同为 ss 轨, 分母为该银行-年 ss 轨被判象征性的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因象征性为二元正类, 本臂与实质臂互为对立子集, 此消彼长。因取材与切分双重受限, 本列在 dev T=2 上极易稀疏退化, 使用须配合有效篇数门槛, 生产 T=19 恢复正常密度。
+本列是概率映射情感分在同句窗 (ss) 轨上, 限定象征性创新 (symbolic) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 象征性分类同取 ss 轨 innovation_substantiveness (同轨条件, 区别于 symb_ss_ss 的显式跨轨标注), 只纳入被判象征性的报道后取概率映射情感分。它是 symb 子样本在最严格取材端的一支, 与 symb_full、symb_ctx 互为稳健性、不分主次, 也与 sub_ss (实质臂) 构成实质-象征对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加象征性维度双重限定的 conditional 测度, 回答仅看银行-金科同句语境时象征性表态类报道的语调如何。早期试跑 T=2 上因样本经双重切分极易稀疏退化, 属预期, 生产 T=19 恢复。
+在异质性分析中, 本列是实质-象征分层在最严取材端的象征臂, 与 sub_ss 对照检验银行-金科同句语境下象征表态与实质举措的语调分化。聚合遵循 conditional-on-full 且象征性门控与情感取材同为 ss 轨, 分母为该银行-年 ss 轨被判象征性的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因象征性为二元正类, 本臂与实质臂互为对立子集, 此消彼长。因取材与切分双重受限, 本列在早期试跑 T=2 上极易稀疏退化, 使用须配合有效篇数门槛, 生产 T=19 恢复正常密度。
 
 
 ## VAR: llm_prob_score_symb_ss_ss
 
 【变体差分】
-本列是 symb (象征性) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 且象征性分类门控 (前一个 ss = substantiveness-ss) 显式取自 ss 轨的 innovation_substantiveness 判定, 故列名出现双 ss (前者标分类来源轨、后者标情感取材轨)。它与同轨条件的 llm_prob_score_symb_ss 的区别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验象征性子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨象征性判定后筛出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 sub_ss_ss (ss 门控实质臂) 构成实质-象征对照, 与 symb 族其它变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因双重 ss 切分, 本列在 dev T=2 上最易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下象征性语调的分类稳健性诊断轨, 不进主回归。
-在稳健性表中, 本列用于最窄取材下象征性分类归属敏感性核验: 与同轨条件的 symb_ss 并置, 检验象征性划分对 ss 轨分类的依赖; 双 ss 意味分类与情感取材均落最窄轨, 是脱耦结论在极端取材端的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨判象征的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 sub_ss_ss 互为对立子集。本列属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified, 从不并入同一 over-identified 检验; dev T=2 上最易稀疏属预期。
+本列是 symb (象征性) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 且象征性分类门控 (前一个 ss = substantiveness-ss) 显式取自 ss 轨的 innovation_substantiveness 判定, 故列名出现双 ss (前者标分类来源轨、后者标情感取材轨)。它与同轨条件的 llm_prob_score_symb_ss 的区别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验象征性子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨象征性判定后筛出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 sub_ss_ss (ss 门控实质臂) 构成实质-象征对照, 与 symb 族其它变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因双重 ss 切分, 本列在早期试跑 T=2 上最易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下象征性语调的分类稳健性诊断轨, 不进主回归。
+在稳健性表中, 本列用于最窄取材下象征性分类归属敏感性核验: 与同轨条件的 symb_ss 并置, 检验象征性划分对 ss 轨分类的依赖; 双 ss 意味分类与情感取材均落最窄轨, 是脱耦结论在极端取材端的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨判象征的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 sub_ss_ss 互为对立子集。本列属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified, 从不并入同一 over-identified 检验; 早期试跑 T=2 上最易稀疏属预期。
 
 
 ## VAR: llm_prob_score_tech_ctx
@@ -340,15 +340,15 @@ new_dois: []
 ## VAR: llm_prob_score_tech_ls_ss
 
 【变体差分】
-本列是 tech (底层技术) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 而底层技术位点分类门控 (ls = locus-ss) 显式取自 ss 轨的 innovation_locus 判定。它与同轨条件的 llm_prob_score_tech_ss 的区别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验底层技术位点子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨位点判为底层技术后筛出; 无同句共现篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容; 「镜像 ctx」仅指共享回退全文的公理)处理。它与 app_ls_ss (ss 门控应用场景臂) 构成位点对照, 与 tech 族其它轨 / 门控变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因 ss 轨样本最窄且经位点再切分, 本列在 dev T=2 上极易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下底层技术语调的分类稳健性诊断轨, 不进主回归。
-在稳健性表中, 本列用于最窄取材下底层技术分类归属敏感性核验: 与同轨条件的 tech_ss 并置, 检验底层技术划分对 ss 轨位点分类的依赖; 因取材与门控双落 ss 轨, 本列对语料密度最敏感, 是位点异质结论在极端取材端是否成立的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨位点判底层技术的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 app_ls_ss 互为对立子集, 属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified, 从不并入同一 over-identified 检验; dev T=2 上样本极稀属预期。
+本列是 tech (底层技术) 子样本概率映射情感分的跨轨门控变体: 情感取材在同句窗 (ss) 轨, 而底层技术位点分类门控 (ls = locus-ss) 显式取自 ss 轨的 innovation_locus 判定。它与同轨条件的 llm_prob_score_tech_ss 的区别在于把分类来源轨道显式标注为 ss, 便于在最窄取材下核验底层技术位点子样本划分对轨道的敏感性。逐篇分由 compute_prob_score 产出, 喂入 content_ss, 样本经 ss 轨位点判为底层技术后筛出; 无同句共现篇按 ss 轨 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容; 「镜像 ctx」仅指共享回退全文的公理)处理。它与 app_ls_ss (ss 门控应用场景臂) 构成位点对照, 与 tech 族其它轨 / 门控变体互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。因 ss 轨样本最窄且经位点再切分, 本列在早期试跑 T=2 上极易稀疏或退化, 属预期, 生产 T=19 恢复。定位为最严取材下底层技术语调的分类稳健性诊断轨, 不进主回归。
+在稳健性表中, 本列用于最窄取材下底层技术分类归属敏感性核验: 与同轨条件的 tech_ss 并置, 检验底层技术划分对 ss 轨位点分类的依赖; 因取材与门控双落 ss 轨, 本列对语料密度最敏感, 是位点异质结论在极端取材端是否成立的压力测试。聚合遵循 conditional-on-full, 分母为该银行-年 ss 轨情感有效且经 ss 轨位点判底层技术的篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。它与 app_ls_ss 互为对立子集, 属显式跨轨归属标注体系一员, 与三轨主体系正交, 各自 just-identified, 从不并入同一 over-identified 检验; 早期试跑 T=2 上样本极稀属预期。
 
 
 ## VAR: llm_prob_score_tech_ss
 
 【变体差分】
-本列是概率映射情感分在同句窗 (ss) 轨上, 限定底层技术 (technology locus) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 位点分类同取 ss 轨 innovation_locus (同轨条件, 区别于 tech_ls_ss 的显式跨轨标注), 只纳入被判底层技术的报道后取概率映射情感分。它是 tech 子样本在最严格取材端的一支, 与 tech_full、tech_ctx 互为稳健性、不分主次, 也与 app_ss (应用场景臂) 构成位点对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加底层技术位点双重限定的 conditional 测度, 信噪比取向最严: 它回答仅看银行-金科同句语境时, 聚焦底层技术的报道语调如何。dev T=2 上样本可能稀疏退化属预期, 生产 T=19 恢复正常密度。
-在异质性分析中, 本列是位点分层在最严取材端的技术臂, 与 app_ss 对照检验银行-金科同句语境下底层技术与应用场景报道的语调分化。聚合遵循 conditional-on-full 且位点门控与情感取材同为 ss 轨, 分母为该银行-年 ss 轨被判底层技术的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因位点以应用场景为二元正类, 本臂为应用臂对立子集, 此消彼长。因取材与切分双重受限, 本列在 dev T=2 上极易稀疏退化, 使用须配合有效篇数门槛, 生产 T=19 恢复正常密度; 它是位点异质结论在信噪比最严端的检验。
+本列是概率映射情感分在同句窗 (ss) 轨上, 限定底层技术 (technology locus) 子样本的聚合语调。取材为银行与金科同句共现片段 content_ss, 位点分类同取 ss 轨 innovation_locus (同轨条件, 区别于 tech_ls_ss 的显式跨轨标注), 只纳入被判底层技术的报道后取概率映射情感分。它是 tech 子样本在最严格取材端的一支, 与 tech_full、tech_ctx 互为稳健性、不分主次, 也与 app_ss (应用场景臂) 构成位点对照, 各子样本与各轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J。逐篇分仍由 compute_prob_score 按方向乘置信度产出, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因留篇门控 full-only, 本列是全文轨保留报道内、以同句取材加底层技术位点双重限定的 conditional 测度, 信噪比取向最严: 它回答仅看银行-金科同句语境时, 聚焦底层技术的报道语调如何。早期试跑 T=2 上样本可能稀疏退化属预期, 生产 T=19 恢复正常密度。
+在异质性分析中, 本列是位点分层在最严取材端的技术臂, 与 app_ss 对照检验银行-金科同句语境下底层技术与应用场景报道的语调分化。聚合遵循 conditional-on-full 且位点门控与情感取材同为 ss 轨, 分母为该银行-年 ss 轨被判底层技术的有效篇数, 无同句共现篇按 fallback 回退取全文 body (与 content_full 同源, 非 ctx 实体窗内容)。因位点以应用场景为二元正类, 本臂为应用臂对立子集, 此消彼长。因取材与切分双重受限, 本列在早期试跑 T=2 上极易稀疏退化, 使用须配合有效篇数门槛, 生产 T=19 恢复正常密度; 它是位点异质结论在信噪比最严端的检验。
 
 <!-- rendered-citations:begin -->
 Hansen, A. L. (2026). Validating large language model annotations. FEDS Working Paper, Federal Reserve Board No. No. 2026-020 [Working Paper]. https://doi.org/10.17016/FEDS.2026.020

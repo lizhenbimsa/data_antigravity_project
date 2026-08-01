@@ -99,7 +99,7 @@ new_dois:
 ## VAR: jiang_2021_tone_sum_ss
 
 【变体差分】
-本列是 jiang_2021_tone_sum 家族的同句共现轨 (ss)。分子文本窗口 content_ss = 标题 + 目标银行与金科词严格同句 (±N 句窗口, 默认半径 1 句, 见 config/filtering.yaml::context_window.ss_sentence_radius) 共现片段, 判定原语与 stage 13 的邻近共现硬过滤 (±1 句窗口) 是同名不同口径的两套判据, 不可互相复用。若某篇报道内不存在银行∧金科词严格同句共现 (即无法圈出 ss 片段), content_ss 回退为全文 body, 由 ss_is_fallback=True 标记, 语义上镜像 ctx 轨的回退规则; 回退同样不改变该篇是否计入 tone_sum 求和的行样本判定 (仍由 full 轨门控决定), 只改变实际参与打分的文本窗口, 二者共享同一分母 n_articles 口径。本列在 sum 口径下的经济学含义是"该银行该年内, 银行与金科议题在同一句被同时提及的段落, 其语调总暴露量", 是三轨中文本窗口最窄、噪声最少但也最可能因窗口过窄而将大量报道退化为 fallback (回退到全文) 的一支——尤其在报道密度较低的开发期样本 (T=2) 上, ss 轨的有效非回退观测可能占比很低, 属预期退化而非缺陷。ss 轨与 full/ctx 两轨各自 just-identified, 三者互为稳健性并排, 严禁混入同一 over-identified Hansen J 联合识别; 使用者应把本列理解为"银行—金科议题共现语境下语调总量"的稳健性检验支路, 而非替代 full/ctx 轨的主测度。
+本列是 jiang_2021_tone_sum 家族的同句共现轨 (ss)。分子文本窗口 content_ss = 标题 + 目标银行与金科词严格同句 (±N 句窗口, 默认半径 1 句, 见 config/filtering.yaml::context_window.ss_sentence_radius) 共现片段, 判定原语与 stage 13 的邻近共现硬过滤 (±1 句窗口) 是同名不同口径的两套判据, 不可互相复用。若某篇报道内不存在银行∧金科词严格同句共现 (即无法圈出 ss 片段), content_ss 回退为全文 body, 由 ss_is_fallback=True 标记, 语义上镜像 ctx 轨的回退规则; 回退同样不改变该篇是否计入 tone_sum 求和的行样本判定 (仍由 full 轨门控决定), 只改变实际参与打分的文本窗口, 二者共享同一分母 n_articles 口径。本列在 sum 口径下的经济学含义是"该银行该年内, 银行与金科议题在同一句被同时提及的段落, 其语调总暴露量", 是三轨中文本窗口最窄、噪声最少但也最可能因窗口过窄而将大量报道退化为 fallback (回退到全文) 的一支——尤其在报道密度较低的开发期样本 (早期试跑 T=2) 上, ss 轨的有效非回退观测可能占比很低, 属预期退化而非缺陷。ss 轨与 full/ctx 两轨各自 just-identified, 三者互为稳健性并排, 严禁混入同一 over-identified Hansen J 联合识别; 使用者应把本列理解为"银行—金科议题共现语境下语调总量"的稳健性检验支路, 而非替代 full/ctx 轨的主测度。
 
 <!-- rendered-citations:begin -->
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10

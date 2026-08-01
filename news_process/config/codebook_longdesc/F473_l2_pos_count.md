@@ -106,7 +106,7 @@ pos_count_vw{track} (vw = value-weighted, 提及密度加权) 的计算路径更
 ## VAR: pos_count_vw_ss
 
 【变体差分】
-本列是 pos_count_ss 的提及密度加权版本: 以 ss (同句共现) 轨文本判定的逐篇正面指示 is_positive_ss 乘以 mention_density 权重后, 在 bank-year 层面求和; 若某篇文章因缺少银行∧金科同句共现而触发 content_ss 回退, 其情感判定与权重计算均在回退后的全文口径上进行, 与 pos_count_ss 的回退处理规则完全一致。由于 ss 轨本身已经是三轨中构造判据最严格的一支(要求银行与金科词同句共现), 再叠加提及密度加权后, 本列刻画的是"银行与金科话题紧密同现、且该文章高度聚焦谈论该银行"的正面报道强度, 是本家族六列中构念含义最集中、但样本覆盖(尤其在 dev T=2 两年小样本上)最稀疏的一列——同句共现本身是一个较严苛的筛选条件, 叠加密度加权后单篇文章的贡献进一步被拉开差距, 容易在样本量不足的 bank-year 格上出现零值或近零方差, 使用时应留意其退化风险, 并优先在生产语料 (T=19, 约 1,819 万条全量) 规模下解读, 不宜仅凭本机 dev T=2 试跑结果下结论。使用者应将本列与 pos_count_ss(等权版本)及 pos_count_vw_full/pos_count_vw_ctx(更宽轨道的加权版本)联合解读, 六者(连同其等权对应列)互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 过度识别检验框架。
+本列是 pos_count_ss 的提及密度加权版本: 以 ss (同句共现) 轨文本判定的逐篇正面指示 is_positive_ss 乘以 mention_density 权重后, 在 bank-year 层面求和; 若某篇文章因缺少银行∧金科同句共现而触发 content_ss 回退, 其情感判定与权重计算均在回退后的全文口径上进行, 与 pos_count_ss 的回退处理规则完全一致。由于 ss 轨本身已经是三轨中构造判据最严格的一支(要求银行与金科词同句共现), 再叠加提及密度加权后, 本列刻画的是"银行与金科话题紧密同现、且该文章高度聚焦谈论该银行"的正面报道强度, 是本家族六列中构念含义最集中、但样本覆盖(尤其在早期试跑 T=2 两年小样本上)最稀疏的一列——同句共现本身是一个较严苛的筛选条件, 叠加密度加权后单篇文章的贡献进一步被拉开差距, 容易在样本量不足的 bank-year 格上出现零值或近零方差, 使用时应留意其退化风险, 并优先在生产语料 (T=19, 约 1,819 万条全量) 规模下解读, 不宜仅凭T=2 结果下结论。使用者应将本列与 pos_count_ss(等权版本)及 pos_count_vw_full/pos_count_vw_ctx(更宽轨道的加权版本)联合解读, 六者(连同其等权对应列)互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 过度识别检验框架。
 
 <!-- rendered-citations:begin -->
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549

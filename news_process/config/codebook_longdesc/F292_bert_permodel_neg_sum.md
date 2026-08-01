@@ -135,7 +135,7 @@ full 轨还承担一个特殊角色: 它是 stage 21 LLM 三家投票据以判�
 【变体差分】
 本列取模型 fin_sent_zh, 文本轨为 ss (标题 + 目标银行与金科关键词同句、或按 `config/filtering.yaml::context_window.ss_sentence_radius` 设定的 ±N 句半径窗口正文, 由 stage 14 物化 `content_ss`)。ss 判据是三轨中最严格的, 只保留银行与金科话题真正同句共现的段落; 当某篇文章不存在这种同句共现时, `content_ss` 按 ctx 镜像的回退语义退化为全文正文, 并置位 `ss_is_fallback=True` 共享 `n_articles` 分母, 保证退化篇不会被静默剔出样本、也不会人为压低分母。ss 轨与 full/ctx 轨互为稳健性并排, 不分主次, 禁止混入同一 over-identified Hansen J; 三轨差异仅在喂入文本范围, 模型与算法链路与另两轨完全一致。
 
-ss 轨的特殊之处在于其判据 (银行与金科关键词是否同句共现) 与 stage 13 共现硬过滤所用的判据原语不同: stage 13 用 `has_bank_fintech_cooccurrence_within_radius` 做±1句窗口的行级硬过滤 (决定文章是否进入下游 pipeline), 而 stage 14 物化 `content_ss` 用的是更严格的严格同句判据 (`extract_bank_fintech_cooccurrence`), 两者刻意不复用同一函数、口径不完全等价。这意味着 `fin_sent_zh_neg_sum_ss` 的分母 (该轨判定为非回退的篇数) 可能显著小于 full/ctx 轨, 是三轨中样本最"精炼"但也最容易受稀疏样本影响的一支; 在 T=2 的开发环境下 ss 轨甚至可能对若干 bank-year 出现零方差或全 NaN 的退化, 这属于开发环境样本量不足的预期现象, 生产语料 (T=19) 上应恢复正常变异。研究者若发现 `fin_sent_zh_neg_sum_ss` 与同模型 full/ctx 轨的差距在 T=2 上异常大, 应先确认是否属于上述样本量不足的退化, 而非直接推断为"同句共现口径下负面语调显著不同"这类实质性结论, 生产语料重新播种后应重新核验该判读是否依然成立。
+ss 轨的特殊之处在于其判据 (银行与金科关键词是否同句共现) 与 stage 13 共现硬过滤所用的判据原语不同: stage 13 用 `has_bank_fintech_cooccurrence_within_radius` 做±1句窗口的行级硬过滤 (决定文章是否进入下游 pipeline), 而 stage 14 物化 `content_ss` 用的是更严格的严格同句判据 (`extract_bank_fintech_cooccurrence`), 两者刻意不复用同一函数、口径不完全等价。这意味着 `fin_sent_zh_neg_sum_ss` 的分母 (该轨判定为非回退的篇数) 可能显著小于 full/ctx 轨, 是三轨中样本最"精炼"但也最容易受稀疏样本影响的一支; 在早期试跑 T=2 的开发环境下 ss 轨甚至可能对若干 bank-year 出现零方差或全 NaN 的退化, 这属于开发环境样本量不足的预期现象, 生产语料 (T=19) 上应恢复正常变异。研究者若发现 `fin_sent_zh_neg_sum_ss` 与同模型 full/ctx 轨的差距在早期试跑 T=2 上异常大, 应先确认是否属于上述样本量不足的退化, 而非直接推断为"同句共现口径下负面语调显著不同"这类实质性结论, 生产语料重新播种后应重新核验该判读是否依然成立。
 
 ## VAR: finbert2_neg_sum_ctx
 

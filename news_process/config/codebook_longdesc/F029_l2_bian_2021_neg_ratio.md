@@ -204,7 +204,7 @@ new_dois:
 
 第五, 等权篇均的小样本噪声: 报道量极少的银行-年, 单篇极端值即可主导均值 (本族不设最小篇数守门, 与 industry_neg_shock 默认按最小有效篇数守门的口径不同), 且密度测度对极短文本尤其敏感——一篇仅数个 word-token 的短文若恰含一个负面词, 其比率会出现尖峰, 在等权平均下被过度加权; 回归中应控制报道量、或对低篇数单元做敏感性剔除、或在文章级做缩尾。第六, 回退语义带来的轨间收敛: ss 轨镜像 ctx 的回退设计, 无银行与金科同句共现的文章其 content_ss 回退为全文 body 并打 fallback 标记, 这类行上 ss 密度与 full 密度机械趋同, 属设计内语义而非泄漏, 严格窗口子样本分析应按 fallback 标记切分。第七, 语用盲区: 否定窗口仅两个分词单元, 长程否定、反讽、引述他人负面言论等均超出词典法能力 (Punetha 与 Jain 2025), 故本列结论只在与 LLM、BERT 轨一致时才可承重。第八, 命名年份口径: 项目键名 bian_2021 锚定 SSRN 3446388 的 2021 年 6 月版本, 而该词典早期以 2019 年在数据仓库流通, 复现与引用须统一以本 codebook 登记的版次为准, 避免年份漂移导致误取不同词表快照。近期应用文献进一步印证了负面词密度对银行风险的预警效度: Ullah, Sohag, & Hassan (2026, Financial Innovation) 用大数据技术构建媒体正负情感指数, 发现负面情感指数与银行流动性风险显著正相关, 支持负面词密度作为银行风险预警信号的效度; Mirashk, Albadvi, Kargari, & Rastegar (2024, Risks) 以伊朗银行海量经济新闻为语料, 验证新闻情感 (含负面测度) 对银行流动性覆盖率方向性预测的增量信息含量。
 
-稳健性梯子汇总: 词典维度六臂、文本轨道三臂、极性侧两臂 (与 pos_ratio 镜像)、方法族三臂 (词典、LLM、BERT), 各梯子正交不交叉、各臂各自 just-identified 并排、互为稳健性不分主次, 一律禁混进同一 over-identified Hansen J——尤其禁止把六词典或三轨的密度列同时纳入一个过度识别的 GMM 矩条件集合。开发盘 T 等于 2 的试跑环境下轨间零方差或整列缺测属预期退化, 生产口径以 T 等于 18 全量语料为准。
+稳健性梯子汇总: 词典维度六臂、文本轨道三臂、极性侧两臂 (与 pos_ratio 镜像)、方法族三臂 (词典、LLM、BERT), 各梯子正交不交叉、各臂各自 just-identified 并排、互为稳健性不分主次, 一律禁混进同一 over-identified Hansen J——尤其禁止把六词典或三轨的密度列同时纳入一个过度识别的 GMM 矩条件集合。早期试跑盘 T 等于 2 的试跑环境下轨间零方差或整列缺测属预期退化, 生产口径以 T 等于 18 全量语料为准。
 
 ## VAR: avg_bian_2021_neg_ratio_ctx
 
@@ -219,7 +219,7 @@ new_dois:
 ## VAR: avg_bian_2021_neg_ratio_ss
 
 【变体差分】
-本列是家族的同句轨 (ss) 变体, tier 为 standard, 是三轨中归因口径最严的一档。差分语义: 被扫描文本为 content_ss, 即标题 prepend 后拼接「目标银行与金融科技词在同一句共现」的句子及其正负一句邻域 (窗口半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 1)。测量意图是把负面词密度锚定到银行与金融科技议题直接交汇的最小语篇单元: 只有出现在共现句邻域内的负面措辞才进入分子分母, 最大限度排除同篇中他行评论、宏观背景与无关板块的污染。回退语义镜像 ctx 且必须原样陈述: 全篇不存在银行与金科同句共现时, content_ss 回退为全文 body 并置 ss_is_fallback 为真, 与主轨共享 n_articles 分母; 这些回退行上 ss 密度与全文密度机械趋同, 属设计内优雅降级而非数据错误, 严格同句子样本分析应剔除 fallback 行。两处易混口径须区分: 其一, 本轨的同句判据与 stage 13 共现硬过滤的 sentence_radius 是两个不同的 config 键、两套不同原语 (前者对应严格同句的 extract_bank_fintech_cooccurrence, 后者对应邻近窗口的 has_bank_fintech_cooccurrence_within_radius), 禁互相复用解读; 其二, ss 后缀是文本轨后缀, 与网络指标族的 _sent 判据后缀无关。行宇宙同为 conditional-on-full 子集。铁律照适用: ss 与 full、ctx 各自 just-identified 并排、互为稳健性、不分主次, 禁混同一 over-identified Hansen J; 开发盘 T 等于 2 环境下 ss 轨可能整列退化为缺测或零方差, 属预期现象, 生产推断以 T 等于 18 为准。
+本列是家族的同句轨 (ss) 变体, tier 为 standard, 是三轨中归因口径最严的一档。差分语义: 被扫描文本为 content_ss, 即标题 prepend 后拼接「目标银行与金融科技词在同一句共现」的句子及其正负一句邻域 (窗口半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 1)。测量意图是把负面词密度锚定到银行与金融科技议题直接交汇的最小语篇单元: 只有出现在共现句邻域内的负面措辞才进入分子分母, 最大限度排除同篇中他行评论、宏观背景与无关板块的污染。回退语义镜像 ctx 且必须原样陈述: 全篇不存在银行与金科同句共现时, content_ss 回退为全文 body 并置 ss_is_fallback 为真, 与主轨共享 n_articles 分母; 这些回退行上 ss 密度与全文密度机械趋同, 属设计内优雅降级而非数据错误, 严格同句子样本分析应剔除 fallback 行。两处易混口径须区分: 其一, 本轨的同句判据与 stage 13 共现硬过滤的 sentence_radius 是两个不同的 config 键、两套不同原语 (前者对应严格同句的 extract_bank_fintech_cooccurrence, 后者对应邻近窗口的 has_bank_fintech_cooccurrence_within_radius), 禁互相复用解读; 其二, ss 后缀是文本轨后缀, 与网络指标族的 _sent 判据后缀无关。行宇宙同为 conditional-on-full 子集。铁律照适用: ss 与 full、ctx 各自 just-identified 并排、互为稳健性、不分主次, 禁混同一 over-identified Hansen J; 早期试跑盘 T 等于 2 环境下 ss 轨可能整列退化为缺测或零方差, 属预期现象, 生产推断以 T 等于 18 为准。
 
 <!-- rendered-citations:begin -->
 Anastasiou, D., Katsafados, A., & Tzomakas, C. (2026). Banks' stock price crash risk prediction with textual analysis: A machine learning approach. Annals of Operations Research, 357(1), 89-111. https://doi.org/10.1007/s10479-025-06567-y

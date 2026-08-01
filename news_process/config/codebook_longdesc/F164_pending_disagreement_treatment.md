@@ -87,7 +87,7 @@ new_dois: []
 ## VAR: cross_outlet_tone_variance_full
 
 【变体差分】
-本列是家族在 full 轨上的实现, 也是 bank_media_disagreement paper_spec 冻结的 treatment.primary (main_track = _full)。full 轨的文本口径为「标题 prepend + 全文正文」, 与 ctx 轨 (标题 + 实体窗口)、ss 轨 (标题 + 银行金科同句 ±N 窗) 构成三轨并列; 三个 tone-variance 变体各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J, 这与政治词权重梯子、co-primary 双轨嵌入所遵循的铁律一致。留篇门控采 full-only 口径: 篇入样与否只看 full 轨 LLM 判定, 故 full 轨的跨来源方差建立在完整留篇集上, ctx/ss 为其条件子集轨; 在盘上 T=2 的开发样本里 ss 轨可能因同句共现稀疏而部分缺列, build_summary_table 对缺列/NaN 防御性跳过, 不致整表崩。
+本列是家族在 full 轨上的实现, 也是 bank_media_disagreement paper_spec 冻结的 treatment.primary (main_track = _full)。full 轨的文本口径为「标题 prepend + 全文正文」, 与 ctx 轨 (标题 + 实体窗口)、ss 轨 (标题 + 银行金科同句 ±N 窗) 构成三轨并列; 三个 tone-variance 变体各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J, 这与政治词权重梯子、co-primary 双轨嵌入所遵循的铁律一致。留篇门控采 full-only 口径: 篇入样与否只看 full 轨 LLM 判定, 故 full 轨的跨来源方差建立在完整留篇集上, ctx/ss 为其条件子集轨; 在早期试跑盘上 T=2 的开发样本里 ss 轨可能因同句共现稀疏而部分缺列, build_summary_table 对缺列/NaN 防御性跳过, 不致整表崩。
 
 需要特别标注的是本列的 tier=pending 状态与「同名异构」披露。stage 39f 模块产出的 cross_outlet_tone_variance_full 与第十篇 paper_spec 冻结的 main treatment 同名但不同构: spec 冻结的构造是 bank-year 无条件全年截面上 outlet 级均值的跨来源方差 (待新建, 属 M2-M3 里程碑), 而本审计模块的现实现是事件窗条件子样本上逐 episode 的跨来源方差再按 episode 内文章数加权聚合。两者差异有二: 其一, 估计域不同 (事件窗条件 vs 全年无条件); 其二, 聚合方式不同 (episode 加权均值 vs 单一截面计算)。因此本列当前不是 spec 承诺的最终主处理变量, 论文采用前须二选一: 或对齐 spec 冻结构造并起用新列名, 或重命名本模块产物以释放保留名; 相应地本列在面板中不实存, 属 pending 占位, 其单位为无量纲的跨来源语调方差 (聚合后 bank-year 标量), 语义上恒非负且随各媒体评价越发不一致而增大。
 

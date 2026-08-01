@@ -103,7 +103,7 @@ du_2022 词典来自 Du, Huang, Wermers 与 Wu (2022) 在 Review of Finance 发�
 ## VAR: du_2022_pos_count_ss
 
 【变体差分】
-本列是 du_2022 正面命中计数的同句 (ss) 轨, 三轨中口径最严。ss 轨消费 stage 14 物化的 content_ss, 即标题 prepend 后仅取目标银行与金融科技实体落在同一句 (可带 ±N 句半径, 由 config 的 ss_sentence_radius 控制, 默认 1) 的共现文本。因此 ss 轨统计的是「银行与金科被同句提及」这一最狭窄语境下的 du_2022 净正面判定, 意在剔除银行与金科各自出现但语义不相关的噪声, 逼近真正谈论该银行金科关系的正面语调。这是三轨中信息面最窄、计数量级通常最低的一列, 在开发期 T=2 的小样本上尤易退化, 属预期现象而非缺陷。
+本列是 du_2022 正面命中计数的同句 (ss) 轨, 三轨中口径最严。ss 轨消费 stage 14 物化的 content_ss, 即标题 prepend 后仅取目标银行与金融科技实体落在同一句 (可带 ±N 句半径, 由 config 的 ss_sentence_radius 控制, 默认 1) 的共现文本。因此 ss 轨统计的是「银行与金科被同句提及」这一最狭窄语境下的 du_2022 净正面判定, 意在剔除银行与金科各自出现但语义不相关的噪声, 逼近真正谈论该银行金科关系的正面语调。这是三轨中信息面最窄、计数量级通常最低的一列, 在早期试跑 T=2 的小样本上尤易退化, 属预期现象而非缺陷。
 
 ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金科的同句共现时, content_ss 优雅回退为全文正文, 相应 ss_is_fallback 标记置真, 并与 ctx 共享 n_articles 作为分母 (不另设 n_articles_ss); 若金科 AC 词表为空则该轨 fallback 全真, 整体降级为等价 full 的读数。需要复述的铁律: ss 轨与 full、ctx 各自 just-identified 并排, 三轨互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 留篇门控为 full-only, ss 轨行宇宙是 full 留篇集子集, 属 conditional-on-full 测度轨。净分判正用严格不等号, 中性报道不计入; 政治词权重为 canonical polw05 (0.5), 与 polw00、polw10 权重梯子不分主次、禁混同一 over-identified Hansen J; 跨类重叠词双侧平衡计数照常生效; 空 bank-year 计数填 0。
 

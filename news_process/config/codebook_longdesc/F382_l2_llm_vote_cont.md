@@ -188,7 +188,7 @@ new_dois:
 【构念与来源】
 本家族度量"银行—金融科技"报道的连续情感极性 (continuous sentiment polarity), 是离散共识语调 llm_vote_tone 的连续孪生 (continuous twin)。构念内核有两层, 缺一不可。第一层是极性方向, 即一篇报道对目标银行的金融科技相关叙事整体偏正面、中性还是负面; 这一层是所有金融文本情感测量的公共内核, 从早期的词计数法到近期的机器学习法都在刻画它 (Tetlock, 2007; Loughran & McDonald 一脉)。第二层是极性强度, 即这一方向判断本身有多可靠、多确定。传统词典法与单一三分类模型只交付离散的 {-1,0,+1} 标签, 把"三家评审一致认定为正面"与"两家正面、一家负面勉强多数"这两种信息含量迥异的情形压成同一个 +1, 从而丢弃了标注不确定性这一重要维度。本家族的核心设计正是把这两层耦合进单一有界标量: 篇级 llm_vote_cont = llm_vote_score × llm_agreement_rate。其中 llm_vote_score ∈ {-1,0,+1} 是三家大语言模型 (gpt54nano 走 yunwu、gemini31 走 yunwu、deepseekv4 直连 api.deepseek.com) 对该篇报道情感的多数投票共识码, llm_agreement_rate ∈ [0,1] 是这三票落在共识标签上的一致率。当三家全票一致时一致率为 1, 连续值等于离散码 (±1); 当出现分裂时一致率下降, 连续值按比例向 0 收缩。由此, 一篇"全票正面"报道的连续码为 +1, 一篇"勉强多数正面"报道的连续码可能只有 +0.67, 强度差异被显式编码进变量本身。这一构念既承接金融文本情感测量传统, 又用 LLM 集成投票的一致率把标注不确定性显式量化, 呼应近年把大语言模型标注视为带噪代理、需刻画其可靠性与效度的方法学取向 (Egami et al., 2023; Hansen, 2026; Ludwig et al., 2026)。用大白话说: 它不只告诉你"这篇报道对这家银行搞金融科技是夸还是贬", 还告诉你"这个夸/贬的判断有多靠谱"——三个 AI 裁判越一致, 分值越接近满格; 越吵, 分值越往中间缩。
 
-数据来源链条为: 原始中文银行/金科报道 (全量 约 1,819 万条量级、2007–2025、T=19; 盘上开发样本为 T=2 试跑) 经 stage 00–14 预处理、银行与金科实体识别、共现硬过滤、三轨文本物化后, 在 stage 21 (21_tone_llms) 交由三家 LLM 在冻结 Prompt (v8-2026-05-17, temperature=0.0) 下逐篇逐轨打标, 产出每篇的三家标签、共识情感 llm_sentiment{track}、一致率 llm_agreement_rate{track} 与验证位 llm_verified{track}; 面板层 (pipeline/panel/encode.py) 再据此在 encode_sentiment 内合成篇级连续码, 并在 build_aggregation_dict / aggregate_panel 内聚合到 bank-year。缓存命中键为 prompt_version='v8-2026-05-17'、temperature=0.0, 保证三轨全命中时可 NEWS_PROCESS_LLM_OFFLINE=1 离线零成本字节级复现——这正是 de Kok (2025) 所倡导的 temperature=0 / prompt 冻结 / 缓存范式在本项目的落地, 也是把 LLM 标注纳入可复现实证流程的前提。
+数据来源链条为: 原始中文银行/金科报道 (全量 约 1,819 万条量级、2007–2025、T=19; 盘上早期试跑样本曾为 T=2) 经 stage 00–14 预处理、银行与金科实体识别、共现硬过滤、三轨文本物化后, 在 stage 21 (21_tone_llms) 交由三家 LLM 在冻结 Prompt (v8-2026-05-17, temperature=0.0) 下逐篇逐轨打标, 产出每篇的三家标签、共识情感 llm_sentiment{track}、一致率 llm_agreement_rate{track} 与验证位 llm_verified{track}; 面板层 (pipeline/panel/encode.py) 再据此在 encode_sentiment 内合成篇级连续码, 并在 build_aggregation_dict / aggregate_panel 内聚合到 bank-year。缓存命中键为 prompt_version='v8-2026-05-17'、temperature=0.0, 保证三轨全命中时可 NEWS_PROCESS_LLM_OFFLINE=1 离线零成本字节级复现——这正是 de Kok (2025) 所倡导的 temperature=0 / prompt 冻结 / 缓存范式在本项目的落地, 也是把 LLM 标注纳入可复现实证流程的前提。
 
 【方法学与计算】
 计算分三步, 每步都有防御性设计。第一步是篇级有效性门控与离散共识码合成 (encode.py encode_sentiment)。先构造 invalid_mask, 把矛盾旗标 (conflict / undetermined)、情感缺失 (sentiment 为 None/NaN)、以及 verified=False 的行统统标为无效; 共识 llm_vote_score 由 llm_sentiment 经 SENTIMENT_MAP 映射为 nullable Int8, 无效行落 <NA> 而非坍塌为"中性"(v6/F2 口径)。这一点关键: 若把不可信判断伪装成 0 (中性), 会系统性稀释银行-年语调并扭曲方差; 落 <NA> 则让它们干净地退出后续一切均值。第二步是连续码合成: 取一致率列 llm_agreement_rate{track} (若上游缺该列则优雅退化为常数 1.0, 此时连续码退化为纯离散码), 令 llm_vote_cont{track} = llm_vote_score{track}.astype(Float32) × 一致率, NaN 自然传播——无效行因 score 为 <NA> 而在连续码上落 NaN, 不参与任何后续聚合。第三步是 bank-year 聚合。等权变体 (无权重后缀) 取篇级连续码的 groupby mean (自动跳过 NaN); 加权变体 (vw/mw/hw) 走"分子加权和 ÷ 匹配分母"的两段式: 分子在 runner 步骤 3b/3c/3d 预乘权重后按 sum 聚合, 分母则由 _build_llm_valid_masked_weights 生成的、只覆盖"LLM 真给出判断"那批篇的权重和 (masked = weight.where(score.notna()))。这个匹配分母是一处承重修正 (encode-01): 若分子只加有效篇、分母却把全部篇的权重都算入, 加权语调会随 LLM-invalid 占比升高而系统性向 0 衰减, 等于把未判断的篇当成语调 0; 匹配分母保证分子与分母数的是同一批篇, 从根上消除该衰减偏差。逐模型/词典/BERT 族因 score=0 非 <NA>、分子分母同为全物理域, 刻意不建此 mask (加了反而失配), 只有 LLM 共识族需要。
@@ -221,8 +221,8 @@ new_dois:
 把本家族放进项目的情感测量全景, 它占据两个正交坐标轴上的一个精确位置。第一轴是"测量范式": 情感三角由 LLM 投票 (本家族所属)、词典法 (Du et al., 2022 的中文金融词典、Loughran-McDonald 一脉) 与 BERT 微调模型 (Huang et al., 2023 的 FinBERT 一脉) 三法构成, 三法互为稳健性、不分主次, 各自 just-identified 并排, 同样禁混同一 Hansen J。第二轴是"集成层级": 在 LLM 范式内部, 本家族是三家 verified 门控后共识 score × 三家一致率的集成层测度, 与逐模型连续码 {gpt54nano,gemini31,deepseekv4}_cont (单家 score × 单家 confidence, 属跨厂商稳健性轨) 相区别——共识不是裸多数票, 而是经 verified 清票、final_v 校验后的门控一致率加权。这一双轴定位保证本家族在整个情感测度矩阵中不与任何他测度语义重叠: 它既不是词典/BERT 的方向码, 也不是单厂商的置信码, 而是集成层的"方向 × 共识强度"连续标量。理解这一坐标是正确解读家族内各稳健性变体的前提: 所有三轨、三加权、四阈值、两位置的变体, 都是在这个固定坐标上对同一集成层构念做测量口径的横向扰动, 结论的稳健性正体现在这一横向扰动下的方向一致性。
 
 
-【开发样本退化与生产规模的解读纪律】
-盘上开发样本为 T=2 的极小试跑 (仅约两百个银行-年、占真实语料约万分之几), 家族内不少细分格子在该样本上会出现方差偏低甚至近零方差的退化, 尤以最严文本轨 (ss) 叠加位置子样本 (tech/app) 的格子最为突出——同句共现且属某一创新位置的篇在两年窗口内可能寥寥无几, 均值因此高度不稳。这类退化是小样本的必然产物而非代码缺陷, 生产 T=19 全量语料 (2007–2025、约 1,819 万条报道量级) 下相应格子会恢复正常方差与可解释性。因此本家族任何列的数值解读都须以生产规模为准: 不得据 T=2 开发样本的具体数值下实质性结论, 只应据其验证列的存在性、schema 一致性与零漂移复现性判断管道正确与否。与之配套, golden 快照的确定性复现要求 PYTHONHASHSEED=0 且全 BLAS 线程钉 1, 情感三轨在缓存全命中时可离线零成本字节级复现, 保证本家族取值跨 run 稳定、可审计、可追溯。
+【早期试跑样本退化与生产规模的解读纪律】
+盘上早期试跑样本曾为 T=2 的极小试跑 (仅约两百个银行-年、占真实语料约万分之几), 家族内不少细分格子在该样本上会出现方差偏低甚至近零方差的退化, 尤以最严文本轨 (ss) 叠加位置子样本 (tech/app) 的格子最为突出——同句共现且属某一创新位置的篇在两年窗口内可能寥寥无几, 均值因此高度不稳。这类退化是小样本的必然产物而非代码缺陷, 生产 T=19 全量语料 (2007–2025、约 1,819 万条报道量级) 下相应格子会恢复正常方差与可解释性。因此本家族任何列的数值解读都须以生产规模为准: 不得据早期试跑 T=2 样本的具体数值下实质性结论, 只应据其验证列的存在性、schema 一致性与零漂移复现性判断管道正确与否。与之配套, golden 快照的确定性复现要求 PYTHONHASHSEED=0 且全 BLAS 线程钉 1, 情感三轨在缓存全命中时可离线零成本字节级复现, 保证本家族取值跨 run 稳定、可审计、可追溯。
 
 ## VAR: llm_vote_cont_full
 
@@ -234,7 +234,7 @@ new_dois:
 
 进一步地, 本列在实证中既可作为主回归的核心解释变量单独进入, 也常与其滞后项、行业同侪均值 (leave-one-out peer) 或按判据分轨的网络溢出项并列, 以刻画媒体语调强度沿时间与同侪网络的传导。无论以何种设定进入, 其构念内核始终是"该行该年金科报道的方向 × 三家 AI 共识强度"这一集成层连续标量, 不因下游用途改变。
 
-再补三点使用纪律, 供实证与审稿共同参照。其一, 本列作为 canonical 定盘星, 是全家族三十余列稳健性变体的比较基准: 任何一档变体 (换轨、换加权、换阈值、换位置子样本) 的估计都须以本列为参照系解读其偏移方向与量级, 单看某一变体的孤立系数无从判断稳健与否。其二, 本列的等权聚合刻意不引入任何报道级权重, 因而是"每篇 LLM-valid 报道一票"的中性基准; 它与 vw/mw/hw 三加权变体各自 just-identified 并排、互为稳健性、不分主次, 严禁其中任二混进同一 over-identified Hansen J——等权与加权的差异是权重设定的差异, 不是工具外生性的证据。其三, 本列的缓存确定性使其可作为 golden 快照的稳定锚: 三轨在 _llm_cache.db 全命中且 prompt_version='v8-2026-05-17'、temperature=0.0 时, 可在 NEWS_PROCESS_LLM_OFFLINE=1 下离线零成本字节级复现 (须 PYTHONHASHSEED=0 且全 BLAS 线程钉 1), 保证本列取值跨 run 可审计、可追溯、不漂移。开发 T=2 样本上本列虽因样本极小而方差偏低, 但其存在性、schema 一致性与零漂移复现性仍可用于验证管道正确, 数值级实质结论须以生产 T=19 全量语料为准。
+再补三点使用纪律, 供实证与审稿共同参照。其一, 本列作为 canonical 定盘星, 是全家族三十余列稳健性变体的比较基准: 任何一档变体 (换轨、换加权、换阈值、换位置子样本) 的估计都须以本列为参照系解读其偏移方向与量级, 单看某一变体的孤立系数无从判断稳健与否。其二, 本列的等权聚合刻意不引入任何报道级权重, 因而是"每篇 LLM-valid 报道一票"的中性基准; 它与 vw/mw/hw 三加权变体各自 just-identified 并排、互为稳健性、不分主次, 严禁其中任二混进同一 over-identified Hansen J——等权与加权的差异是权重设定的差异, 不是工具外生性的证据。其三, 本列的缓存确定性使其可作为 golden 快照的稳定锚: 三轨在 _llm_cache.db 全命中且 prompt_version='v8-2026-05-17'、temperature=0.0 时, 可在 NEWS_PROCESS_LLM_OFFLINE=1 下离线零成本字节级复现 (须 PYTHONHASHSEED=0 且全 BLAS 线程钉 1), 保证本列取值跨 run 可审计、可追溯、不漂移。早期试跑 T=2 样本上本列虽因样本极小而方差偏低, 但其存在性、schema 一致性与零漂移复现性仍可用于验证管道正确, 数值级实质结论须以生产 T=19 全量语料为准。
 ## VAR: llm_vote_cont_ctx
 
 【变体差分】
@@ -243,7 +243,7 @@ new_dois:
 ## VAR: llm_vote_cont_ss
 
 【变体差分】
-本列轨道为 ss (sentence-scope 同句轨), 篇级文本 = 标题 prepend + "银行∧金科同句"±N 句窗 (content_ss, 窗半径由 config/filtering.yaml context_window.ss_sentence_radius 控制, 默认 1)。相对 canonical full 的差别只在文本范围: ss 是三轨中最严的聚焦, 只保留银行与金科词出现在同一句 (及邻窗) 的语境, 意在把语调锚定到"银行确实与金科同框讨论"的最强共现证据上, 排除"同一篇里银行与金科各说各的、并无实质关联"的弱共现噪声。构念内核、投票机制、有效性门控、等权 bank-year mean 聚合与 full 一致。回退语义严格镜像 ctx: 当整篇不存在银行∧金科同句共现时, content_ss 回退为全文 body、ss_is_fallback=True, 该篇 ss 轨等价于全文轨 (共享 n_articles 分母, 优雅降级而非清空); 面板层有 frac_ss_fallback 与 n_articles_for_ss_independence 记录独立度。它属 conditional-on-full 稳健轨, 行宇宙为 full 留篇集的子集。在 T=2 开发样本上, ss 轨常因同句共现篇稀少而方差偏低甚至退化 (近零方差), 属预期现象, 生产 T=19 语料正常。ss 与 full、ctx 三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。用途上, ss 轨提供最保守的"强共现"语调估计, 与 full (全篇) 和 ctx (实体窗) 形成由宽到严的三级证据梯度: 结论若在最严的 ss 轨仍稳健, 说服力最强。大白话: 这一列只看"银行和金融科技出现在同一句话里"的那些报道段落来打分, 是三种口径里最抠字眼、最保守的一种。
+本列轨道为 ss (sentence-scope 同句轨), 篇级文本 = 标题 prepend + "银行∧金科同句"±N 句窗 (content_ss, 窗半径由 config/filtering.yaml context_window.ss_sentence_radius 控制, 默认 1)。相对 canonical full 的差别只在文本范围: ss 是三轨中最严的聚焦, 只保留银行与金科词出现在同一句 (及邻窗) 的语境, 意在把语调锚定到"银行确实与金科同框讨论"的最强共现证据上, 排除"同一篇里银行与金科各说各的、并无实质关联"的弱共现噪声。构念内核、投票机制、有效性门控、等权 bank-year mean 聚合与 full 一致。回退语义严格镜像 ctx: 当整篇不存在银行∧金科同句共现时, content_ss 回退为全文 body、ss_is_fallback=True, 该篇 ss 轨等价于全文轨 (共享 n_articles 分母, 优雅降级而非清空); 面板层有 frac_ss_fallback 与 n_articles_for_ss_independence 记录独立度。它属 conditional-on-full 稳健轨, 行宇宙为 full 留篇集的子集。在早期试跑 T=2 样本上, ss 轨常因同句共现篇稀少而方差偏低甚至退化 (近零方差), 属预期现象, 生产 T=19 语料正常。ss 与 full、ctx 三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。用途上, ss 轨提供最保守的"强共现"语调估计, 与 full (全篇) 和 ctx (实体窗) 形成由宽到严的三级证据梯度: 结论若在最严的 ss 轨仍稳健, 说服力最强。大白话: 这一列只看"银行和金融科技出现在同一句话里"的那些报道段落来打分, 是三种口径里最抠字眼、最保守的一种。
 
 ## VAR: llm_vote_cont_full_z
 
@@ -260,7 +260,7 @@ new_dois:
 ## VAR: llm_vote_cont_ss_z
 
 【变体差分】
-本列是 llm_vote_cont_ss 的 z 标准化变体: 对等权 ss 同句轨 (标题 prepend + 银行∧金科同句 ±N 窗) 的 bank-year 连续码做逐年度截面标准化 (Fama-MacBeth 1973 口径, pipeline/panel/geography.py::standardize_panel_variables 经 groupby('year') 在每个年度截面内归至 μ=0/σ=1, 仅覆盖 n_articles>0 且逐年有效观测 ≥3、整列 ≥10 的行, 而非 pooled 全样本均值/标准差), 得年内均值 0、标准差 1 的标准分。在 T>1 多期面板上逐年度截面标准化与全样本标准化数值不同, 此处为逐年度口径。轨道为 ss、加权为等权。回退语义镜像 ctx: 无同句共现则底层 ss 连续码退化为全文 body 打分、ss_is_fallback=True, 标准化在此退化结果之上进行、不改变退化关系。相对 full_z/ctx_z 的差别是文本聚焦最严 (只读银行∧金科同句证据)。它与原始 llm_vote_cont_ss 完全共线, 只做线性重标度以便标准化系数比较, 绝不应与之同时进入同一回归右手边。在开发 T=2 样本上, 因同句共现篇稀少、底层 ss 连续码近零方差, 标准化后仍可能出现数值退化或极端标准分, 属预期, 生产 T=19 正常。与 full_z / ctx_z 三轨标准分各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。用途是把最保守的强共现语调估计放到标准差刻度上, 与 full/ctx 标准化系数并排, 完成"由宽到严三级证据梯度"的量级对照。大白话: 最抠字眼那一版 (ss) 换成标准差刻度, 好跟另外两版比影响力大小。
+本列是 llm_vote_cont_ss 的 z 标准化变体: 对等权 ss 同句轨 (标题 prepend + 银行∧金科同句 ±N 窗) 的 bank-year 连续码做逐年度截面标准化 (Fama-MacBeth 1973 口径, pipeline/panel/geography.py::standardize_panel_variables 经 groupby('year') 在每个年度截面内归至 μ=0/σ=1, 仅覆盖 n_articles>0 且逐年有效观测 ≥3、整列 ≥10 的行, 而非 pooled 全样本均值/标准差), 得年内均值 0、标准差 1 的标准分。在 T>1 多期面板上逐年度截面标准化与全样本标准化数值不同, 此处为逐年度口径。轨道为 ss、加权为等权。回退语义镜像 ctx: 无同句共现则底层 ss 连续码退化为全文 body 打分、ss_is_fallback=True, 标准化在此退化结果之上进行、不改变退化关系。相对 full_z/ctx_z 的差别是文本聚焦最严 (只读银行∧金科同句证据)。它与原始 llm_vote_cont_ss 完全共线, 只做线性重标度以便标准化系数比较, 绝不应与之同时进入同一回归右手边。在早期试跑 T=2 样本上, 因同句共现篇稀少、底层 ss 连续码近零方差, 标准化后仍可能出现数值退化或极端标准分, 属预期, 生产 T=19 正常。与 full_z / ctx_z 三轨标准分各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。用途是把最保守的强共现语调估计放到标准差刻度上, 与 full/ctx 标准化系数并排, 完成"由宽到严三级证据梯度"的量级对照。大白话: 最抠字眼那一版 (ss) 换成标准差刻度, 好跟另外两版比影响力大小。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -279,7 +279,7 @@ new_dois:
 ## VAR: llm_vote_cont_vw_ss
 
 【变体差分】
-本列是 ss 同句轨的价值加权变体。bank-year 值 = Σ(篇级 llm_vote_cont_ss × mention_density) over LLM-valid 篇 ÷ 匹配分母 Σ(mention_density) over LLM-valid 篇。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 加权为 mention_density 价值加权。相对 vw_full/vw_ctx 的差别是文本聚焦最严 (只读银行∧金科同句证据), 相对等权 ss 的差别是按显著度重加权。它是三轨 × 三加权网格里"最严文本 × 显著度加权"的一格, 提供最保守文本口径下的价值加权语调。开发 T=2 样本上因同句篇稀少, vw 加权后仍易方差退化, 属预期, 生产 T=19 正常。vw/mw/hw 三加权与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。用途是把"最强共现证据 + 显著度加权"两重保守设定叠加, 作为主结论最苛刻的稳健性检查之一。大白话: 只看银行和金科同句的段落、还给报道多的稿子更高权重, 是最较真的一版加权口碑分。
+本列是 ss 同句轨的价值加权变体。bank-year 值 = Σ(篇级 llm_vote_cont_ss × mention_density) over LLM-valid 篇 ÷ 匹配分母 Σ(mention_density) over LLM-valid 篇。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 加权为 mention_density 价值加权。相对 vw_full/vw_ctx 的差别是文本聚焦最严 (只读银行∧金科同句证据), 相对等权 ss 的差别是按显著度重加权。它是三轨 × 三加权网格里"最严文本 × 显著度加权"的一格, 提供最保守文本口径下的价值加权语调。早期试跑 T=2 样本上因同句篇稀少, vw 加权后仍易方差退化, 属预期, 生产 T=19 正常。vw/mw/hw 三加权与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。用途是把"最强共现证据 + 显著度加权"两重保守设定叠加, 作为主结论最苛刻的稳健性检查之一。大白话: 只看银行和金科同句的段落、还给报道多的稿子更高权重, 是最较真的一版加权口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -300,7 +300,7 @@ new_dois:
 ## VAR: llm_vote_cont_mw_ss
 
 【变体差分】
-本列是 ss 同句轨的媒体权威性加权变体。bank-year 值 = Σ(篇级 llm_vote_cont_ss × media_authority_weight) over LLM-valid 篇 ÷ 匹配分母。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 加权为媒体权威性。相对 mw_full/mw_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 vw_ss 的差别是权重维度换成媒体权威度。它是三轨 × 三加权网格里"最严文本 × 权威加权"的一格, 提供最保守文本口径下的媒体权威加权语调。开发 T=2 样本上同句篇稀少, 加权后仍易方差退化, 属预期, 生产 T=19 正常。mw/vw/hw 三加权与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。用途是把"最强共现证据 + 权威信源加权"叠加, 作为主结论的苛刻稳健性检查。大白话: 只看银行金科同句段落、还给权威媒体更高权重, 是最较真的一版权威加权口碑分。
+本列是 ss 同句轨的媒体权威性加权变体。bank-year 值 = Σ(篇级 llm_vote_cont_ss × media_authority_weight) over LLM-valid 篇 ÷ 匹配分母。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 加权为媒体权威性。相对 mw_full/mw_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 vw_ss 的差别是权重维度换成媒体权威度。它是三轨 × 三加权网格里"最严文本 × 权威加权"的一格, 提供最保守文本口径下的媒体权威加权语调。早期试跑 T=2 样本上同句篇稀少, 加权后仍易方差退化, 属预期, 生产 T=19 正常。mw/vw/hw 三加权与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。用途是把"最强共现证据 + 权威信源加权"叠加, 作为主结论的苛刻稳健性检查。大白话: 只看银行金科同句段落、还给权威媒体更高权重, 是最较真的一版权威加权口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -319,7 +319,7 @@ new_dois:
 ## VAR: llm_vote_cont_hw_ss
 
 【变体差分】
-本列是 ss 同句轨的跟风衰减加权变体。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss) over LLM-valid 篇 ÷ 匹配分母。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 加权为三轨独立的跟风衰减权重 herd_weight_ss (相似度门槛 0.35)。相对 hw_full/hw_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 vw_ss/mw_ss 的差别是权重维度换成抄稿去重。⚠ 若上游仅存 legacy 单列 herd_weight (v3.5.x schema), 三轨会退化为同源 (fake 多轨) 并触发 warning, 真三轨需重跑 v3.6.0+ 的 stage 24 (含同句 ss 轨 herd_decay)。开发 T=2 样本上同句篇稀少, 加权后仍易方差退化, 属预期。门槛敏感性由 hw_thr25/30/40/45_ss 展开。hw/vw/mw 三加权与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。大白话: 只看银行金科同句段落、还给抄稿打折, 是"最较真文本 + 去重加权"的一版口碑分。
+本列是 ss 同句轨的跟风衰减加权变体。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss) over LLM-valid 篇 ÷ 匹配分母。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 加权为三轨独立的跟风衰减权重 herd_weight_ss (相似度门槛 0.35)。相对 hw_full/hw_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 vw_ss/mw_ss 的差别是权重维度换成抄稿去重。⚠ 若上游仅存 legacy 单列 herd_weight (v3.5.x schema), 三轨会退化为同源 (fake 多轨) 并触发 warning, 真三轨需重跑 v3.6.0+ 的 stage 24 (含同句 ss 轨 herd_decay)。早期试跑 T=2 样本上同句篇稀少, 加权后仍易方差退化, 属预期。门槛敏感性由 hw_thr25/30/40/45_ss 展开。hw/vw/mw 三加权与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。大白话: 只看银行金科同句段落、还给抄稿打折, 是"最较真文本 + 去重加权"的一版口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -340,7 +340,7 @@ new_dois:
 ## VAR: llm_vote_cont_hw_thr25_ss
 
 【变体差分】
-本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.25。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx), 抄稿门槛 τ=0.25 (较 0.35 更激进去重)。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr25) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr25_full/hw_thr25_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更低。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。开发 T=2 样本上同句篇稀少, 激进去重后更易方差退化, 属预期, 生产 T=19 正常。它是"最严文本 × 最激进去重"的一格, 提供主结论的苛刻稳健性检查之一。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、还把抄稿门槛调最松狠打折, 是很较真的一版去重口碑分。
+本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.25。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx), 抄稿门槛 τ=0.25 (较 0.35 更激进去重)。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr25) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr25_full/hw_thr25_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更低。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。早期试跑 T=2 样本上同句篇稀少, 激进去重后更易方差退化, 属预期, 生产 T=19 正常。它是"最严文本 × 最激进去重"的一格, 提供主结论的苛刻稳健性检查之一。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、还把抄稿门槛调最松狠打折, 是很较真的一版去重口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -361,7 +361,7 @@ new_dois:
 ## VAR: llm_vote_cont_hw_thr30_ss
 
 【变体差分】
-本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.30。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 抄稿门槛 τ=0.30 (较 0.35 略激进去重)。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr30) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr30_full/ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更低; 相对同轨其他阈值档的差别是中间去重强度。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。开发 T=2 样本上同句篇稀少, 加权后仍易方差退化, 属预期。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、抄稿门槛调 0.30, 是中等去重强度下最较真文本口径的口碑分。
+本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.30。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 抄稿门槛 τ=0.30 (较 0.35 略激进去重)。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr30) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr30_full/ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更低; 相对同轨其他阈值档的差别是中间去重强度。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。早期试跑 T=2 样本上同句篇稀少, 加权后仍易方差退化, 属预期。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、抄稿门槛调 0.30, 是中等去重强度下最较真文本口径的口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -382,7 +382,7 @@ new_dois:
 ## VAR: llm_vote_cont_hw_thr40_ss
 
 【变体差分】
-本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.40。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx), 抄稿门槛 τ=0.40 (较 0.35 更保守去重)。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr40) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr40_full/ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更高; 相对同轨激进档的差别是保留更多报道接近等权。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。开发 T=2 样本上同句篇稀少, 保守去重下更接近等权 ss, 仍易方差退化, 属预期。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、抄稿门槛调 0.40 温和去重, 是保守去重下最较真文本口径的口碑分。
+本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.40。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx), 抄稿门槛 τ=0.40 (较 0.35 更保守去重)。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr40) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr40_full/ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更高; 相对同轨激进档的差别是保留更多报道接近等权。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。早期试跑 T=2 样本上同句篇稀少, 保守去重下更接近等权 ss, 仍易方差退化, 属预期。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、抄稿门槛调 0.40 温和去重, 是保守去重下最较真文本口径的口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
@@ -403,47 +403,47 @@ new_dois:
 ## VAR: llm_vote_cont_hw_thr45_ss
 
 【变体差分】
-本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.45 (网格内最保守去重档)。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 抄稿门槛 τ=0.45。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr45) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr45_full/ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更高、去重最保守 (最接近等权 ss); 相对同轨激进档的差别是敏感性曲线另一端点。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。开发 T=2 样本上同句篇稀少, 最保守去重下几乎等价于等权 ss, 仍易方差退化, 属预期。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、抄稿门槛调最严, 是"最较真文本 + 几乎不去重"的一版口碑分。
+本列是 ss 同句轨跟风衰减加权的阈值敏感性变体, 门槛 τ=0.45 (网格内最保守去重档)。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 抄稿门槛 τ=0.45。bank-year 值 = Σ(篇级 llm_vote_cont_ss × herd_weight_ss_thr45) over LLM-valid 篇 ÷ 匹配分母。相对 hw_thr45_full/ctx 的差别是文本聚焦最严 (只读同句证据); 相对 hw_ss (τ=0.35) 的差别是门槛更高、去重最保守 (最接近等权 ss); 相对同轨激进档的差别是敏感性曲线另一端点。属 herd_sensitivity_grid 一档, 仅施于 LLM 投票主测度族。早期试跑 T=2 样本上同句篇稀少, 最保守去重下几乎等价于等权 ss, 仍易方差退化, 属预期。四档阈值与 canonical 0.35 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两档混进同一 over-identified Hansen J。大白话: 只看同句段落、抄稿门槛调最严, 是"最较真文本 + 几乎不去重"的一版口碑分。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
 ## VAR: llm_vote_cont_tech_full
 
 【变体差分】
-本列是 full 轨按创新位置 (innovation_locus) 分组的子样本连续语调, 位置类别为"底层技术"(_tech)。相对 canonical llm_vote_cont_full 的差别是: 分子/分母只覆盖被 stage 21 分类维度判为报道"底层技术"叙事 (而非应用场景) 的篇, bank-year 值 = 这些技术类篇的篇级 llm_vote_cont_full (= 共识 score × 一致率) 的等权均值 (源列 llm_vote_cont_full 按 innovation_locus 分组的 groupby mean)。它服务于 P4 (Gomber et al., 2018 一脉的金科创新位置区分: 底层技术 vs 应用场景), 用于构造技术—应用语调差 tone_gap_tech_app 等衍生测度——银行对"我们在搞底层技术 (如自研核心系统、区块链底层)"与"我们在搞应用场景 (如手机银行、场景金融)"两类叙事的媒体语调可能系统性不同, 该差值捕捉这一区分。为防组合性混杂 (compositional confound, R8 audit), 衍生语调差另设 min(n_tech, n_app) ≥ 5 的最小篇数门, 避免小样本格子被极端值主导。tech 与 app 两位置子样本各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J (二者是同一构念的两类语境子样本, 非独立工具)。轨道为 full (canonical 留篇门控轨), 加权为等权。开发 T=2 样本上技术类篇稀少时数值不稳, 属预期, 生产 T=19 正常。大白话: 只挑"报道讲这家银行搞底层技术"的稿子算口碑分, 好跟"搞应用场景"那批比一比媒体更捧哪一类。
+本列是 full 轨按创新位置 (innovation_locus) 分组的子样本连续语调, 位置类别为"底层技术"(_tech)。相对 canonical llm_vote_cont_full 的差别是: 分子/分母只覆盖被 stage 21 分类维度判为报道"底层技术"叙事 (而非应用场景) 的篇, bank-year 值 = 这些技术类篇的篇级 llm_vote_cont_full (= 共识 score × 一致率) 的等权均值 (源列 llm_vote_cont_full 按 innovation_locus 分组的 groupby mean)。它服务于 P4 (Gomber et al., 2018 一脉的金科创新位置区分: 底层技术 vs 应用场景), 用于构造技术—应用语调差 tone_gap_tech_app 等衍生测度——银行对"我们在搞底层技术 (如自研核心系统、区块链底层)"与"我们在搞应用场景 (如手机银行、场景金融)"两类叙事的媒体语调可能系统性不同, 该差值捕捉这一区分。为防组合性混杂 (compositional confound, R8 audit), 衍生语调差另设 min(n_tech, n_app) ≥ 5 的最小篇数门, 避免小样本格子被极端值主导。tech 与 app 两位置子样本各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J (二者是同一构念的两类语境子样本, 非独立工具)。轨道为 full (canonical 留篇门控轨), 加权为等权。早期试跑 T=2 样本上技术类篇稀少时数值不稳, 属预期, 生产 T=19 正常。大白话: 只挑"报道讲这家银行搞底层技术"的稿子算口碑分, 好跟"搞应用场景"那批比一比媒体更捧哪一类。
 
 ## VAR: llm_vote_cont_tech_ctx
 
 【变体差分】
-本列是 ctx 轨的"底层技术"位置子样本连续语调。叠加两维: 文本轨为 ctx (标题 prepend + 实体窗口, conditional-on-full 稳健轨, 行宇宙为 full 留篇集子集), 子样本限定为创新位置判为底层技术的篇, bank-year 值 = 这些技术类篇的 llm_vote_cont_ctx 等权均值。相对 tech_full 的差别是文本聚焦实体邻域 (剔跑题段落); 相对全样本 ctx 的差别是只保留技术类报道; 相对 app_ctx 的差别是位置类别相反。它服务于 P4 技术—应用语调差在 ctx 轨的稳健性交叉检验, 把文本聚焦与位置分组两重口径叠加, 验证技术—应用语调差是否稳健于文本窗口收窄。ctx 在实体窗未命中时退化为 full。tech/app 两位置与 full/ctx/ss 三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。开发 T=2 样本上技术类 × ctx 篇稀少易退化, 属预期, 生产 T=19 正常。大白话: 聚焦读实体附近文字、只挑讲底层技术的稿子算口碑, 双重口径看"搞技术"这类的媒体口风稳不稳。
+本列是 ctx 轨的"底层技术"位置子样本连续语调。叠加两维: 文本轨为 ctx (标题 prepend + 实体窗口, conditional-on-full 稳健轨, 行宇宙为 full 留篇集子集), 子样本限定为创新位置判为底层技术的篇, bank-year 值 = 这些技术类篇的 llm_vote_cont_ctx 等权均值。相对 tech_full 的差别是文本聚焦实体邻域 (剔跑题段落); 相对全样本 ctx 的差别是只保留技术类报道; 相对 app_ctx 的差别是位置类别相反。它服务于 P4 技术—应用语调差在 ctx 轨的稳健性交叉检验, 把文本聚焦与位置分组两重口径叠加, 验证技术—应用语调差是否稳健于文本窗口收窄。ctx 在实体窗未命中时退化为 full。tech/app 两位置与 full/ctx/ss 三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。早期试跑 T=2 样本上技术类 × ctx 篇稀少易退化, 属预期, 生产 T=19 正常。大白话: 聚焦读实体附近文字、只挑讲底层技术的稿子算口碑, 双重口径看"搞技术"这类的媒体口风稳不稳。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
 ## VAR: llm_vote_cont_tech_ss
 
 【变体差分】
-本列是 ss 同句轨的"底层技术"位置子样本连续语调。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 子样本限定为创新位置判为底层技术的篇, bank-year 值 = 这些技术类篇的 llm_vote_cont_ss 等权均值。相对 tech_full/tech_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 app_ss 的差别是位置类别相反。它服务于 P4 技术—应用语调差在 ss 轨的稳健性检验, 是"最严文本 × 技术位置"的一格。开发 T=2 样本上, 同句 × 技术类双重限定后篇极稀少, 数值高度不稳甚至退化 (近零方差), 属预期, 生产 T=19 正常——此格是全家族最易在开发样本上退化的格子之一, 解读时须以生产规模为准, 不可据 T=2 数值下结论。tech/app 两位置与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。大白话: 只看同句段落、还只挑讲底层技术的稿子算口碑, 是很窄的一格, 小样本下数字会飘, 要看大样本。
+本列是 ss 同句轨的"底层技术"位置子样本连续语调。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 子样本限定为创新位置判为底层技术的篇, bank-year 值 = 这些技术类篇的 llm_vote_cont_ss 等权均值。相对 tech_full/tech_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 app_ss 的差别是位置类别相反。它服务于 P4 技术—应用语调差在 ss 轨的稳健性检验, 是"最严文本 × 技术位置"的一格。早期试跑 T=2 样本上, 同句 × 技术类双重限定后篇极稀少, 数值高度不稳甚至退化 (近零方差), 属预期, 生产 T=19 正常——此格是全家族最易在该样本上退化的格子之一, 解读时须以生产规模为准, 不可据 T=2 数值下结论。tech/app 两位置与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。大白话: 只看同句段落、还只挑讲底层技术的稿子算口碑, 是很窄的一格, 小样本下数字会飘, 要看大样本。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
 ## VAR: llm_vote_cont_app_full
 
 【变体差分】
-本列是 full 轨按创新位置分组的子样本连续语调, 位置类别为"应用场景"(_app)。相对 canonical llm_vote_cont_full 的差别是只覆盖被判为报道金科"应用场景"叙事 (而非底层技术) 的篇, bank-year 值 = 这些应用类篇的篇级 llm_vote_cont_full (= 共识 score × 一致率) 的等权均值。它与 tech_full 构成 P4 (Gomber et al., 2018 一脉) 技术—应用二分的另一极: 二者相减即技术—应用语调差 tone_gap_tech_app (为防组合性混杂设 min(n_tech, n_app) ≥ 5 最小篇数门)。应用场景叙事 (如手机银行、消费金融场景、开放银行接口) 与底层技术叙事在媒体框架、受众关切与监管敏感度上不同, 媒体语调可能系统性偏离, 本列与 tech_full 的对照正是为捕捉这一异质性。app 与 tech 两位置子样本各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。轨道为 full (canonical 留篇门控轨), 加权为等权。开发 T=2 样本上应用类篇稀少时数值不稳, 属预期, 生产 T=19 正常。大白话: 只挑"报道讲这家银行搞应用场景 (手机银行那类)"的稿子算口碑分, 好跟"搞底层技术"那批比一比媒体更捧哪一类。
+本列是 full 轨按创新位置分组的子样本连续语调, 位置类别为"应用场景"(_app)。相对 canonical llm_vote_cont_full 的差别是只覆盖被判为报道金科"应用场景"叙事 (而非底层技术) 的篇, bank-year 值 = 这些应用类篇的篇级 llm_vote_cont_full (= 共识 score × 一致率) 的等权均值。它与 tech_full 构成 P4 (Gomber et al., 2018 一脉) 技术—应用二分的另一极: 二者相减即技术—应用语调差 tone_gap_tech_app (为防组合性混杂设 min(n_tech, n_app) ≥ 5 最小篇数门)。应用场景叙事 (如手机银行、消费金融场景、开放银行接口) 与底层技术叙事在媒体框架、受众关切与监管敏感度上不同, 媒体语调可能系统性偏离, 本列与 tech_full 的对照正是为捕捉这一异质性。app 与 tech 两位置子样本各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。轨道为 full (canonical 留篇门控轨), 加权为等权。早期试跑 T=2 样本上应用类篇稀少时数值不稳, 属预期, 生产 T=19 正常。大白话: 只挑"报道讲这家银行搞应用场景 (手机银行那类)"的稿子算口碑分, 好跟"搞底层技术"那批比一比媒体更捧哪一类。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
 ## VAR: llm_vote_cont_app_ctx
 
 【变体差分】
-本列是 ctx 轨的"应用场景"位置子样本连续语调。叠加两维: 文本轨为 ctx (标题 prepend + 实体窗口, conditional-on-full 稳健轨, 行宇宙为 full 留篇集子集), 子样本限定为创新位置判为应用场景的篇, bank-year 值 = 这些应用类篇的 llm_vote_cont_ctx 等权均值。相对 app_full 的差别是文本聚焦实体邻域 (剔跑题段落); 相对全样本 ctx 的差别是只保留应用类报道; 相对 tech_ctx 的差别是位置类别相反 (应用 vs 技术)。它服务于 P4 技术—应用语调差在 ctx 轨的稳健性交叉检验, 把文本聚焦与位置分组两重口径叠加, 验证语调差是否稳健于文本窗口收窄。ctx 在实体窗未命中时退化为 full。app/tech 两位置与 full/ctx/ss 三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。开发 T=2 样本上应用类 × ctx 篇稀少易退化, 属预期。大白话: 聚焦读实体附近文字、只挑讲应用场景的稿子算口碑, 双重口径看"搞应用"这类的媒体口风稳不稳。
+本列是 ctx 轨的"应用场景"位置子样本连续语调。叠加两维: 文本轨为 ctx (标题 prepend + 实体窗口, conditional-on-full 稳健轨, 行宇宙为 full 留篇集子集), 子样本限定为创新位置判为应用场景的篇, bank-year 值 = 这些应用类篇的 llm_vote_cont_ctx 等权均值。相对 app_full 的差别是文本聚焦实体邻域 (剔跑题段落); 相对全样本 ctx 的差别是只保留应用类报道; 相对 tech_ctx 的差别是位置类别相反 (应用 vs 技术)。它服务于 P4 技术—应用语调差在 ctx 轨的稳健性交叉检验, 把文本聚焦与位置分组两重口径叠加, 验证语调差是否稳健于文本窗口收窄。ctx 在实体窗未命中时退化为 full。app/tech 两位置与 full/ctx/ss 三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。早期试跑 T=2 样本上应用类 × ctx 篇稀少易退化, 属预期。大白话: 聚焦读实体附近文字、只挑讲应用场景的稿子算口碑, 双重口径看"搞应用"这类的媒体口风稳不稳。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。
 ## VAR: llm_vote_cont_app_ss
 
 【变体差分】
-本列是 ss 同句轨的"应用场景"位置子样本连续语调。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 子样本限定为创新位置判为应用场景的篇, bank-year 值 = 这些应用类篇的 llm_vote_cont_ss 等权均值。相对 app_full/app_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 tech_ss 的差别是位置类别相反。它服务于 P4 技术—应用语调差在 ss 轨的稳健性检验, 是"最严文本 × 应用位置"的一格。开发 T=2 样本上, 同句 × 应用类双重限定后篇极稀少, 数值高度不稳甚至退化 (近零方差), 属预期, 生产 T=19 正常——与 tech_ss 同属全家族最易在开发样本退化的格子, 解读须以生产规模为准。app/tech 两位置与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。大白话: 只看同句段落、还只挑讲应用场景的稿子算口碑, 是很窄的一格, 小样本下数字会飘, 要看大样本。
+本列是 ss 同句轨的"应用场景"位置子样本连续语调。文本轨为 ss (标题 prepend + 银行∧金科同句 ±N 窗, 回退镜像 ctx: 无同句共现则底层退化全文 body 打分、ss_is_fallback=True), 子样本限定为创新位置判为应用场景的篇, bank-year 值 = 这些应用类篇的 llm_vote_cont_ss 等权均值。相对 app_full/app_ctx 的差别是文本聚焦最严 (只读同句证据); 相对 tech_ss 的差别是位置类别相反。它服务于 P4 技术—应用语调差在 ss 轨的稳健性检验, 是"最严文本 × 应用位置"的一格。早期试跑 T=2 样本上, 同句 × 应用类双重限定后篇极稀少, 数值高度不稳甚至退化 (近零方差), 属预期, 生产 T=19 正常——与 tech_ss 同属全家族最易在该样本退化的格子, 解读须以生产规模为准。app/tech 两位置与三轨均为规格稳健性轴, 各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。大白话: 只看同句段落、还只挑讲应用场景的稿子算口碑, 是很窄的一格, 小样本下数字会飘, 要看大样本。
 
 
 补充说明: 该列的银行-年取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。其留篇门控与家族 canonical 完全一致, 恒由 full 轨的 llm_verified_full 判定决定, 本列自身不独立留篇, 亦不改变行宇宙的界定。凡本列与其它文本轨道、加权口径或阈值档并列进稳健性表格时, 均以各自 just-identified 的平行估计形式呈现, 彼此互为稳健性、不分主次, 严禁任意两者合并进同一 over-identified 的 Hansen J 过度识别统计量; 跨这些测量设定的族错误率控制统一交由根级 rwolf 逐步多重检验模板处理 (Romano & Wolf, 2005 一脉), 而非借道过度识别检验。

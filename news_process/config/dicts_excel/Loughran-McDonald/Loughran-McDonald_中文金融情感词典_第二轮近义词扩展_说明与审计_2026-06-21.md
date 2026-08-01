@@ -115,7 +115,7 @@ python verify.py               # 纯净度/最小性硬校验（应 non-CJK=0 si
 
 本轮**仅产候选交付物，未改动 `config/tone_dicts.json::loughran_mcdonald_zh_2026`**，故**未触 golden、未跑任何付费阶段**。若审核通过后决定并入生产，须注意（详见 `CLAUDE.md`）：
 
-1. `loughran` 现为第 6 部**活跃**主词典，直接喂 panel 的 `loughran_*` 词频/情感列；替换其八类数组会**改变 panel 列值** → 须**受控重生 golden**（本机 T=2；生产 T=19 受 M0 gate）。重生须钉死确定性环境（`PYTHONHASHSEED=0` + 全 BLAS 线程=1，见 memory `golden-regen-omp-determinism-2026-06-18`）。
+1. `loughran` 现为第 6 部**活跃**主词典，直接喂 panel 的 `loughran_*` 词频/情感列；替换其八类数组会**改变 panel 列值** → 须**受控重生 golden**（早期试跑 T=2；生产 T=19 受 M0 gate）。重生须钉死确定性环境（`PYTHONHASHSEED=0` + 全 BLAS 线程=1，见 memory `golden-regen-omp-determinism-2026-06-18`）。
 2. JSON 顶层键超过 32 时三个加载器有 36>32 列前缀别名机制（见 memory `loughran-6th-dict-impl-2026-06-18` 的 `DICT_COLUMN_ALIAS`）——并入时须复核 producer/consumer 别名匹配。
 3. 并入前建议先采纳 §5.4 的 10 个存疑原种子处置意见，并复核 §6 的 65 个极性冲突词是否维持并集口径。
 
