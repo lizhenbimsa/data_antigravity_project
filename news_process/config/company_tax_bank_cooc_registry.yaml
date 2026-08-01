@@ -1,13 +1,13 @@
 meta:
   plan: COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v7
-  n_entries: 730
-  n_emit: 320
+  n_entries: 979
+  n_emit: 569
   n_cut: 410
-  n_cols_40_panel: 3442
+  n_cols_40_panel: 4183
   company_names_sha256: 98c818c3378a920fafbd1ea309b25a4b2270d2380f9c60e9217022cbc4204867
   bank_names_sha256: ec4ee1864e855358b951222f5e9942f9672490f0ab0bbd1c0dcfb293b1972c60
   cut_list_sha256: b88ef0db70926445ae6734fa663acdf35c9d4a706e317dbc8f0003ef03925394
-  registry_sha256: 4f580e3fc458be0c6aac6636f4ed1c3e0936f839c9b815161150e048b6e4c034
+  registry_sha256: f783aa041d09e05a41959d1276b0ddcc1eb7e0011af8b930a823eadb0f1cb494
 entries:
 - basename: hidden_adopt_int_p25
   family: AD
@@ -5896,6 +5896,4986 @@ entries:
     family: C1b
     base: avg_collab_prob_score
   short_name: avg_collab_prob_score
+- basename: bal_w0725_bian_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_full
+    ctx: bal_w0725_bian_2021_score_ctx
+    ss: bal_w0725_bian_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score
+  short_name: bw07_bian2021
+- basename: bal_w0725_bian_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_advonly_full
+    ctx: bal_w0725_bian_2021_score_advonly_ctx
+    ss: bal_w0725_bian_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_advonly
+  short_name: bw07_bian2021_advonly
+- basename: bal_w0725_bian_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_degadv_full
+    ctx: bal_w0725_bian_2021_score_degadv_ctx
+    ss: bal_w0725_bian_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_degadv
+  short_name: bw07_bian2021_degadv
+- basename: bal_w0725_bian_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_degonly_full
+    ctx: bal_w0725_bian_2021_score_degonly_ctx
+    ss: bal_w0725_bian_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_degonly
+  short_name: bw07_bian2021_degonly
+- basename: bal_w0725_bian_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_hw_full
+    ctx: bal_w0725_bian_2021_score_hw_ctx
+    ss: bal_w0725_bian_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_hw
+  short_name: bw07_bian2021_hw
+- basename: bal_w0725_bian_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_negadv_full
+    ctx: bal_w0725_bian_2021_score_negadv_ctx
+    ss: bal_w0725_bian_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_negadv
+  short_name: bw07_bian2021_negadv
+- basename: bal_w0725_bian_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_negdeg_full
+    ctx: bal_w0725_bian_2021_score_negdeg_ctx
+    ss: bal_w0725_bian_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_negdeg
+  short_name: bw07_bian2021_negdeg
+- basename: bal_w0725_bian_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_negonly_full
+    ctx: bal_w0725_bian_2021_score_negonly_ctx
+    ss: bal_w0725_bian_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_negonly
+  short_name: bw07_bian2021_negonly
+- basename: bal_w0725_bian_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_raw_full
+    ctx: bal_w0725_bian_2021_score_raw_ctx
+    ss: bal_w0725_bian_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_raw
+  short_name: bw07_bian2021_raw
+- basename: bal_w0725_bian_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_bian_2021_score_w_full
+    ctx: bal_w0725_bian_2021_score_w_ctx
+    ss: bal_w0725_bian_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_bian_2021_score_w
+  short_name: bw07_bian2021_w
+- basename: bal_w0725_deepseekv4_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_deepseekv4_score_full
+    ctx: bal_w0725_deepseekv4_score_ctx
+    ss: bal_w0725_deepseekv4_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_deepseekv4_score
+  short_name: bw07_deepseekv4_score
+- basename: bal_w0725_deepseekv4_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_deepseekv4_score_hw_full
+    ctx: bal_w0725_deepseekv4_score_hw_ctx
+    ss: bal_w0725_deepseekv4_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_deepseekv4_score_hw
+  short_name: bw07_deepseekv4_score_hw
+- basename: bal_w0725_deepseekv4_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_deepseekv4_score_w_full
+    ctx: bal_w0725_deepseekv4_score_w_ctx
+    ss: bal_w0725_deepseekv4_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_deepseekv4_score_w
+  short_name: bw07_deepseekv4_score_w
+- basename: bal_w0725_du_2022_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_full
+    ctx: bal_w0725_du_2022_score_ctx
+    ss: bal_w0725_du_2022_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score
+  short_name: bal_w0725_du_2022_score
+- basename: bal_w0725_du_2022_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_advonly_full
+    ctx: bal_w0725_du_2022_score_advonly_ctx
+    ss: bal_w0725_du_2022_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_advonly
+  short_name: bw07_du2022_advonly
+- basename: bal_w0725_du_2022_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_degadv_full
+    ctx: bal_w0725_du_2022_score_degadv_ctx
+    ss: bal_w0725_du_2022_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_degadv
+  short_name: bw07_du2022_degadv
+- basename: bal_w0725_du_2022_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_degonly_full
+    ctx: bal_w0725_du_2022_score_degonly_ctx
+    ss: bal_w0725_du_2022_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_degonly
+  short_name: bw07_du2022_degonly
+- basename: bal_w0725_du_2022_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_hw_full
+    ctx: bal_w0725_du_2022_score_hw_ctx
+    ss: bal_w0725_du_2022_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_hw
+  short_name: bw07_du2022_hw
+- basename: bal_w0725_du_2022_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_negadv_full
+    ctx: bal_w0725_du_2022_score_negadv_ctx
+    ss: bal_w0725_du_2022_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_negadv
+  short_name: bw07_du2022_negadv
+- basename: bal_w0725_du_2022_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_negdeg_full
+    ctx: bal_w0725_du_2022_score_negdeg_ctx
+    ss: bal_w0725_du_2022_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_negdeg
+  short_name: bw07_du2022_negdeg
+- basename: bal_w0725_du_2022_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_negonly_full
+    ctx: bal_w0725_du_2022_score_negonly_ctx
+    ss: bal_w0725_du_2022_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_negonly
+  short_name: bw07_du2022_negonly
+- basename: bal_w0725_du_2022_score_polw00
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_polw00_full
+    ctx: bal_w0725_du_2022_score_polw00_ctx
+    ss: bal_w0725_du_2022_score_polw00_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_polw00
+  short_name: bw07_du2022_polw00
+- basename: bal_w0725_du_2022_score_polw05
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_polw05_full
+    ctx: bal_w0725_du_2022_score_polw05_ctx
+    ss: bal_w0725_du_2022_score_polw05_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_polw05
+  short_name: bw07_du2022_polw05
+- basename: bal_w0725_du_2022_score_polw10
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_polw10_full
+    ctx: bal_w0725_du_2022_score_polw10_ctx
+    ss: bal_w0725_du_2022_score_polw10_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_polw10
+  short_name: bw07_du2022_polw10
+- basename: bal_w0725_du_2022_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_raw_full
+    ctx: bal_w0725_du_2022_score_raw_ctx
+    ss: bal_w0725_du_2022_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_raw
+  short_name: bw07_du2022_raw
+- basename: bal_w0725_du_2022_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_du_2022_score_w_full
+    ctx: bal_w0725_du_2022_score_w_ctx
+    ss: bal_w0725_du_2022_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_du_2022_score_w
+  short_name: bw07_du2022_w
+- basename: bal_w0725_fin_sent_zh_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_fin_sent_zh_正面_full
+    ctx: bal_w0725_fin_sent_zh_正面_ctx
+    ss: bal_w0725_fin_sent_zh_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_fin_sent_zh_正面
+  short_name: bal_w0725_fin_sent_zh_正面
+- basename: bal_w0725_fin_sent_zh_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_fin_sent_zh_正面_hw_full
+    ctx: bal_w0725_fin_sent_zh_正面_hw_ctx
+    ss: bal_w0725_fin_sent_zh_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_fin_sent_zh_正面_hw
+  short_name: bw07_fin_sent_zh_正面_hw
+- basename: bal_w0725_fin_sent_zh_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_fin_sent_zh_正面_w_full
+    ctx: bal_w0725_fin_sent_zh_正面_w_ctx
+    ss: bal_w0725_fin_sent_zh_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_fin_sent_zh_正面_w
+  short_name: bw07_fin_sent_zh_正面_w
+- basename: bal_w0725_finbert2_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_finbert2_正面_full
+    ctx: bal_w0725_finbert2_正面_ctx
+    ss: bal_w0725_finbert2_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_finbert2_正面
+  short_name: bal_w0725_finbert2_正面
+- basename: bal_w0725_finbert2_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_finbert2_正面_hw_full
+    ctx: bal_w0725_finbert2_正面_hw_ctx
+    ss: bal_w0725_finbert2_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_finbert2_正面_hw
+  short_name: bal_w0725_finbert2_正面_hw
+- basename: bal_w0725_finbert2_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_finbert2_正面_w_full
+    ctx: bal_w0725_finbert2_正面_w_ctx
+    ss: bal_w0725_finbert2_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_finbert2_正面_w
+  short_name: bal_w0725_finbert2_正面_w
+- basename: bal_w0725_finbert_cn_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_finbert_cn_正面_full
+    ctx: bal_w0725_finbert_cn_正面_ctx
+    ss: bal_w0725_finbert_cn_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_finbert_cn_正面
+  short_name: bal_w0725_finbert_cn_正面
+- basename: bal_w0725_finbert_cn_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_finbert_cn_正面_hw_full
+    ctx: bal_w0725_finbert_cn_正面_hw_ctx
+    ss: bal_w0725_finbert_cn_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_finbert_cn_正面_hw
+  short_name: bw07_finbert_cn_正面_hw
+- basename: bal_w0725_finbert_cn_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_finbert_cn_正面_w_full
+    ctx: bal_w0725_finbert_cn_正面_w_ctx
+    ss: bal_w0725_finbert_cn_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_finbert_cn_正面_w
+  short_name: bw07_finbert_cn_正面_w
+- basename: bal_w0725_gemini31_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_gemini31_score_full
+    ctx: bal_w0725_gemini31_score_ctx
+    ss: bal_w0725_gemini31_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_gemini31_score
+  short_name: bal_w0725_gemini31_score
+- basename: bal_w0725_gemini31_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_gemini31_score_hw_full
+    ctx: bal_w0725_gemini31_score_hw_ctx
+    ss: bal_w0725_gemini31_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_gemini31_score_hw
+  short_name: bw07_gemini31_score_hw
+- basename: bal_w0725_gemini31_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_gemini31_score_w_full
+    ctx: bal_w0725_gemini31_score_w_ctx
+    ss: bal_w0725_gemini31_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_gemini31_score_w
+  short_name: bw07_gemini31_score_w
+- basename: bal_w0725_gpt54nano_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_gpt54nano_score_full
+    ctx: bal_w0725_gpt54nano_score_ctx
+    ss: bal_w0725_gpt54nano_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_gpt54nano_score
+  short_name: bw07_gpt54nano_score
+- basename: bal_w0725_gpt54nano_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_gpt54nano_score_hw_full
+    ctx: bal_w0725_gpt54nano_score_hw_ctx
+    ss: bal_w0725_gpt54nano_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_gpt54nano_score_hw
+  short_name: bw07_gpt54nano_score_hw
+- basename: bal_w0725_gpt54nano_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_gpt54nano_score_w_full
+    ctx: bal_w0725_gpt54nano_score_w_ctx
+    ss: bal_w0725_gpt54nano_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_gpt54nano_score_w
+  short_name: bw07_gpt54nano_score_w
+- basename: bal_w0725_jiang_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_full
+    ctx: bal_w0725_jiang_2021_score_ctx
+    ss: bal_w0725_jiang_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score
+  short_name: bw07_jiang2021
+- basename: bal_w0725_jiang_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_advonly_full
+    ctx: bal_w0725_jiang_2021_score_advonly_ctx
+    ss: bal_w0725_jiang_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_advonly
+  short_name: bw07_jiang2021_advonly
+- basename: bal_w0725_jiang_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_degadv_full
+    ctx: bal_w0725_jiang_2021_score_degadv_ctx
+    ss: bal_w0725_jiang_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_degadv
+  short_name: bw07_jiang2021_degadv
+- basename: bal_w0725_jiang_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_degonly_full
+    ctx: bal_w0725_jiang_2021_score_degonly_ctx
+    ss: bal_w0725_jiang_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_degonly
+  short_name: bw07_jiang2021_degonly
+- basename: bal_w0725_jiang_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_hw_full
+    ctx: bal_w0725_jiang_2021_score_hw_ctx
+    ss: bal_w0725_jiang_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_hw
+  short_name: bw07_jiang2021_hw
+- basename: bal_w0725_jiang_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_negadv_full
+    ctx: bal_w0725_jiang_2021_score_negadv_ctx
+    ss: bal_w0725_jiang_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_negadv
+  short_name: bw07_jiang2021_negadv
+- basename: bal_w0725_jiang_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_negdeg_full
+    ctx: bal_w0725_jiang_2021_score_negdeg_ctx
+    ss: bal_w0725_jiang_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_negdeg
+  short_name: bw07_jiang2021_negdeg
+- basename: bal_w0725_jiang_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_negonly_full
+    ctx: bal_w0725_jiang_2021_score_negonly_ctx
+    ss: bal_w0725_jiang_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_negonly
+  short_name: bw07_jiang2021_negonly
+- basename: bal_w0725_jiang_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_raw_full
+    ctx: bal_w0725_jiang_2021_score_raw_ctx
+    ss: bal_w0725_jiang_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_raw
+  short_name: bw07_jiang2021_raw
+- basename: bal_w0725_jiang_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_jiang_2021_score_w_full
+    ctx: bal_w0725_jiang_2021_score_w_ctx
+    ss: bal_w0725_jiang_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_jiang_2021_score_w
+  short_name: bw07_jiang2021_w
+- basename: bal_w0725_loughran_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_full
+    ctx: bal_w0725_loughran_score_ctx
+    ss: bal_w0725_loughran_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score
+  short_name: bal_w0725_loughran_score
+- basename: bal_w0725_loughran_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_advonly_full
+    ctx: bal_w0725_loughran_score_advonly_ctx
+    ss: bal_w0725_loughran_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_advonly
+  short_name: bw07_lough_advonly
+- basename: bal_w0725_loughran_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_degadv_full
+    ctx: bal_w0725_loughran_score_degadv_ctx
+    ss: bal_w0725_loughran_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_degadv
+  short_name: bw07_lough_degadv
+- basename: bal_w0725_loughran_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_degonly_full
+    ctx: bal_w0725_loughran_score_degonly_ctx
+    ss: bal_w0725_loughran_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_degonly
+  short_name: bw07_lough_degonly
+- basename: bal_w0725_loughran_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_hw_full
+    ctx: bal_w0725_loughran_score_hw_ctx
+    ss: bal_w0725_loughran_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_hw
+  short_name: bw07_lough_hw
+- basename: bal_w0725_loughran_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_negadv_full
+    ctx: bal_w0725_loughran_score_negadv_ctx
+    ss: bal_w0725_loughran_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_negadv
+  short_name: bw07_lough_negadv
+- basename: bal_w0725_loughran_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_negdeg_full
+    ctx: bal_w0725_loughran_score_negdeg_ctx
+    ss: bal_w0725_loughran_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_negdeg
+  short_name: bw07_lough_negdeg
+- basename: bal_w0725_loughran_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_negonly_full
+    ctx: bal_w0725_loughran_score_negonly_ctx
+    ss: bal_w0725_loughran_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_negonly
+  short_name: bw07_lough_negonly
+- basename: bal_w0725_loughran_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_raw_full
+    ctx: bal_w0725_loughran_score_raw_ctx
+    ss: bal_w0725_loughran_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_raw
+  short_name: bw07_lough_raw
+- basename: bal_w0725_loughran_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_loughran_score_w_full
+    ctx: bal_w0725_loughran_score_w_ctx
+    ss: bal_w0725_loughran_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_loughran_score_w
+  short_name: bw07_lough_w
+- basename: bal_w0725_tone
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_tone_full
+    ctx: bal_w0725_tone_ctx
+    ss: bal_w0725_tone_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: tone
+  label_elems:
+    family: BAL
+    base: bal_w0725_tone
+  short_name: bal_w0725_tone
+- basename: bal_w0725_yao_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_full
+    ctx: bal_w0725_yao_2021_score_ctx
+    ss: bal_w0725_yao_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score
+  short_name: bal_w0725_yao_2021_score
+- basename: bal_w0725_yao_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_advonly_full
+    ctx: bal_w0725_yao_2021_score_advonly_ctx
+    ss: bal_w0725_yao_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_advonly
+  short_name: bw07_yao2021_advonly
+- basename: bal_w0725_yao_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_degadv_full
+    ctx: bal_w0725_yao_2021_score_degadv_ctx
+    ss: bal_w0725_yao_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_degadv
+  short_name: bw07_yao2021_degadv
+- basename: bal_w0725_yao_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_degonly_full
+    ctx: bal_w0725_yao_2021_score_degonly_ctx
+    ss: bal_w0725_yao_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_degonly
+  short_name: bw07_yao2021_degonly
+- basename: bal_w0725_yao_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_hw_full
+    ctx: bal_w0725_yao_2021_score_hw_ctx
+    ss: bal_w0725_yao_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_hw
+  short_name: bw07_yao2021_hw
+- basename: bal_w0725_yao_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_negadv_full
+    ctx: bal_w0725_yao_2021_score_negadv_ctx
+    ss: bal_w0725_yao_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_negadv
+  short_name: bw07_yao2021_negadv
+- basename: bal_w0725_yao_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_negdeg_full
+    ctx: bal_w0725_yao_2021_score_negdeg_ctx
+    ss: bal_w0725_yao_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_negdeg
+  short_name: bw07_yao2021_negdeg
+- basename: bal_w0725_yao_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_negonly_full
+    ctx: bal_w0725_yao_2021_score_negonly_ctx
+    ss: bal_w0725_yao_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_negonly
+  short_name: bw07_yao2021_negonly
+- basename: bal_w0725_yao_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_raw_full
+    ctx: bal_w0725_yao_2021_score_raw_ctx
+    ss: bal_w0725_yao_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_raw
+  short_name: bw07_yao2021_raw
+- basename: bal_w0725_yao_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_yao_2021_score_w_full
+    ctx: bal_w0725_yao_2021_score_w_ctx
+    ss: bal_w0725_yao_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_yao_2021_score_w
+  short_name: bw07_yao2021_w
+- basename: bal_w0725_you_2018_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_full
+    ctx: bal_w0725_you_2018_score_ctx
+    ss: bal_w0725_you_2018_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score
+  short_name: bal_w0725_you_2018_score
+- basename: bal_w0725_you_2018_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_advonly_full
+    ctx: bal_w0725_you_2018_score_advonly_ctx
+    ss: bal_w0725_you_2018_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_advonly
+  short_name: bw07_you2018_advonly
+- basename: bal_w0725_you_2018_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_degadv_full
+    ctx: bal_w0725_you_2018_score_degadv_ctx
+    ss: bal_w0725_you_2018_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_degadv
+  short_name: bw07_you2018_degadv
+- basename: bal_w0725_you_2018_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_degonly_full
+    ctx: bal_w0725_you_2018_score_degonly_ctx
+    ss: bal_w0725_you_2018_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_degonly
+  short_name: bw07_you2018_degonly
+- basename: bal_w0725_you_2018_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_hw_full
+    ctx: bal_w0725_you_2018_score_hw_ctx
+    ss: bal_w0725_you_2018_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_hw
+  short_name: bw07_you2018_hw
+- basename: bal_w0725_you_2018_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_negadv_full
+    ctx: bal_w0725_you_2018_score_negadv_ctx
+    ss: bal_w0725_you_2018_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_negadv
+  short_name: bw07_you2018_negadv
+- basename: bal_w0725_you_2018_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_negdeg_full
+    ctx: bal_w0725_you_2018_score_negdeg_ctx
+    ss: bal_w0725_you_2018_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_negdeg
+  short_name: bw07_you2018_negdeg
+- basename: bal_w0725_you_2018_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_negonly_full
+    ctx: bal_w0725_you_2018_score_negonly_ctx
+    ss: bal_w0725_you_2018_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_negonly
+  short_name: bw07_you2018_negonly
+- basename: bal_w0725_you_2018_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_raw_full
+    ctx: bal_w0725_you_2018_score_raw_ctx
+    ss: bal_w0725_you_2018_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_raw
+  short_name: bw07_you2018_raw
+- basename: bal_w0725_you_2018_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w0725_you_2018_score_w_full
+    ctx: bal_w0725_you_2018_score_w_ctx
+    ss: bal_w0725_you_2018_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w0725_you_2018_score_w
+  short_name: bw07_you2018_w
+- basename: bal_w1025_bian_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_full
+    ctx: bal_w1025_bian_2021_score_ctx
+    ss: bal_w1025_bian_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score
+  short_name: bw10_bian2021
+- basename: bal_w1025_bian_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_advonly_full
+    ctx: bal_w1025_bian_2021_score_advonly_ctx
+    ss: bal_w1025_bian_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_advonly
+  short_name: bw10_bian2021_advonly
+- basename: bal_w1025_bian_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_degadv_full
+    ctx: bal_w1025_bian_2021_score_degadv_ctx
+    ss: bal_w1025_bian_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_degadv
+  short_name: bw10_bian2021_degadv
+- basename: bal_w1025_bian_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_degonly_full
+    ctx: bal_w1025_bian_2021_score_degonly_ctx
+    ss: bal_w1025_bian_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_degonly
+  short_name: bw10_bian2021_degonly
+- basename: bal_w1025_bian_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_hw_full
+    ctx: bal_w1025_bian_2021_score_hw_ctx
+    ss: bal_w1025_bian_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_hw
+  short_name: bw10_bian2021_hw
+- basename: bal_w1025_bian_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_negadv_full
+    ctx: bal_w1025_bian_2021_score_negadv_ctx
+    ss: bal_w1025_bian_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_negadv
+  short_name: bw10_bian2021_negadv
+- basename: bal_w1025_bian_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_negdeg_full
+    ctx: bal_w1025_bian_2021_score_negdeg_ctx
+    ss: bal_w1025_bian_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_negdeg
+  short_name: bw10_bian2021_negdeg
+- basename: bal_w1025_bian_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_negonly_full
+    ctx: bal_w1025_bian_2021_score_negonly_ctx
+    ss: bal_w1025_bian_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_negonly
+  short_name: bw10_bian2021_negonly
+- basename: bal_w1025_bian_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_raw_full
+    ctx: bal_w1025_bian_2021_score_raw_ctx
+    ss: bal_w1025_bian_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_raw
+  short_name: bw10_bian2021_raw
+- basename: bal_w1025_bian_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_bian_2021_score_w_full
+    ctx: bal_w1025_bian_2021_score_w_ctx
+    ss: bal_w1025_bian_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_bian_2021_score_w
+  short_name: bw10_bian2021_w
+- basename: bal_w1025_deepseekv4_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_deepseekv4_score_full
+    ctx: bal_w1025_deepseekv4_score_ctx
+    ss: bal_w1025_deepseekv4_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_deepseekv4_score
+  short_name: bw10_deepseekv4_score
+- basename: bal_w1025_deepseekv4_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_deepseekv4_score_hw_full
+    ctx: bal_w1025_deepseekv4_score_hw_ctx
+    ss: bal_w1025_deepseekv4_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_deepseekv4_score_hw
+  short_name: bw10_deepseekv4_score_hw
+- basename: bal_w1025_deepseekv4_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_deepseekv4_score_w_full
+    ctx: bal_w1025_deepseekv4_score_w_ctx
+    ss: bal_w1025_deepseekv4_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_deepseekv4_score_w
+  short_name: bw10_deepseekv4_score_w
+- basename: bal_w1025_du_2022_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_full
+    ctx: bal_w1025_du_2022_score_ctx
+    ss: bal_w1025_du_2022_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score
+  short_name: bal_w1025_du_2022_score
+- basename: bal_w1025_du_2022_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_advonly_full
+    ctx: bal_w1025_du_2022_score_advonly_ctx
+    ss: bal_w1025_du_2022_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_advonly
+  short_name: bw10_du2022_advonly
+- basename: bal_w1025_du_2022_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_degadv_full
+    ctx: bal_w1025_du_2022_score_degadv_ctx
+    ss: bal_w1025_du_2022_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_degadv
+  short_name: bw10_du2022_degadv
+- basename: bal_w1025_du_2022_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_degonly_full
+    ctx: bal_w1025_du_2022_score_degonly_ctx
+    ss: bal_w1025_du_2022_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_degonly
+  short_name: bw10_du2022_degonly
+- basename: bal_w1025_du_2022_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_hw_full
+    ctx: bal_w1025_du_2022_score_hw_ctx
+    ss: bal_w1025_du_2022_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_hw
+  short_name: bw10_du2022_hw
+- basename: bal_w1025_du_2022_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_negadv_full
+    ctx: bal_w1025_du_2022_score_negadv_ctx
+    ss: bal_w1025_du_2022_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_negadv
+  short_name: bw10_du2022_negadv
+- basename: bal_w1025_du_2022_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_negdeg_full
+    ctx: bal_w1025_du_2022_score_negdeg_ctx
+    ss: bal_w1025_du_2022_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_negdeg
+  short_name: bw10_du2022_negdeg
+- basename: bal_w1025_du_2022_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_negonly_full
+    ctx: bal_w1025_du_2022_score_negonly_ctx
+    ss: bal_w1025_du_2022_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_negonly
+  short_name: bw10_du2022_negonly
+- basename: bal_w1025_du_2022_score_polw00
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_polw00_full
+    ctx: bal_w1025_du_2022_score_polw00_ctx
+    ss: bal_w1025_du_2022_score_polw00_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_polw00
+  short_name: bw10_du2022_polw00
+- basename: bal_w1025_du_2022_score_polw05
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_polw05_full
+    ctx: bal_w1025_du_2022_score_polw05_ctx
+    ss: bal_w1025_du_2022_score_polw05_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_polw05
+  short_name: bw10_du2022_polw05
+- basename: bal_w1025_du_2022_score_polw10
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_polw10_full
+    ctx: bal_w1025_du_2022_score_polw10_ctx
+    ss: bal_w1025_du_2022_score_polw10_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_polw10
+  short_name: bw10_du2022_polw10
+- basename: bal_w1025_du_2022_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_raw_full
+    ctx: bal_w1025_du_2022_score_raw_ctx
+    ss: bal_w1025_du_2022_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_raw
+  short_name: bw10_du2022_raw
+- basename: bal_w1025_du_2022_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_du_2022_score_w_full
+    ctx: bal_w1025_du_2022_score_w_ctx
+    ss: bal_w1025_du_2022_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_du_2022_score_w
+  short_name: bw10_du2022_w
+- basename: bal_w1025_fin_sent_zh_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_fin_sent_zh_正面_full
+    ctx: bal_w1025_fin_sent_zh_正面_ctx
+    ss: bal_w1025_fin_sent_zh_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_fin_sent_zh_正面
+  short_name: bal_w1025_fin_sent_zh_正面
+- basename: bal_w1025_fin_sent_zh_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_fin_sent_zh_正面_hw_full
+    ctx: bal_w1025_fin_sent_zh_正面_hw_ctx
+    ss: bal_w1025_fin_sent_zh_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_fin_sent_zh_正面_hw
+  short_name: bw10_fin_sent_zh_正面_hw
+- basename: bal_w1025_fin_sent_zh_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_fin_sent_zh_正面_w_full
+    ctx: bal_w1025_fin_sent_zh_正面_w_ctx
+    ss: bal_w1025_fin_sent_zh_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_fin_sent_zh_正面_w
+  short_name: bw10_fin_sent_zh_正面_w
+- basename: bal_w1025_finbert2_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_finbert2_正面_full
+    ctx: bal_w1025_finbert2_正面_ctx
+    ss: bal_w1025_finbert2_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_finbert2_正面
+  short_name: bal_w1025_finbert2_正面
+- basename: bal_w1025_finbert2_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_finbert2_正面_hw_full
+    ctx: bal_w1025_finbert2_正面_hw_ctx
+    ss: bal_w1025_finbert2_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_finbert2_正面_hw
+  short_name: bal_w1025_finbert2_正面_hw
+- basename: bal_w1025_finbert2_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_finbert2_正面_w_full
+    ctx: bal_w1025_finbert2_正面_w_ctx
+    ss: bal_w1025_finbert2_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_finbert2_正面_w
+  short_name: bal_w1025_finbert2_正面_w
+- basename: bal_w1025_finbert_cn_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_finbert_cn_正面_full
+    ctx: bal_w1025_finbert_cn_正面_ctx
+    ss: bal_w1025_finbert_cn_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_finbert_cn_正面
+  short_name: bal_w1025_finbert_cn_正面
+- basename: bal_w1025_finbert_cn_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_finbert_cn_正面_hw_full
+    ctx: bal_w1025_finbert_cn_正面_hw_ctx
+    ss: bal_w1025_finbert_cn_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_finbert_cn_正面_hw
+  short_name: bw10_finbert_cn_正面_hw
+- basename: bal_w1025_finbert_cn_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_finbert_cn_正面_w_full
+    ctx: bal_w1025_finbert_cn_正面_w_ctx
+    ss: bal_w1025_finbert_cn_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_finbert_cn_正面_w
+  short_name: bw10_finbert_cn_正面_w
+- basename: bal_w1025_gemini31_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_gemini31_score_full
+    ctx: bal_w1025_gemini31_score_ctx
+    ss: bal_w1025_gemini31_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_gemini31_score
+  short_name: bal_w1025_gemini31_score
+- basename: bal_w1025_gemini31_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_gemini31_score_hw_full
+    ctx: bal_w1025_gemini31_score_hw_ctx
+    ss: bal_w1025_gemini31_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_gemini31_score_hw
+  short_name: bw10_gemini31_score_hw
+- basename: bal_w1025_gemini31_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_gemini31_score_w_full
+    ctx: bal_w1025_gemini31_score_w_ctx
+    ss: bal_w1025_gemini31_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_gemini31_score_w
+  short_name: bw10_gemini31_score_w
+- basename: bal_w1025_gpt54nano_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_gpt54nano_score_full
+    ctx: bal_w1025_gpt54nano_score_ctx
+    ss: bal_w1025_gpt54nano_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_gpt54nano_score
+  short_name: bw10_gpt54nano_score
+- basename: bal_w1025_gpt54nano_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_gpt54nano_score_hw_full
+    ctx: bal_w1025_gpt54nano_score_hw_ctx
+    ss: bal_w1025_gpt54nano_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_gpt54nano_score_hw
+  short_name: bw10_gpt54nano_score_hw
+- basename: bal_w1025_gpt54nano_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_gpt54nano_score_w_full
+    ctx: bal_w1025_gpt54nano_score_w_ctx
+    ss: bal_w1025_gpt54nano_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_gpt54nano_score_w
+  short_name: bw10_gpt54nano_score_w
+- basename: bal_w1025_jiang_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_full
+    ctx: bal_w1025_jiang_2021_score_ctx
+    ss: bal_w1025_jiang_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score
+  short_name: bw10_jiang2021
+- basename: bal_w1025_jiang_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_advonly_full
+    ctx: bal_w1025_jiang_2021_score_advonly_ctx
+    ss: bal_w1025_jiang_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_advonly
+  short_name: bw10_jiang2021_advonly
+- basename: bal_w1025_jiang_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_degadv_full
+    ctx: bal_w1025_jiang_2021_score_degadv_ctx
+    ss: bal_w1025_jiang_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_degadv
+  short_name: bw10_jiang2021_degadv
+- basename: bal_w1025_jiang_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_degonly_full
+    ctx: bal_w1025_jiang_2021_score_degonly_ctx
+    ss: bal_w1025_jiang_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_degonly
+  short_name: bw10_jiang2021_degonly
+- basename: bal_w1025_jiang_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_hw_full
+    ctx: bal_w1025_jiang_2021_score_hw_ctx
+    ss: bal_w1025_jiang_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_hw
+  short_name: bw10_jiang2021_hw
+- basename: bal_w1025_jiang_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_negadv_full
+    ctx: bal_w1025_jiang_2021_score_negadv_ctx
+    ss: bal_w1025_jiang_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_negadv
+  short_name: bw10_jiang2021_negadv
+- basename: bal_w1025_jiang_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_negdeg_full
+    ctx: bal_w1025_jiang_2021_score_negdeg_ctx
+    ss: bal_w1025_jiang_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_negdeg
+  short_name: bw10_jiang2021_negdeg
+- basename: bal_w1025_jiang_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_negonly_full
+    ctx: bal_w1025_jiang_2021_score_negonly_ctx
+    ss: bal_w1025_jiang_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_negonly
+  short_name: bw10_jiang2021_negonly
+- basename: bal_w1025_jiang_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_raw_full
+    ctx: bal_w1025_jiang_2021_score_raw_ctx
+    ss: bal_w1025_jiang_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_raw
+  short_name: bw10_jiang2021_raw
+- basename: bal_w1025_jiang_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_jiang_2021_score_w_full
+    ctx: bal_w1025_jiang_2021_score_w_ctx
+    ss: bal_w1025_jiang_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_jiang_2021_score_w
+  short_name: bw10_jiang2021_w
+- basename: bal_w1025_loughran_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_full
+    ctx: bal_w1025_loughran_score_ctx
+    ss: bal_w1025_loughran_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score
+  short_name: bal_w1025_loughran_score
+- basename: bal_w1025_loughran_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_advonly_full
+    ctx: bal_w1025_loughran_score_advonly_ctx
+    ss: bal_w1025_loughran_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_advonly
+  short_name: bw10_lough_advonly
+- basename: bal_w1025_loughran_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_degadv_full
+    ctx: bal_w1025_loughran_score_degadv_ctx
+    ss: bal_w1025_loughran_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_degadv
+  short_name: bw10_lough_degadv
+- basename: bal_w1025_loughran_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_degonly_full
+    ctx: bal_w1025_loughran_score_degonly_ctx
+    ss: bal_w1025_loughran_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_degonly
+  short_name: bw10_lough_degonly
+- basename: bal_w1025_loughran_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_hw_full
+    ctx: bal_w1025_loughran_score_hw_ctx
+    ss: bal_w1025_loughran_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_hw
+  short_name: bw10_lough_hw
+- basename: bal_w1025_loughran_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_negadv_full
+    ctx: bal_w1025_loughran_score_negadv_ctx
+    ss: bal_w1025_loughran_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_negadv
+  short_name: bw10_lough_negadv
+- basename: bal_w1025_loughran_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_negdeg_full
+    ctx: bal_w1025_loughran_score_negdeg_ctx
+    ss: bal_w1025_loughran_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_negdeg
+  short_name: bw10_lough_negdeg
+- basename: bal_w1025_loughran_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_negonly_full
+    ctx: bal_w1025_loughran_score_negonly_ctx
+    ss: bal_w1025_loughran_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_negonly
+  short_name: bw10_lough_negonly
+- basename: bal_w1025_loughran_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_raw_full
+    ctx: bal_w1025_loughran_score_raw_ctx
+    ss: bal_w1025_loughran_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_raw
+  short_name: bw10_lough_raw
+- basename: bal_w1025_loughran_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_loughran_score_w_full
+    ctx: bal_w1025_loughran_score_w_ctx
+    ss: bal_w1025_loughran_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_loughran_score_w
+  short_name: bw10_lough_w
+- basename: bal_w1025_tone
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_tone_full
+    ctx: bal_w1025_tone_ctx
+    ss: bal_w1025_tone_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: tone
+  label_elems:
+    family: BAL
+    base: bal_w1025_tone
+  short_name: bal_w1025_tone
+- basename: bal_w1025_yao_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_full
+    ctx: bal_w1025_yao_2021_score_ctx
+    ss: bal_w1025_yao_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score
+  short_name: bal_w1025_yao_2021_score
+- basename: bal_w1025_yao_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_advonly_full
+    ctx: bal_w1025_yao_2021_score_advonly_ctx
+    ss: bal_w1025_yao_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_advonly
+  short_name: bw10_yao2021_advonly
+- basename: bal_w1025_yao_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_degadv_full
+    ctx: bal_w1025_yao_2021_score_degadv_ctx
+    ss: bal_w1025_yao_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_degadv
+  short_name: bw10_yao2021_degadv
+- basename: bal_w1025_yao_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_degonly_full
+    ctx: bal_w1025_yao_2021_score_degonly_ctx
+    ss: bal_w1025_yao_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_degonly
+  short_name: bw10_yao2021_degonly
+- basename: bal_w1025_yao_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_hw_full
+    ctx: bal_w1025_yao_2021_score_hw_ctx
+    ss: bal_w1025_yao_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_hw
+  short_name: bw10_yao2021_hw
+- basename: bal_w1025_yao_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_negadv_full
+    ctx: bal_w1025_yao_2021_score_negadv_ctx
+    ss: bal_w1025_yao_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_negadv
+  short_name: bw10_yao2021_negadv
+- basename: bal_w1025_yao_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_negdeg_full
+    ctx: bal_w1025_yao_2021_score_negdeg_ctx
+    ss: bal_w1025_yao_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_negdeg
+  short_name: bw10_yao2021_negdeg
+- basename: bal_w1025_yao_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_negonly_full
+    ctx: bal_w1025_yao_2021_score_negonly_ctx
+    ss: bal_w1025_yao_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_negonly
+  short_name: bw10_yao2021_negonly
+- basename: bal_w1025_yao_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_raw_full
+    ctx: bal_w1025_yao_2021_score_raw_ctx
+    ss: bal_w1025_yao_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_raw
+  short_name: bw10_yao2021_raw
+- basename: bal_w1025_yao_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_yao_2021_score_w_full
+    ctx: bal_w1025_yao_2021_score_w_ctx
+    ss: bal_w1025_yao_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_yao_2021_score_w
+  short_name: bw10_yao2021_w
+- basename: bal_w1025_you_2018_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_full
+    ctx: bal_w1025_you_2018_score_ctx
+    ss: bal_w1025_you_2018_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score
+  short_name: bal_w1025_you_2018_score
+- basename: bal_w1025_you_2018_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_advonly_full
+    ctx: bal_w1025_you_2018_score_advonly_ctx
+    ss: bal_w1025_you_2018_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_advonly
+  short_name: bw10_you2018_advonly
+- basename: bal_w1025_you_2018_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_degadv_full
+    ctx: bal_w1025_you_2018_score_degadv_ctx
+    ss: bal_w1025_you_2018_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_degadv
+  short_name: bw10_you2018_degadv
+- basename: bal_w1025_you_2018_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_degonly_full
+    ctx: bal_w1025_you_2018_score_degonly_ctx
+    ss: bal_w1025_you_2018_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_degonly
+  short_name: bw10_you2018_degonly
+- basename: bal_w1025_you_2018_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_hw_full
+    ctx: bal_w1025_you_2018_score_hw_ctx
+    ss: bal_w1025_you_2018_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_hw
+  short_name: bw10_you2018_hw
+- basename: bal_w1025_you_2018_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_negadv_full
+    ctx: bal_w1025_you_2018_score_negadv_ctx
+    ss: bal_w1025_you_2018_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_negadv
+  short_name: bw10_you2018_negadv
+- basename: bal_w1025_you_2018_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_negdeg_full
+    ctx: bal_w1025_you_2018_score_negdeg_ctx
+    ss: bal_w1025_you_2018_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_negdeg
+  short_name: bw10_you2018_negdeg
+- basename: bal_w1025_you_2018_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_negonly_full
+    ctx: bal_w1025_you_2018_score_negonly_ctx
+    ss: bal_w1025_you_2018_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_negonly
+  short_name: bw10_you2018_negonly
+- basename: bal_w1025_you_2018_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_raw_full
+    ctx: bal_w1025_you_2018_score_raw_ctx
+    ss: bal_w1025_you_2018_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_raw
+  short_name: bw10_you2018_raw
+- basename: bal_w1025_you_2018_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1025_you_2018_score_w_full
+    ctx: bal_w1025_you_2018_score_w_ctx
+    ss: bal_w1025_you_2018_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1025_you_2018_score_w
+  short_name: bw10_you2018_w
+- basename: bal_w1125_bian_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_full
+    ctx: bal_w1125_bian_2021_score_ctx
+    ss: bal_w1125_bian_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score
+  short_name: bw11_bian2021
+- basename: bal_w1125_bian_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_advonly_full
+    ctx: bal_w1125_bian_2021_score_advonly_ctx
+    ss: bal_w1125_bian_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_advonly
+  short_name: bw11_bian2021_advonly
+- basename: bal_w1125_bian_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_degadv_full
+    ctx: bal_w1125_bian_2021_score_degadv_ctx
+    ss: bal_w1125_bian_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_degadv
+  short_name: bw11_bian2021_degadv
+- basename: bal_w1125_bian_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_degonly_full
+    ctx: bal_w1125_bian_2021_score_degonly_ctx
+    ss: bal_w1125_bian_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_degonly
+  short_name: bw11_bian2021_degonly
+- basename: bal_w1125_bian_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_hw_full
+    ctx: bal_w1125_bian_2021_score_hw_ctx
+    ss: bal_w1125_bian_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_hw
+  short_name: bw11_bian2021_hw
+- basename: bal_w1125_bian_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_negadv_full
+    ctx: bal_w1125_bian_2021_score_negadv_ctx
+    ss: bal_w1125_bian_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_negadv
+  short_name: bw11_bian2021_negadv
+- basename: bal_w1125_bian_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_negdeg_full
+    ctx: bal_w1125_bian_2021_score_negdeg_ctx
+    ss: bal_w1125_bian_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_negdeg
+  short_name: bw11_bian2021_negdeg
+- basename: bal_w1125_bian_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_negonly_full
+    ctx: bal_w1125_bian_2021_score_negonly_ctx
+    ss: bal_w1125_bian_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_negonly
+  short_name: bw11_bian2021_negonly
+- basename: bal_w1125_bian_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_raw_full
+    ctx: bal_w1125_bian_2021_score_raw_ctx
+    ss: bal_w1125_bian_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_raw
+  short_name: bw11_bian2021_raw
+- basename: bal_w1125_bian_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_bian_2021_score_w_full
+    ctx: bal_w1125_bian_2021_score_w_ctx
+    ss: bal_w1125_bian_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_bian_2021_score_w
+  short_name: bw11_bian2021_w
+- basename: bal_w1125_deepseekv4_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_deepseekv4_score_full
+    ctx: bal_w1125_deepseekv4_score_ctx
+    ss: bal_w1125_deepseekv4_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_deepseekv4_score
+  short_name: bw11_deepseekv4_score
+- basename: bal_w1125_deepseekv4_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_deepseekv4_score_hw_full
+    ctx: bal_w1125_deepseekv4_score_hw_ctx
+    ss: bal_w1125_deepseekv4_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_deepseekv4_score_hw
+  short_name: bw11_deepseekv4_score_hw
+- basename: bal_w1125_deepseekv4_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_deepseekv4_score_w_full
+    ctx: bal_w1125_deepseekv4_score_w_ctx
+    ss: bal_w1125_deepseekv4_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_deepseekv4_score_w
+  short_name: bw11_deepseekv4_score_w
+- basename: bal_w1125_du_2022_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_full
+    ctx: bal_w1125_du_2022_score_ctx
+    ss: bal_w1125_du_2022_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score
+  short_name: bal_w1125_du_2022_score
+- basename: bal_w1125_du_2022_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_advonly_full
+    ctx: bal_w1125_du_2022_score_advonly_ctx
+    ss: bal_w1125_du_2022_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_advonly
+  short_name: bw11_du2022_advonly
+- basename: bal_w1125_du_2022_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_degadv_full
+    ctx: bal_w1125_du_2022_score_degadv_ctx
+    ss: bal_w1125_du_2022_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_degadv
+  short_name: bw11_du2022_degadv
+- basename: bal_w1125_du_2022_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_degonly_full
+    ctx: bal_w1125_du_2022_score_degonly_ctx
+    ss: bal_w1125_du_2022_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_degonly
+  short_name: bw11_du2022_degonly
+- basename: bal_w1125_du_2022_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_hw_full
+    ctx: bal_w1125_du_2022_score_hw_ctx
+    ss: bal_w1125_du_2022_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_hw
+  short_name: bw11_du2022_hw
+- basename: bal_w1125_du_2022_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_negadv_full
+    ctx: bal_w1125_du_2022_score_negadv_ctx
+    ss: bal_w1125_du_2022_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_negadv
+  short_name: bw11_du2022_negadv
+- basename: bal_w1125_du_2022_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_negdeg_full
+    ctx: bal_w1125_du_2022_score_negdeg_ctx
+    ss: bal_w1125_du_2022_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_negdeg
+  short_name: bw11_du2022_negdeg
+- basename: bal_w1125_du_2022_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_negonly_full
+    ctx: bal_w1125_du_2022_score_negonly_ctx
+    ss: bal_w1125_du_2022_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_negonly
+  short_name: bw11_du2022_negonly
+- basename: bal_w1125_du_2022_score_polw00
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_polw00_full
+    ctx: bal_w1125_du_2022_score_polw00_ctx
+    ss: bal_w1125_du_2022_score_polw00_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_polw00
+  short_name: bw11_du2022_polw00
+- basename: bal_w1125_du_2022_score_polw05
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_polw05_full
+    ctx: bal_w1125_du_2022_score_polw05_ctx
+    ss: bal_w1125_du_2022_score_polw05_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_polw05
+  short_name: bw11_du2022_polw05
+- basename: bal_w1125_du_2022_score_polw10
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_polw10_full
+    ctx: bal_w1125_du_2022_score_polw10_ctx
+    ss: bal_w1125_du_2022_score_polw10_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_polw10
+  short_name: bw11_du2022_polw10
+- basename: bal_w1125_du_2022_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_raw_full
+    ctx: bal_w1125_du_2022_score_raw_ctx
+    ss: bal_w1125_du_2022_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_raw
+  short_name: bw11_du2022_raw
+- basename: bal_w1125_du_2022_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_du_2022_score_w_full
+    ctx: bal_w1125_du_2022_score_w_ctx
+    ss: bal_w1125_du_2022_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_du_2022_score_w
+  short_name: bw11_du2022_w
+- basename: bal_w1125_fin_sent_zh_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_fin_sent_zh_正面_full
+    ctx: bal_w1125_fin_sent_zh_正面_ctx
+    ss: bal_w1125_fin_sent_zh_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_fin_sent_zh_正面
+  short_name: bal_w1125_fin_sent_zh_正面
+- basename: bal_w1125_fin_sent_zh_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_fin_sent_zh_正面_hw_full
+    ctx: bal_w1125_fin_sent_zh_正面_hw_ctx
+    ss: bal_w1125_fin_sent_zh_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_fin_sent_zh_正面_hw
+  short_name: bw11_fin_sent_zh_正面_hw
+- basename: bal_w1125_fin_sent_zh_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_fin_sent_zh_正面_w_full
+    ctx: bal_w1125_fin_sent_zh_正面_w_ctx
+    ss: bal_w1125_fin_sent_zh_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_fin_sent_zh_正面_w
+  short_name: bw11_fin_sent_zh_正面_w
+- basename: bal_w1125_finbert2_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_finbert2_正面_full
+    ctx: bal_w1125_finbert2_正面_ctx
+    ss: bal_w1125_finbert2_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_finbert2_正面
+  short_name: bal_w1125_finbert2_正面
+- basename: bal_w1125_finbert2_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_finbert2_正面_hw_full
+    ctx: bal_w1125_finbert2_正面_hw_ctx
+    ss: bal_w1125_finbert2_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_finbert2_正面_hw
+  short_name: bal_w1125_finbert2_正面_hw
+- basename: bal_w1125_finbert2_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_finbert2_正面_w_full
+    ctx: bal_w1125_finbert2_正面_w_ctx
+    ss: bal_w1125_finbert2_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_finbert2_正面_w
+  short_name: bal_w1125_finbert2_正面_w
+- basename: bal_w1125_finbert_cn_正面
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_finbert_cn_正面_full
+    ctx: bal_w1125_finbert_cn_正面_ctx
+    ss: bal_w1125_finbert_cn_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_finbert_cn_正面
+  short_name: bal_w1125_finbert_cn_正面
+- basename: bal_w1125_finbert_cn_正面_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_finbert_cn_正面_hw_full
+    ctx: bal_w1125_finbert_cn_正面_hw_ctx
+    ss: bal_w1125_finbert_cn_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_finbert_cn_正面_hw
+  short_name: bw11_finbert_cn_正面_hw
+- basename: bal_w1125_finbert_cn_正面_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_finbert_cn_正面_w_full
+    ctx: bal_w1125_finbert_cn_正面_w_ctx
+    ss: bal_w1125_finbert_cn_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_finbert_cn_正面_w
+  short_name: bw11_finbert_cn_正面_w
+- basename: bal_w1125_gemini31_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_gemini31_score_full
+    ctx: bal_w1125_gemini31_score_ctx
+    ss: bal_w1125_gemini31_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_gemini31_score
+  short_name: bal_w1125_gemini31_score
+- basename: bal_w1125_gemini31_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_gemini31_score_hw_full
+    ctx: bal_w1125_gemini31_score_hw_ctx
+    ss: bal_w1125_gemini31_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_gemini31_score_hw
+  short_name: bw11_gemini31_score_hw
+- basename: bal_w1125_gemini31_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_gemini31_score_w_full
+    ctx: bal_w1125_gemini31_score_w_ctx
+    ss: bal_w1125_gemini31_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_gemini31_score_w
+  short_name: bw11_gemini31_score_w
+- basename: bal_w1125_gpt54nano_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_gpt54nano_score_full
+    ctx: bal_w1125_gpt54nano_score_ctx
+    ss: bal_w1125_gpt54nano_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_gpt54nano_score
+  short_name: bw11_gpt54nano_score
+- basename: bal_w1125_gpt54nano_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_gpt54nano_score_hw_full
+    ctx: bal_w1125_gpt54nano_score_hw_ctx
+    ss: bal_w1125_gpt54nano_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_gpt54nano_score_hw
+  short_name: bw11_gpt54nano_score_hw
+- basename: bal_w1125_gpt54nano_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_gpt54nano_score_w_full
+    ctx: bal_w1125_gpt54nano_score_w_ctx
+    ss: bal_w1125_gpt54nano_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_gpt54nano_score_w
+  short_name: bw11_gpt54nano_score_w
+- basename: bal_w1125_jiang_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_full
+    ctx: bal_w1125_jiang_2021_score_ctx
+    ss: bal_w1125_jiang_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score
+  short_name: bw11_jiang2021
+- basename: bal_w1125_jiang_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_advonly_full
+    ctx: bal_w1125_jiang_2021_score_advonly_ctx
+    ss: bal_w1125_jiang_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_advonly
+  short_name: bw11_jiang2021_advonly
+- basename: bal_w1125_jiang_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_degadv_full
+    ctx: bal_w1125_jiang_2021_score_degadv_ctx
+    ss: bal_w1125_jiang_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_degadv
+  short_name: bw11_jiang2021_degadv
+- basename: bal_w1125_jiang_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_degonly_full
+    ctx: bal_w1125_jiang_2021_score_degonly_ctx
+    ss: bal_w1125_jiang_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_degonly
+  short_name: bw11_jiang2021_degonly
+- basename: bal_w1125_jiang_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_hw_full
+    ctx: bal_w1125_jiang_2021_score_hw_ctx
+    ss: bal_w1125_jiang_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_hw
+  short_name: bw11_jiang2021_hw
+- basename: bal_w1125_jiang_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_negadv_full
+    ctx: bal_w1125_jiang_2021_score_negadv_ctx
+    ss: bal_w1125_jiang_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_negadv
+  short_name: bw11_jiang2021_negadv
+- basename: bal_w1125_jiang_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_negdeg_full
+    ctx: bal_w1125_jiang_2021_score_negdeg_ctx
+    ss: bal_w1125_jiang_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_negdeg
+  short_name: bw11_jiang2021_negdeg
+- basename: bal_w1125_jiang_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_negonly_full
+    ctx: bal_w1125_jiang_2021_score_negonly_ctx
+    ss: bal_w1125_jiang_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_negonly
+  short_name: bw11_jiang2021_negonly
+- basename: bal_w1125_jiang_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_raw_full
+    ctx: bal_w1125_jiang_2021_score_raw_ctx
+    ss: bal_w1125_jiang_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_raw
+  short_name: bw11_jiang2021_raw
+- basename: bal_w1125_jiang_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_jiang_2021_score_w_full
+    ctx: bal_w1125_jiang_2021_score_w_ctx
+    ss: bal_w1125_jiang_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_jiang_2021_score_w
+  short_name: bw11_jiang2021_w
+- basename: bal_w1125_loughran_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_full
+    ctx: bal_w1125_loughran_score_ctx
+    ss: bal_w1125_loughran_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score
+  short_name: bal_w1125_loughran_score
+- basename: bal_w1125_loughran_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_advonly_full
+    ctx: bal_w1125_loughran_score_advonly_ctx
+    ss: bal_w1125_loughran_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_advonly
+  short_name: bw11_lough_advonly
+- basename: bal_w1125_loughran_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_degadv_full
+    ctx: bal_w1125_loughran_score_degadv_ctx
+    ss: bal_w1125_loughran_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_degadv
+  short_name: bw11_lough_degadv
+- basename: bal_w1125_loughran_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_degonly_full
+    ctx: bal_w1125_loughran_score_degonly_ctx
+    ss: bal_w1125_loughran_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_degonly
+  short_name: bw11_lough_degonly
+- basename: bal_w1125_loughran_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_hw_full
+    ctx: bal_w1125_loughran_score_hw_ctx
+    ss: bal_w1125_loughran_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_hw
+  short_name: bw11_lough_hw
+- basename: bal_w1125_loughran_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_negadv_full
+    ctx: bal_w1125_loughran_score_negadv_ctx
+    ss: bal_w1125_loughran_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_negadv
+  short_name: bw11_lough_negadv
+- basename: bal_w1125_loughran_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_negdeg_full
+    ctx: bal_w1125_loughran_score_negdeg_ctx
+    ss: bal_w1125_loughran_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_negdeg
+  short_name: bw11_lough_negdeg
+- basename: bal_w1125_loughran_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_negonly_full
+    ctx: bal_w1125_loughran_score_negonly_ctx
+    ss: bal_w1125_loughran_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_negonly
+  short_name: bw11_lough_negonly
+- basename: bal_w1125_loughran_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_raw_full
+    ctx: bal_w1125_loughran_score_raw_ctx
+    ss: bal_w1125_loughran_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_raw
+  short_name: bw11_lough_raw
+- basename: bal_w1125_loughran_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_loughran_score_w_full
+    ctx: bal_w1125_loughran_score_w_ctx
+    ss: bal_w1125_loughran_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_loughran_score_w
+  short_name: bw11_lough_w
+- basename: bal_w1125_tone
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_tone_full
+    ctx: bal_w1125_tone_ctx
+    ss: bal_w1125_tone_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: tone
+  label_elems:
+    family: BAL
+    base: bal_w1125_tone
+  short_name: bal_w1125_tone
+- basename: bal_w1125_yao_2021_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_full
+    ctx: bal_w1125_yao_2021_score_ctx
+    ss: bal_w1125_yao_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score
+  short_name: bal_w1125_yao_2021_score
+- basename: bal_w1125_yao_2021_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_advonly_full
+    ctx: bal_w1125_yao_2021_score_advonly_ctx
+    ss: bal_w1125_yao_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_advonly
+  short_name: bw11_yao2021_advonly
+- basename: bal_w1125_yao_2021_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_degadv_full
+    ctx: bal_w1125_yao_2021_score_degadv_ctx
+    ss: bal_w1125_yao_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_degadv
+  short_name: bw11_yao2021_degadv
+- basename: bal_w1125_yao_2021_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_degonly_full
+    ctx: bal_w1125_yao_2021_score_degonly_ctx
+    ss: bal_w1125_yao_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_degonly
+  short_name: bw11_yao2021_degonly
+- basename: bal_w1125_yao_2021_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_hw_full
+    ctx: bal_w1125_yao_2021_score_hw_ctx
+    ss: bal_w1125_yao_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_hw
+  short_name: bw11_yao2021_hw
+- basename: bal_w1125_yao_2021_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_negadv_full
+    ctx: bal_w1125_yao_2021_score_negadv_ctx
+    ss: bal_w1125_yao_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_negadv
+  short_name: bw11_yao2021_negadv
+- basename: bal_w1125_yao_2021_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_negdeg_full
+    ctx: bal_w1125_yao_2021_score_negdeg_ctx
+    ss: bal_w1125_yao_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_negdeg
+  short_name: bw11_yao2021_negdeg
+- basename: bal_w1125_yao_2021_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_negonly_full
+    ctx: bal_w1125_yao_2021_score_negonly_ctx
+    ss: bal_w1125_yao_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_negonly
+  short_name: bw11_yao2021_negonly
+- basename: bal_w1125_yao_2021_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_raw_full
+    ctx: bal_w1125_yao_2021_score_raw_ctx
+    ss: bal_w1125_yao_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_raw
+  short_name: bw11_yao2021_raw
+- basename: bal_w1125_yao_2021_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_yao_2021_score_w_full
+    ctx: bal_w1125_yao_2021_score_w_ctx
+    ss: bal_w1125_yao_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_yao_2021_score_w
+  short_name: bw11_yao2021_w
+- basename: bal_w1125_you_2018_score
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_full
+    ctx: bal_w1125_you_2018_score_ctx
+    ss: bal_w1125_you_2018_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score
+  short_name: bal_w1125_you_2018_score
+- basename: bal_w1125_you_2018_score_advonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_advonly_full
+    ctx: bal_w1125_you_2018_score_advonly_ctx
+    ss: bal_w1125_you_2018_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_advonly
+  short_name: bw11_you2018_advonly
+- basename: bal_w1125_you_2018_score_degadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_degadv_full
+    ctx: bal_w1125_you_2018_score_degadv_ctx
+    ss: bal_w1125_you_2018_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_degadv
+  short_name: bw11_you2018_degadv
+- basename: bal_w1125_you_2018_score_degonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_degonly_full
+    ctx: bal_w1125_you_2018_score_degonly_ctx
+    ss: bal_w1125_you_2018_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_degonly
+  short_name: bw11_you2018_degonly
+- basename: bal_w1125_you_2018_score_hw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_hw_full
+    ctx: bal_w1125_you_2018_score_hw_ctx
+    ss: bal_w1125_you_2018_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_hw
+  short_name: bw11_you2018_hw
+- basename: bal_w1125_you_2018_score_negadv
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_negadv_full
+    ctx: bal_w1125_you_2018_score_negadv_ctx
+    ss: bal_w1125_you_2018_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_negadv
+  short_name: bw11_you2018_negadv
+- basename: bal_w1125_you_2018_score_negdeg
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_negdeg_full
+    ctx: bal_w1125_you_2018_score_negdeg_ctx
+    ss: bal_w1125_you_2018_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_negdeg
+  short_name: bw11_you2018_negdeg
+- basename: bal_w1125_you_2018_score_negonly
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_negonly_full
+    ctx: bal_w1125_you_2018_score_negonly_ctx
+    ss: bal_w1125_you_2018_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_negonly
+  short_name: bw11_you2018_negonly
+- basename: bal_w1125_you_2018_score_raw
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_raw_full
+    ctx: bal_w1125_you_2018_score_raw_ctx
+    ss: bal_w1125_you_2018_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_raw
+  short_name: bw11_you2018_raw
+- basename: bal_w1125_you_2018_score_w
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: bal_w1125_you_2018_score_w_full
+    ctx: bal_w1125_you_2018_score_w_ctx
+    ss: bal_w1125_you_2018_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: bal_w1125_you_2018_score_w
+  short_name: bw11_you2018_w
+- basename: n_media_bal_w0725
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: n_media_bal_w0725
+    ctx: n_media_bal_w0725
+    ss: n_media_bal_w0725
+  track_agnostic: true
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: n_media_bal_w0725
+  short_name: n_media_bal_w0725
+- basename: n_media_bal_w1025
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: n_media_bal_w1025
+    ctx: n_media_bal_w1025
+    ss: n_media_bal_w1025
+  track_agnostic: true
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: n_media_bal_w1025
+  short_name: n_media_bal_w1025
+- basename: n_media_bal_w1125
+  family: BAL
+  source: '40'
+  col_by_track:
+    full: n_media_bal_w1125
+    ctx: n_media_bal_w1125
+    ss: n_media_bal_w1125
+  track_agnostic: true
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: BAL
+    base: n_media_bal_w1125
+  short_name: n_media_bal_w1125
 - basename: hidden_adopt_int_p25_allv
   family: AD
   source: '40'
@@ -15677,6 +20657,744 @@ excluded:
   51:avg_you_2018_pos_ratio_ctx: DUP_OF_40
   51:avg_you_2018_pos_ratio_full: DUP_OF_40
   51:avg_you_2018_pos_ratio_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_advonly_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_degadv_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_degonly_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_hw_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_hw_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negadv_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negonly_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_raw_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_raw_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_ss: DUP_OF_40
+  51:bal_w0725_bian_2021_score_w_ctx: DUP_OF_40
+  51:bal_w0725_bian_2021_score_w_full: DUP_OF_40
+  51:bal_w0725_bian_2021_score_w_ss: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_ctx: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_full: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_hw_full: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_hw_ss: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_ss: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_w_ctx: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_w_full: DUP_OF_40
+  51:bal_w0725_deepseekv4_score_w_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_advonly_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_advonly_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_advonly_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_degadv_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_degadv_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_degadv_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_degonly_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_degonly_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_degonly_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_hw_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_hw_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_negadv_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_negadv_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_negadv_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_negdeg_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_negdeg_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_negdeg_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_negonly_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_negonly_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_negonly_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw00_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw00_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw00_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw05_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw05_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw05_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw10_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw10_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_polw10_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_raw_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_raw_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_raw_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_ss: DUP_OF_40
+  51:bal_w0725_du_2022_score_w_ctx: DUP_OF_40
+  51:bal_w0725_du_2022_score_w_full: DUP_OF_40
+  51:bal_w0725_du_2022_score_w_ss: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_ctx: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_full: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_hw_ctx: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_hw_full: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_hw_ss: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_ss: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_w_ctx: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_w_full: DUP_OF_40
+  51:bal_w0725_fin_sent_zh_正面_w_ss: DUP_OF_40
+  51:bal_w0725_finbert2_正面_ctx: DUP_OF_40
+  51:bal_w0725_finbert2_正面_full: DUP_OF_40
+  51:bal_w0725_finbert2_正面_hw_ctx: DUP_OF_40
+  51:bal_w0725_finbert2_正面_hw_full: DUP_OF_40
+  51:bal_w0725_finbert2_正面_hw_ss: DUP_OF_40
+  51:bal_w0725_finbert2_正面_ss: DUP_OF_40
+  51:bal_w0725_finbert2_正面_w_ctx: DUP_OF_40
+  51:bal_w0725_finbert2_正面_w_full: DUP_OF_40
+  51:bal_w0725_finbert2_正面_w_ss: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_ctx: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_full: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_hw_ctx: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_hw_full: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_hw_ss: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_ss: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_w_ctx: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_w_full: DUP_OF_40
+  51:bal_w0725_finbert_cn_正面_w_ss: DUP_OF_40
+  51:bal_w0725_gemini31_score_ctx: DUP_OF_40
+  51:bal_w0725_gemini31_score_full: DUP_OF_40
+  51:bal_w0725_gemini31_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_gemini31_score_hw_full: DUP_OF_40
+  51:bal_w0725_gemini31_score_hw_ss: DUP_OF_40
+  51:bal_w0725_gemini31_score_ss: DUP_OF_40
+  51:bal_w0725_gemini31_score_w_ctx: DUP_OF_40
+  51:bal_w0725_gemini31_score_w_full: DUP_OF_40
+  51:bal_w0725_gemini31_score_w_ss: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_ctx: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_full: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_hw_full: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_hw_ss: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_ss: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_w_ctx: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_w_full: DUP_OF_40
+  51:bal_w0725_gpt54nano_score_w_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_advonly_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_degadv_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_degonly_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_hw_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_hw_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negadv_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negonly_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_raw_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_raw_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_ss: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_w_ctx: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_w_full: DUP_OF_40
+  51:bal_w0725_jiang_2021_score_w_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_advonly_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_advonly_full: DUP_OF_40
+  51:bal_w0725_loughran_score_advonly_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_degadv_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_degadv_full: DUP_OF_40
+  51:bal_w0725_loughran_score_degadv_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_degonly_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_degonly_full: DUP_OF_40
+  51:bal_w0725_loughran_score_degonly_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_full: DUP_OF_40
+  51:bal_w0725_loughran_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_hw_full: DUP_OF_40
+  51:bal_w0725_loughran_score_hw_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_negadv_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_negadv_full: DUP_OF_40
+  51:bal_w0725_loughran_score_negadv_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_negdeg_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_negdeg_full: DUP_OF_40
+  51:bal_w0725_loughran_score_negdeg_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_negonly_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_negonly_full: DUP_OF_40
+  51:bal_w0725_loughran_score_negonly_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_raw_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_raw_full: DUP_OF_40
+  51:bal_w0725_loughran_score_raw_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_ss: DUP_OF_40
+  51:bal_w0725_loughran_score_w_ctx: DUP_OF_40
+  51:bal_w0725_loughran_score_w_full: DUP_OF_40
+  51:bal_w0725_loughran_score_w_ss: DUP_OF_40
+  51:bal_w0725_tone_ctx: DUP_OF_40
+  51:bal_w0725_tone_full: DUP_OF_40
+  51:bal_w0725_tone_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_advonly_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_degadv_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_degonly_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_hw_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_hw_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negadv_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negonly_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_raw_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_raw_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_ss: DUP_OF_40
+  51:bal_w0725_yao_2021_score_w_ctx: DUP_OF_40
+  51:bal_w0725_yao_2021_score_w_full: DUP_OF_40
+  51:bal_w0725_yao_2021_score_w_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_advonly_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_advonly_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_advonly_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_degadv_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_degadv_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_degadv_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_degonly_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_degonly_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_degonly_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_hw_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_hw_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_hw_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_negadv_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_negadv_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_negadv_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_negdeg_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_negdeg_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_negdeg_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_negonly_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_negonly_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_negonly_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_raw_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_raw_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_raw_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_ss: DUP_OF_40
+  51:bal_w0725_you_2018_score_w_ctx: DUP_OF_40
+  51:bal_w0725_you_2018_score_w_full: DUP_OF_40
+  51:bal_w0725_you_2018_score_w_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_advonly_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_degadv_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_degonly_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_hw_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_hw_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negadv_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negonly_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_raw_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_raw_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_ss: DUP_OF_40
+  51:bal_w1025_bian_2021_score_w_ctx: DUP_OF_40
+  51:bal_w1025_bian_2021_score_w_full: DUP_OF_40
+  51:bal_w1025_bian_2021_score_w_ss: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_ctx: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_full: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_hw_full: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_hw_ss: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_ss: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_w_ctx: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_w_full: DUP_OF_40
+  51:bal_w1025_deepseekv4_score_w_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_advonly_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_advonly_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_advonly_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_degadv_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_degadv_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_degadv_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_degonly_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_degonly_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_degonly_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_hw_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_hw_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_negadv_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_negadv_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_negadv_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_negdeg_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_negdeg_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_negonly_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_negonly_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_negonly_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw00_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw00_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw00_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw05_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw05_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw05_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw10_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw10_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_polw10_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_raw_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_raw_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_raw_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_ss: DUP_OF_40
+  51:bal_w1025_du_2022_score_w_ctx: DUP_OF_40
+  51:bal_w1025_du_2022_score_w_full: DUP_OF_40
+  51:bal_w1025_du_2022_score_w_ss: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_ctx: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_full: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_hw_ctx: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_hw_full: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_hw_ss: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_ss: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_w_ctx: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_w_full: DUP_OF_40
+  51:bal_w1025_fin_sent_zh_正面_w_ss: DUP_OF_40
+  51:bal_w1025_finbert2_正面_ctx: DUP_OF_40
+  51:bal_w1025_finbert2_正面_full: DUP_OF_40
+  51:bal_w1025_finbert2_正面_hw_ctx: DUP_OF_40
+  51:bal_w1025_finbert2_正面_hw_full: DUP_OF_40
+  51:bal_w1025_finbert2_正面_hw_ss: DUP_OF_40
+  51:bal_w1025_finbert2_正面_ss: DUP_OF_40
+  51:bal_w1025_finbert2_正面_w_ctx: DUP_OF_40
+  51:bal_w1025_finbert2_正面_w_full: DUP_OF_40
+  51:bal_w1025_finbert2_正面_w_ss: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_ctx: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_full: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_hw_ctx: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_hw_full: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_hw_ss: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_ss: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_w_ctx: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_w_full: DUP_OF_40
+  51:bal_w1025_finbert_cn_正面_w_ss: DUP_OF_40
+  51:bal_w1025_gemini31_score_ctx: DUP_OF_40
+  51:bal_w1025_gemini31_score_full: DUP_OF_40
+  51:bal_w1025_gemini31_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_gemini31_score_hw_full: DUP_OF_40
+  51:bal_w1025_gemini31_score_hw_ss: DUP_OF_40
+  51:bal_w1025_gemini31_score_ss: DUP_OF_40
+  51:bal_w1025_gemini31_score_w_ctx: DUP_OF_40
+  51:bal_w1025_gemini31_score_w_full: DUP_OF_40
+  51:bal_w1025_gemini31_score_w_ss: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_ctx: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_full: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_hw_full: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_hw_ss: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_ss: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_w_ctx: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_w_full: DUP_OF_40
+  51:bal_w1025_gpt54nano_score_w_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_advonly_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_degadv_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_degonly_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_hw_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_hw_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negadv_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negonly_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_raw_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_raw_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_ss: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_w_ctx: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_w_full: DUP_OF_40
+  51:bal_w1025_jiang_2021_score_w_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_advonly_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_advonly_full: DUP_OF_40
+  51:bal_w1025_loughran_score_advonly_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_degadv_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_degadv_full: DUP_OF_40
+  51:bal_w1025_loughran_score_degadv_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_degonly_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_degonly_full: DUP_OF_40
+  51:bal_w1025_loughran_score_degonly_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_full: DUP_OF_40
+  51:bal_w1025_loughran_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_hw_full: DUP_OF_40
+  51:bal_w1025_loughran_score_hw_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_negadv_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_negadv_full: DUP_OF_40
+  51:bal_w1025_loughran_score_negadv_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_negdeg_full: DUP_OF_40
+  51:bal_w1025_loughran_score_negdeg_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_negonly_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_negonly_full: DUP_OF_40
+  51:bal_w1025_loughran_score_negonly_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_raw_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_raw_full: DUP_OF_40
+  51:bal_w1025_loughran_score_raw_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_ss: DUP_OF_40
+  51:bal_w1025_loughran_score_w_ctx: DUP_OF_40
+  51:bal_w1025_loughran_score_w_full: DUP_OF_40
+  51:bal_w1025_loughran_score_w_ss: DUP_OF_40
+  51:bal_w1025_tone_ctx: DUP_OF_40
+  51:bal_w1025_tone_full: DUP_OF_40
+  51:bal_w1025_tone_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_advonly_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_degadv_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_degonly_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_hw_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_hw_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negadv_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negonly_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_raw_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_raw_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_ss: DUP_OF_40
+  51:bal_w1025_yao_2021_score_w_ctx: DUP_OF_40
+  51:bal_w1025_yao_2021_score_w_full: DUP_OF_40
+  51:bal_w1025_yao_2021_score_w_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_advonly_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_advonly_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_advonly_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_degadv_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_degadv_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_degadv_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_degonly_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_degonly_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_degonly_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_hw_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_hw_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_hw_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_negadv_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_negadv_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_negadv_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_negdeg_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_negdeg_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_negonly_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_negonly_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_negonly_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_raw_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_raw_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_raw_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_ss: DUP_OF_40
+  51:bal_w1025_you_2018_score_w_ctx: DUP_OF_40
+  51:bal_w1025_you_2018_score_w_full: DUP_OF_40
+  51:bal_w1025_you_2018_score_w_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_advonly_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_degadv_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_degonly_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_hw_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_hw_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negadv_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negonly_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_raw_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_raw_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_ss: DUP_OF_40
+  51:bal_w1125_bian_2021_score_w_ctx: DUP_OF_40
+  51:bal_w1125_bian_2021_score_w_full: DUP_OF_40
+  51:bal_w1125_bian_2021_score_w_ss: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_ctx: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_full: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_hw_full: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_hw_ss: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_ss: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_w_ctx: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_w_full: DUP_OF_40
+  51:bal_w1125_deepseekv4_score_w_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_advonly_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_advonly_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_advonly_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_degadv_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_degadv_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_degadv_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_degonly_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_degonly_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_degonly_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_hw_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_hw_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_negadv_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_negadv_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_negadv_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_negdeg_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_negdeg_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_negonly_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_negonly_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_negonly_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw00_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw00_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw00_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw05_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw05_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw05_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw10_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw10_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_polw10_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_raw_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_raw_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_raw_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_ss: DUP_OF_40
+  51:bal_w1125_du_2022_score_w_ctx: DUP_OF_40
+  51:bal_w1125_du_2022_score_w_full: DUP_OF_40
+  51:bal_w1125_du_2022_score_w_ss: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_ctx: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_full: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_hw_ctx: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_hw_full: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_hw_ss: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_ss: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_w_ctx: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_w_full: DUP_OF_40
+  51:bal_w1125_fin_sent_zh_正面_w_ss: DUP_OF_40
+  51:bal_w1125_finbert2_正面_ctx: DUP_OF_40
+  51:bal_w1125_finbert2_正面_full: DUP_OF_40
+  51:bal_w1125_finbert2_正面_hw_ctx: DUP_OF_40
+  51:bal_w1125_finbert2_正面_hw_full: DUP_OF_40
+  51:bal_w1125_finbert2_正面_hw_ss: DUP_OF_40
+  51:bal_w1125_finbert2_正面_ss: DUP_OF_40
+  51:bal_w1125_finbert2_正面_w_ctx: DUP_OF_40
+  51:bal_w1125_finbert2_正面_w_full: DUP_OF_40
+  51:bal_w1125_finbert2_正面_w_ss: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_ctx: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_full: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_hw_ctx: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_hw_full: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_hw_ss: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_ss: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_w_ctx: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_w_full: DUP_OF_40
+  51:bal_w1125_finbert_cn_正面_w_ss: DUP_OF_40
+  51:bal_w1125_gemini31_score_ctx: DUP_OF_40
+  51:bal_w1125_gemini31_score_full: DUP_OF_40
+  51:bal_w1125_gemini31_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_gemini31_score_hw_full: DUP_OF_40
+  51:bal_w1125_gemini31_score_hw_ss: DUP_OF_40
+  51:bal_w1125_gemini31_score_ss: DUP_OF_40
+  51:bal_w1125_gemini31_score_w_ctx: DUP_OF_40
+  51:bal_w1125_gemini31_score_w_full: DUP_OF_40
+  51:bal_w1125_gemini31_score_w_ss: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_ctx: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_full: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_hw_full: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_hw_ss: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_ss: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_w_ctx: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_w_full: DUP_OF_40
+  51:bal_w1125_gpt54nano_score_w_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_advonly_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_degadv_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_degonly_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_hw_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_hw_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negadv_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negonly_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_raw_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_raw_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_ss: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_w_ctx: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_w_full: DUP_OF_40
+  51:bal_w1125_jiang_2021_score_w_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_advonly_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_advonly_full: DUP_OF_40
+  51:bal_w1125_loughran_score_advonly_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_degadv_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_degadv_full: DUP_OF_40
+  51:bal_w1125_loughran_score_degadv_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_degonly_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_degonly_full: DUP_OF_40
+  51:bal_w1125_loughran_score_degonly_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_full: DUP_OF_40
+  51:bal_w1125_loughran_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_hw_full: DUP_OF_40
+  51:bal_w1125_loughran_score_hw_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_negadv_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_negadv_full: DUP_OF_40
+  51:bal_w1125_loughran_score_negadv_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_negdeg_full: DUP_OF_40
+  51:bal_w1125_loughran_score_negdeg_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_negonly_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_negonly_full: DUP_OF_40
+  51:bal_w1125_loughran_score_negonly_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_raw_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_raw_full: DUP_OF_40
+  51:bal_w1125_loughran_score_raw_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_ss: DUP_OF_40
+  51:bal_w1125_loughran_score_w_ctx: DUP_OF_40
+  51:bal_w1125_loughran_score_w_full: DUP_OF_40
+  51:bal_w1125_loughran_score_w_ss: DUP_OF_40
+  51:bal_w1125_tone_ctx: DUP_OF_40
+  51:bal_w1125_tone_full: DUP_OF_40
+  51:bal_w1125_tone_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_advonly_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_advonly_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_advonly_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_degadv_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_degadv_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_degadv_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_degonly_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_degonly_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_degonly_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_hw_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_hw_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negadv_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negadv_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negadv_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negdeg_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negdeg_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negonly_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negonly_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_negonly_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_raw_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_raw_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_raw_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_ss: DUP_OF_40
+  51:bal_w1125_yao_2021_score_w_ctx: DUP_OF_40
+  51:bal_w1125_yao_2021_score_w_full: DUP_OF_40
+  51:bal_w1125_yao_2021_score_w_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_advonly_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_advonly_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_advonly_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_degadv_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_degadv_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_degadv_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_degonly_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_degonly_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_degonly_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_hw_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_hw_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_hw_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_negadv_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_negadv_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_negadv_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_negdeg_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_negdeg_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_negdeg_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_negonly_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_negonly_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_negonly_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_raw_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_raw_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_raw_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_ss: DUP_OF_40
+  51:bal_w1125_you_2018_score_w_ctx: DUP_OF_40
+  51:bal_w1125_you_2018_score_w_full: DUP_OF_40
+  51:bal_w1125_you_2018_score_w_ss: DUP_OF_40
   51:bank_avg_nbr_deg: DUP_OF_40
   51:bank_avg_nbr_deg_sent: DUP_OF_40
   51:bank_avg_nbr_deg_win1: DUP_OF_40
@@ -17933,6 +23651,9 @@ excluded:
   51:n_ft_articles_j70w5: DUP_OF_40
   51:n_ft_articles_j75w5: DUP_OF_40
   51:n_ft_articles_j80w10: DUP_OF_40
+  51:n_media_bal_w0725: DUP_OF_40
+  51:n_media_bal_w1025: DUP_OF_40
+  51:n_media_bal_w1125: DUP_OF_40
   51:n_outlets: DUP_OF_40
   51:neg_count_ctx: DUP_OF_40
   51:neg_count_full: DUP_OF_40
