@@ -1852,7 +1852,7 @@ def main():
             logger.warning("  ③ 区分效力: run_diagnostics 返回 None (可用诊断列<2) → "
                            "相关矩阵未生成, 伪造检验区分判读缺失; 多因情感轨列尚未物化 (优雅降级)。")
 
-        # (4) 小样本警告 — 盘面 T=2 仅验证管道正确性, 全量结论以 约1,819万/T=19 为准
+        # (4) 小样本警告 — 早期试跑盘面 T=2 仅验证管道正确性, 全量结论以 约1,819万/T=19 为准
         if 'year' in panel.columns and 'target_bank' in panel.columns:
             _n_years = int(panel['year'].nunique())
             _n_banks = int(panel['target_bank'].nunique())

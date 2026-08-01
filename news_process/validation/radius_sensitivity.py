@@ -588,7 +588,7 @@ def run_sensitivity_analysis(
 
             # Pearson 和 Spearman 相关
             # fix(radius-zerovar-guard, 2026-06-10 + review-closure F1/F4): 零方差(常量分数 —
-            # 词典零命中/空实体窗口/T=2 退化样本)下 pearsonr/spearmanr 返 NaN 并发
+            # 词典零命中/空实体窗口/早期试跑 T=2 退化样本)下 pearsonr/spearmanr 返 NaN 并发
             # ConstantInputWarning。本守卫显式把常量输入的相关定义为 **NaN**(语义正确: 相关
             # 无定义)。注: 兄弟 decay_sensitivity 选 0.0 sentinel (下游 builtin min/mean 安全),
             # 本模块选 NaN 并**同步把下游裁决聚合改 np.nanmin/np.nanmean**(见 §汇总段), 二者
@@ -1032,7 +1032,7 @@ def _compute_pairwise_radius_corr(per_radius_data: dict, dict_name: str,
 
     fix(omni-g-val-robust-03, 2026-06-11): FIX-REGRESSION 闭合 — 复用 cross_radius
     统计路径的 radius-zerovar-guard (2026-06-10, 见 run_sensitivity_analysis 内
-    注释): 零方差 (常量分数 — 词典零命中/空实体窗口/T=2 退化样本) 或样本 n<=2
+    注释): 零方差 (常量分数 — 词典零命中/空实体窗口/早期试跑 T=2 退化样本) 或样本 n<=2
     时 pearsonr 无定义。此前热力图路径裸调 pearsonr → NaN + ConstantInputWarning,
     'nan' 文本被直接渲染进论文附录图 65_radius_correlation_heatmap.png。
     现与统计路径同语义置 NaN, 由调用方标注 'n/a'; 对角线按惯例固定 1.0。
@@ -1462,9 +1462,9 @@ def main():
             logger.warning(f"  词典降级: 仅 {non_empty}/{len(dictionaries)} 套情感词典非空 "
                            f"(tone_dicts.json 缺失/损坏?), 空词典文章被记为'中性', 会人为抬高一致率/κ。")
 
-        # (9) 小样本警告 (盘面 T=2 仅验证管道正确性)
+        # (9) 小样本警告 (早期试跑盘面 T=2 仅验证管道正确性)
         if input_rows < 5000:
-            logger.info(f"  ⚠ 样本量 {input_rows:,} 篇偏小 (盘面 T=2 退化): 本次结果仅验证管道正确性, "
+            logger.info(f"  ⚠ 样本量 {input_rows:,} 篇偏小 (早期试跑盘面 T=2 退化): 本次结果仅验证管道正确性, "
                         f"全量稳健性结论以 约1,819万 篇 / T=19 实测为准 (小样本下 κ/相关易退化、零方差守卫频繁触发)。")
 
         logger.info("-" * 72)

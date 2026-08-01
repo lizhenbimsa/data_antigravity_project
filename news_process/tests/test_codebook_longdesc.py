@@ -272,7 +272,11 @@ class TestFourStates:
         lib = cl.load_library(libdir)
         d = cl.compose_long_description('alpha_tone_full', panel, lib)['description']
         assert 'mean=' in d and '缺失率=' in d
-        assert '生产 T=19 重生后以实读为准' in d
+        # 断言尾注在位。⚠ 2026-08-01: 原先硬编码字面量 '生产 T=19 重生后以实读为准',
+        # 在尾注文案随「盘面已是 T=19」订正后当场失配 —— 改为直接引 SSOT 常量,
+        # 使"尾注必须在位"这一契约与具体措辞解耦 (措辞变更不再误伤本闸)。
+        assert cl._STATS_FOOTNOTE in d
+        assert 'T=19' in cl._STATS_FOOTNOTE and '以实读为准' in cl._STATS_FOOTNOTE
 
     def test_state2_all_nan(self, panel, libdir):
         lib = cl.load_library(libdir)

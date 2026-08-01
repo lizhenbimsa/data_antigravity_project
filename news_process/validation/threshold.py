@@ -936,7 +936,7 @@ def main():
         if len(keywords_list) == 0:
             logger.warning("  ⚠ 金科关键词词典为空 → 金科网格全 0, 敏感性结论无效 (优雅降级, 须补词典)")
 
-        # 小样本警告 (盘面抽样 / T=2)。
+        # 小样本警告 (盘面抽样 / 早期试跑 T=2)。
         if sample_n < total_rows:
             logger.info(
                 f"  ⚠ 本次为抽样分析 ({sample_n:,}/{total_rows:,}={pct4(sample_n / total_rows)}), "

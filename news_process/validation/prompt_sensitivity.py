@@ -1911,7 +1911,7 @@ def main():
     # ── Step 2: 随机抽样 ──
     # fix(WP-R1.2, 2026-07-14): 生产窗口 (批次 E, M0 门后) 切换点标注 ——
     # 新增的两阶段整群分层抽样器 `stratified_two_stage_sample` (年 ×
-    # bank_type_id) 尚未接线到本 dev 路径 (本机 T=2 数据不足以体现分层收益,
+    # bank_type_id) 尚未接线到本 dev 路径 (早期试跑 T=2 数据不足以体现分层收益,
     # 且计划要求"帧固化留生产窗口")。生产重跑时若采用分层抽样, 唯一需要
     # 改动的一行就是下方 `df_sample = random_sample(...)`, 改为:
     #   df_sample, _frame_meta = stratified_two_stage_sample(df_full, seed=RANDOM_SEED)
@@ -2183,11 +2183,11 @@ def main():
         logger.info(
             f"    {track_label} 轨道判定: {'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
 
-    # 小样本警告 (盘面 T=2 / 抽样数远小于设计 N=1000 时)
+    # 小样本警告 (早期试跑盘面 T=2 / 抽样数远小于设计 N=1000 时)
     if len(df_sample) < SAMPLE_SIZE:
         logger.info(
             f"  ⚠ 小样本: 实际抽样 {len(df_sample):,} 条 < 设计 N={SAMPLE_SIZE} "
-            f"(盘面 T=2 仅验证管道正确性; κ/α 在小样本下方差大, 全量结论以 约1,819万/T=19 实测为准)")
+            f"(早期试跑盘面 T=2 仅验证管道正确性; κ/α 在小样本下方差大, 全量结论以 约1,819万/T=19 实测为准)")
 
     # 优雅降级警告: ss 轨未纳入有效轨道集 (盘上未物化 content_ss / 变体未产出 _ss 列)
     if '_ss' not in active_tracks:

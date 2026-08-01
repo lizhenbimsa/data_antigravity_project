@@ -92,8 +92,8 @@ pytest 收集实数以 `--collect-only -q` 为准 (增删测试后同步此处�
 提速 v2 各 +1: panel `test_write_outputs_emit_dta_flag` [WP-S3] / weight `test_wps2_join_background_writes_semantics` [WP-S2];
 04 替代聚合 +15 新文件 + panel parametrize +04 stem)。
 
-⚠ 生产 T=19 复跑注意 (计划 §6 DEFERRED): dev T=2 语料只证管线正确性, 生产全量 21_full 重跑得真面板
-(面板窗 2011–2020 完整内嵌语料域 2007–2025, 生产各窗内年均有语料; dev T=2 仅 2017–2018 有语料、
+⚠ 生产 T=19 复跑注意 (计划 §6 DEFERRED): 早期试跑 T=2 语料只证管线正确性, 生产全量 21_full 重跑得真面板
+(面板窗 2011–2020 完整内嵌语料域 2007–2025, 生产各窗内年均有语料; 早期试跑 T=2 仅 2017–2018 有语料、
 其余窗内年整年 0 属预期; dev 产物不可用于任何回归)。registry 哈希锚锚死盘上态, 有意重跑 01 后须
 bump `tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256` 并级联重跑 02 (pair
 指纹) → 03 (双向锁) → 04 (pair 锚同代校验 + codebook 章重生); 权源商业 dta

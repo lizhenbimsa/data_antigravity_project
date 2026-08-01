@@ -262,7 +262,7 @@ def test_streaming_oom_fallback_reruns_only_remaining():
 # 这里锁四件事, 每一件都对应一个具体的翻车方式:
 #   ① 嵌入 API 并发必须按 worker 数**等比缩小** —— 否则 P×250 打爆 TPM, 重演 F28
 #      (重试耗尽 → 整族嵌入列静默 NaN)。这是 S13 唯一的硬阻断项。
-#   ② 并行阈值必须把 T=2 dev 与单测留在串行 (桩不传播进 loky ⟹ 测试当场失真)。
+#   ② 并行阈值必须把早期试跑 T=2 与单测留在串行 (桩不传播进 loky ⟹ 测试当场失真)。
 #   ③ worker 体内零 logger 调用 (同 F25 的 ④, 串行回落路径会在父进程跑它)。
 #   ④ 任务切分与串行循环同序同筛选, 且 <3 家银行的年份**照样进池** (由 worker 内
 #      守卫早退) —— 在切分处提前筛掉会让告警时序偏离串行。
@@ -492,10 +492,10 @@ def test_s13_parallelism_capped_by_emb_budget(monkeypatch, caplog):
 
 
 def test_s13_threshold_keeps_toy_and_t2_serial():
-    """② T=2 dev (每轨 2 个任务) 与单测 fixture 必须留在串行臂。"""
+    """② 早期试跑 T=2 (每轨 2 个任务) 与单测 fixture 必须留在串行臂。"""
     assert sd._STRAT_PARALLEL_MIN_YEARS >= 12, (
         f'_STRAT_PARALLEL_MIN_YEARS={sd._STRAT_PARALLEL_MIN_YEARS} 过低 —— '
-        'T=2 dev 与单测会走进 loky, 而 monkeypatch 桩不传播进子进程')
+        '早期试跑 T=2 与单测会走进 loky, 而 monkeypatch 桩不传播进子进程')
 
 
 def test_s13_worker_has_zero_logger_calls():

@@ -93,8 +93,10 @@ CITATION_MIN = {'standard': (3, 300), 'core': (10, 1000), 'pending': (3, 300)}
 _VALID_TIERS = frozenset({'core', 'standard', 'pending'})
 _VALID_CITATION_TYPES = frozenset({'journal', 'wp', 'arxiv', 'book'})
 
-# T=2 dev 尾注 (§7.8 诚实披露, 动态统计段一律带)
-_STATS_FOOTNOTE = '注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。'
+# 动态统计尾注 (§7.8 诚实披露, 动态统计段一律带)
+# ⚠ 2026-08-01 订正: 旧文案写「开发期数值」, 那是本机盘面还是 T=2 试跑面板时的口径;
+#   自 2026-07-27/28 生产全链跑通起, 注入的就是生产 T=19 全量面板 (23,693 bank-year) 实测值。
+_STATS_FOOTNOTE = '注: 以上为生成期从盘上面板 (生产 T=19 全量) 实测注入的数值, 面板重生后以实读为准。'
 _PENDING_SENTINEL = (
     '本列为外部财务面板哨兵列 (tier=pending): 待外部财务面板接入后构造, '
     '当前面板不产生数值, 故本段不注入实测统计; 财务面板接入后本段将自动改为生成期实测统计。'
@@ -563,8 +565,9 @@ def render_stats_segment(col: str, panel, tier: str) -> str:
 
     ④ tier=pending **且列不在 panel** → 哨兵文本 (不触 ①);
     ① col 不在 panel 且非 pending → SystemExit(1);
-    ② 全 NaN → "全缺失" + T=2 尾注;
-    ③ 正常 → dtype/min/max/mean/缺失率/非缺失 n + "生产 T=19 重生后以实读为准"尾注。
+    ② 全 NaN → "全缺失" + 动态统计尾注 (``_STATS_FOOTNOTE``);
+    ③ 正常 → dtype/min/max/mean/缺失率/非缺失 n + 同一 ``_STATS_FOOTNOTE``
+       (两分支共用; 文案见模块级常量, 此处刻意不复述以免二者漂移)。
 
     P2-① (2026-07-11): pending 分支按 **col∈panel 实测**而非 tier 静态判 —
     财务面板接入后 pending 列实存时, 本段自动改渲实测统计 (哨兵文本承诺兑现),

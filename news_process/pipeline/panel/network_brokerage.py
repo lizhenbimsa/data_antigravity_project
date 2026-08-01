@@ -533,7 +533,7 @@ def compute_brokerage_centrality(
                             "(右偏→少数信息枢纽银行垄断异质媒体分发渠道)")
             if valid == 0:
                 logger.warning("     · ⚠ 坏: 零有效值 — 全部年份节点不足/分量过小, "
-                               "下游该列无识别力 (T=2 盘面常见, 生产 T=19 应复核)")
+                               "下游该列无识别力 (早期试跑 T=2 盘面常见, 生产 T=19 应复核)")
             elif _ec.nunique(dropna=True) <= 1:
                 logger.warning("     · ⚠ 坏: 退化为常量 (零方差), 下游回归无识别力")
             elif _cov < 0.5:
@@ -690,7 +690,7 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
     #     '_ss':               neg_count_ss  / n_articles_llm_valid_ss  (无回退)
     # ctx/ss 缺任一列 → 跳过该轨 (WARN), 绝不借 full/物理分母。三轨互为稳健性、
     # 不分主次, 各自 just-identified, 禁混同一 over-identified Hansen J。
-    # ⚠ dev T=2 基线 (Phase 0 实测): ctx (唯一负例分母 2<min_count) 与 ss
+    # ⚠ 早期试跑 T=2 基线 (Phase 0 实测): ctx (唯一负例分母 2<min_count) 与 ss
     # (零负例) 均零方差 ≡0, 属预期退化非 bug; 数值验证 DEFERRED 生产机。
     # brokerage_eigen_cent / 二分图中心度仍 track-agnostic (按媒体-银行边数,
     # 与情感轨无关), 无轨派生; fire_sale 交乘刻意保持 canonical-only (D3)。
@@ -786,7 +786,7 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
                             f"p75={sig4(_shq.loc[0.75])} (within-year 离散度决定 LOO 识别变异)")
             if _sh.nunique(dropna=True) <= 1:
                 logger.warning("     · ⚠ 坏: industry_neg_shock 退化为常量 (零方差), "
-                               "下游回归无识别力 (某年全 0 → 全 LOO 同值, T=2 常见)")
+                               "下游回归无识别力 (某年全 0 → 全 LOO 同值, 早期试跑 T=2 常见)")
             elif valid_lag == 0:
                 logger.info("     · ⚠ 临界: lag1 全 NaN (T 太短无 t-1) — 含年 FE 规格须用 "
                             "lag1 (同期项与自身 neg_ratio within-year 精确共线)")
@@ -891,7 +891,7 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  火灾甩卖交乘已计算: {valid:,} 有效值, "
                 f"mean={sig4(panel['brokerage_fire_sale'].mean())}")
 
-    # fix(log-audit-2026-06-20, R18): 零方差检测。盘面 T=2 下 industry_neg_shock 可能
+    # fix(log-audit-2026-06-20, R18): 零方差检测。早期试跑盘面 T=2 下 industry_neg_shock 可能
     # 某年全 0 (如 2018), 乘积恒为常量 0 → 下游回归该列无识别力且会被 reghdfe/共线性
     # 自动剔除。显式告警, 避免"已计算 N 有效值"被误读为该交乘项可用。
     _fs = panel['brokerage_fire_sale'].dropna()
@@ -900,7 +900,7 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
         logger.warning(
             f"  ⚠ 坏: brokerage_fire_sale 退化为常量 (唯一值数={_fs.nunique():,d}, "
             f"min=max={sig4(_const_val)}): 零方差列下游无识别力, "
-            f"疑因某年 industry_neg_shock 全 0 (T=2 盘面常见); 生产 T=19 应复核并移除该退化列。"
+            f"疑因某年 industry_neg_shock 全 0 (早期试跑 T=2 盘面常见); 生产 T=19 应复核并移除该退化列。"
         )
     elif valid > 0:
         logger.info(
@@ -912,7 +912,7 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
     try:
         _lag_cs = panel.groupby('target_bank')['brokerage_eigen_cent'].shift(1)
         # 零方差守卫须在配对完备子集上判 (Series.corr 是 pairwise dropna 语义,
-        # 全局有方差不代表配对子集有方差 — T=2 下 shock 2017 有方差而 lag 仅 2018 非空);
+        # 全局有方差不代表配对子集有方差 — 早期试跑 T=2 下 shock 2017 有方差而 lag 仅 2018 非空);
         # 前提: panel 上方已 reset_index(drop=True) 为唯一 RangeIndex, concat 对齐依赖此前提。
         _pair = pd.concat([_lag_cs, panel['industry_neg_shock']], axis=1).dropna()
         if len(_pair) >= 2 and _pair.iloc[:, 0].std() > 0 and _pair.iloc[:, 1].std() > 0:
@@ -924,7 +924,7 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
             else:
                 logger.info("     · 混淆诊断: 配对子集 corr 无定义 (非有限值), 跳过")
         else:
-            logger.info("     · 混淆诊断: 配对子集样本不足/零方差, 跳过 (T=2 常见)")
+            logger.info("     · 混淆诊断: 配对子集样本不足/零方差, 跳过 (早期试跑 T=2 常见)")
     except Exception as _e:  # noqa: BLE001 — 诊断块绝不崩阶段
         logger.warning(f"  火灾甩卖混淆诊断失败 (忽略): {_e}")
 

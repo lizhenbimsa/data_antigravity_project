@@ -38,7 +38,7 @@ def test_f3_row_parity_clears_single_sided_orphan():
 
 @pytest.mark.fast
 def test_f3_row_parity_noop_when_already_parity():
-    """两侧 NaN 完全同构 (T=2 现状) → 逐字节 no-op (golden-safe by construction)。"""
+    """两侧 NaN 完全同构 (早期试跑 T=2 现状) → 逐字节 no-op (golden-safe by construction)。"""
     from news_process.pipeline.panel.network_spillover import _enforce_row_parity
     panel = pd.DataFrame({
         'target_bank': ['A', 'B'],

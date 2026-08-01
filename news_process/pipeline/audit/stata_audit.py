@@ -737,7 +737,7 @@ def audit_did_variables(panel: pd.DataFrame, name: str):
                 record(cat, f'{policy}_post 编码', 'PASS', '0/1 编码正确')
 
         # 5b-2. fix(log-round4-2026-06-20): DiD 可识别性退化守卫 — post 或 treated 无变异
-        #   (T=2 伪两年常见: post 全 0 = 无政策后期窗口) → DiD 结构不可识别, 下方 5c/5e 的
+        #   (早期试跑 T=2 伪两年常见: post 全 0 = 无政策后期窗口) → DiD 结构不可识别, 下方 5c/5e 的
         #   treated-post 逻辑 / event-study 互斥 PASS 均为【空集恒真 (vacuous)】, 不代表识别有效。
         #   loud WARN 披露, 防 referee 误读 all-PASS 为"DiD 设计成立"。生产 T=19 方可识别。
         if post_col in panel.columns:
@@ -746,7 +746,7 @@ def audit_did_variables(panel: pd.DataFrame, name: str):
             if _post_uniq <= 1 or _treated_uniq <= 1:
                 record(cat, f'{policy} DiD 可识别性', 'WARN',
                        f'post/treated 无变异 (post_uniq={_post_uniq}, treated_uniq={_treated_uniq}; '
-                       f'T=2 伪两年常见) → DiD 结构不可识别, 下方 treated-post/event-study 的 PASS '
+                       f'早期试跑 T=2 伪两年常见) → DiD 结构不可识别, 下方 treated-post/event-study 的 PASS '
                        f'为空集恒真 (vacuous) 非识别有效; 生产 T=19 (2007–2025) 方可识别。')
 
         # 5c. post=1 仅在 treated=1 的行中出现
@@ -1309,7 +1309,7 @@ def main():
                         f"  · 核心恒等式族: {len(_identity)} 项全无硬错 (FAIL=0, WARN={_id_warn}) [好] —"
                         "情感 frac/计数、Bartik 份额、加权恒等式内部自洽。")
 
-            # (5) 小样本 (T=2) 提醒: 盘面年跨度小则 IV/DID/平衡率检查多为退化, 仅验证管道正确性
+            # (5) 小样本 (早期试跑 T=2) 提醒: 盘面年跨度小则 IV/DID/平衡率检查多为退化, 仅验证管道正确性
             _spans = []
             for _p, _nm in [(panel_40, '40面板'), (panel_51, '51面板')]:
                 if _p is not None and 'year' in _p.columns:
@@ -1323,7 +1323,7 @@ def main():
                     logger.info(
                         f"  · 小样本警告 [{_nm}]: 仅 {_yn} 个年份 ({_shape[0]} 行) — T={_yn} 下"
                         "LOO-IV/DID/事件研究/平衡率检查多退化 (T=1 截面退化时 LOO 数学性质致负相关、"
-                        "T=2 时间逻辑近乎无功效、treated-post 无变异), 本次审计仅验证管道正确性; 全量结论以"
+                        "早期试跑 T=2 时间逻辑近乎无功效、treated-post 无变异), 本次审计仅验证管道正确性; 全量结论以"
                         " 约1,819万/T=19 重生面板实测为准。")
 
             # (6) 优雅降级: 若 51 面板缺失 → 跨文件一致性 + 51 半套审核全部跳过, 覆盖面打折

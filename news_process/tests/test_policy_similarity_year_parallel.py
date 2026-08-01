@@ -54,7 +54,7 @@ def _dedent(src: str) -> str:
 def test_min_tasks_threshold_not_lowered():
     assert ps._AUTH_PARALLEL_MIN_TASKS >= 12, (
         f"_AUTH_PARALLEL_MIN_TASKS={ps._AUTH_PARALLEL_MIN_TASKS} < 12 —— "
-        "本模块是「3 轨 × N 年」扁平池, N≥2 就 ≥6 个任务。阈值低于 12 会让 T=2 dev "
+        "本模块是「3 轨 × N 年」扁平池, N≥2 就 ≥6 个任务。阈值低于 12 会让早期试跑 T=2 "
         "与 toy fixture 走进并行分支, 而 monkeypatch 桩不传播进 loky 子进程 ⟹ 单测失真。")
 
 

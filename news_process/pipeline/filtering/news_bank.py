@@ -791,11 +791,11 @@ def main():
                 "判定结果可能偏松, 请确认 paths.bank_name_exclusions_file 指向正确词典。"
             )
 
-        # 小样本警告: 盘面 T=2 仅验证管道, 结论以全量为准
+        # 小样本警告: 早期试跑盘面 T=2 仅验证管道, 结论以全量为准
         if _total_seen > 0 and _bank_true < 1000:
             logger.info(
                 f"  ⚠ 本次输入 {_total_seen:,} 行、银行新闻 {_bank_true:,} 篇属小样本 (盘面 "
-                f"T=2 / 子样本); 上述比率仅用于验证管道正确性, 全量结论以 约1,819万 / T=19 实测为准。"
+                f"早期试跑 T=2 / 子样本); 上述比率仅用于验证管道正确性, 全量结论以 约1,819万 / T=19 实测为准。"
             )
         logger.info("-" * 72)
     except Exception as _e:

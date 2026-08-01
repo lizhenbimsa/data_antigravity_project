@@ -296,7 +296,7 @@ def _empty_result() -> dict[str, float]:
 # fix(nonpolarity-dims, 2026-06-20): 新增 'named_entity_ratio' (纯具名实体密度) —
 # specificity_index = (具名实体 + 硬数词)/实词; named_entity_ratio = 仅具名实体/实词,
 # 是 specificity_index 分子的真子集, 拆出"实体面"以与"数字面"(num_intensity) 正交。
-# 锚 Hope-Hu-Lu (2016 RAS). ⚠ specificity_index 真子集 (机械相关; T=2 实测 article corr≈0.81),
+# 锚 Hope-Hu-Lu (2016 RAS). ⚠ specificity_index 真子集 (机械相关; 早期试跑 T=2 实测 article corr≈0.81),
 # 中高相关非别名 (信息量充分), 但因子集机械相关不与 specificity 同进同一回归式, 须披露;
 # 经 LEXICAL_COMPLEXITY_KEYS 自动物化为 *_full/*_ctx/*_ss (tone_words 三轨)。
 LEXICAL_COMPLEXITY_KEYS = (

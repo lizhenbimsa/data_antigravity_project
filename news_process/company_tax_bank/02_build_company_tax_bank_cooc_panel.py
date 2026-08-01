@@ -944,7 +944,7 @@ def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.
     lines += [
         "",
         "面板年窗 2011–2020 (税调企业数据可得域) 完整内嵌于新闻语料域 2007–2025, 故生产全量下"
-        "每个窗内年均有语料; dev T=2 (2017–2018) 下其余窗内年整年 0 属预期而非缺失。",
+        "每个窗内年均有语料; 早期试跑 T=2 (2017–2018) 下其余窗内年整年 0 属预期而非缺失。",
         "",
         "## ⑥ 附录 (T-D19⑥)",
         "",
@@ -1338,7 +1338,7 @@ def main(argv=None) -> int:
                 "全 NaN 列 %s 个", f"{len(weighted.columns):,}", f"{n_cw:,}", f"{n_ce:,}",
                 f"{n_all_nan:,}")
     if n_all_nan:
-        log(f"{n_all_nan} 个加权列全 NaN (主因 BERT nt_iyvol/iytrend 需 T≥3 + _ss 稀疏的 dev T=2 退化→T=19 恢复; 非 cross_media, 后者 emit_tracks=[] 产 0 列, 详见 ⑥ 判读 / 计划 F2/F3)", warn=True)
+        log(f"{n_all_nan} 个加权列全 NaN (主因 BERT nt_iyvol/iytrend 需 T≥3 + _ss 稀疏的早期试跑 T=2 退化→T=19 恢复; 非 cross_media, 后者 emit_tracks=[] 产 0 列, 详见 ⑥ 判读 / 计划 F2/F3)", warn=True)
     panel = panel.merge(weighted, how="left", left_on=["company_tax_name", "year"], right_index=True)
 
     # 列序: 固定 20 列 + 加权列 (registry SSOT 序, weighted 已排)
@@ -1450,7 +1450,7 @@ def main(argv=None) -> int:
     logger.info("     预注册后在回归端做样本限制稳健, 避免本步骤引入 researcher df)。")
     logger.info("  ⑥ 全 NaN 加权列 %s 个 (共 %s 列): 两独立成因 (F3 拆分, 勿混为'缺源列一因') —",
                 f"{n_all_nan:,}", f"{n_cw + n_ce:,}")
-    logger.info("     (a) BERT nt_iyvol/iytrend (需 T≥3 且 ≥6 有效月) + _ss 轨 substance/washing 稀疏 = dev T=2 时间深度退化,")
+    logger.info("     (a) BERT nt_iyvol/iytrend (需 T≥3 且 ≥6 有效月) + _ss 轨 substance/washing 稀疏 = 早期试跑 T=2 时间深度退化,")
     logger.info("         生产 T=19 上游全列重生后自然填充 (与'缺源列'无关, 勿盲查 40/51/27 覆盖);")
     logger.info("     (b) cross_media 三基名 (cross_media_alpha/cross_outlet_tone_variance/n_events) registry emit_tracks=[] → 产 0 列 (非此处 NaN);")
     logger.info("         若主面板整体缺 cross_media, 属 main↔validation 顺序耦合 (stage75 恒晚于 stage40) 非 T=19 覆盖问题 — 见 README/计划 F2。")
@@ -1460,7 +1460,7 @@ def main(argv=None) -> int:
     logger.info("  ⑧ 与生产 T=19 的预期差异: 本次输入为 dev 语料 (约全量 0.05%%); 计数/覆盖/k^c 分位")
     logger.info("     将随语料放大数量级, 但 gate 判据 (恒等/值域/序) 与骨架行数公式均规模无关,")
     logger.info("     可直接作为生产运行的判读基线; 面板窗 2011–2020 全内嵌语料域 2007–2025, 生产各窗内年")
-    logger.info("     均有语料, dev T=2 仅 2017–2018 有语料、其余窗内年整年 0 属预期非缺失;")
+    logger.info("     均有语料, 早期试跑 T=2 仅 2017–2018 有语料、其余窗内年整年 0 属预期非缺失;")
     logger.info("     dev 产物不可用于任何回归 (T-D13 禁令)。")
     logger.info("-" * 70)
     logger.info("  ⏱ 各子阶段墙钟耗时与吞吐率 (4 位有效数字; 吞吐率=既有计数/墙钟, 无新增重计算):")

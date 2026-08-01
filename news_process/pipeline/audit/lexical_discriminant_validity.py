@@ -766,7 +766,7 @@ def main():
         }
         logger.info(f"v3.5.1 stage 73 [跨构念/{suffix}] heterotrait-monomethod: {_hm_disp}")
 
-    logger.info("⚠ 盘面 T=2 小样本 (mask 后约数十个 bank-year), 结果仅验证管道正确性, 非全量生产结论。")
+    logger.info("⚠ 早期试跑盘面 T=2 小样本 (mask 后约数十个 bank-year), 结果仅验证管道正确性, 非全量生产结论。")
 
     # ⑥ ⏱ 阶段计时 (墙钟; 纯日志)。
     try:

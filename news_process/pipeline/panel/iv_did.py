@@ -30,13 +30,40 @@
      Var(BIV) 的单变量 OLS 投影代替真正的两阶段 Rotemberg 分解; 其"负权重/HHI"
      仅作快速集中度提示, **正式论文的 Rotemberg 权重须走 Stata bartik_weight 包**
      (函数内已给命令), 不得以本近似冒充 GPSS §5 诊断.
-  3. **T=2 面板结构退化**: 当前面板仅 2017-2018 (84 banks × 2y). Bartik share
-     在 64%(112/176) bank-year 退化为 own-type one-hot (基期 co-mention 跨组为
-     0 → L137-143 兜底 share=1.0), fintech 基期类别 96.7% app vs 3.3% tech →
-     工具近共线于 bank-type FE、一阶段 F 弱; DiD(dcep/sandbox) 处理年份均 ≥2019
-     (晚于面板末年 2018) 致 _post 恒 0、不可识别 (fix(ivdid-stata-01): 原文误写
-     "≤2018", 归因方向倒置, 实为处理年份晚于样本期末). 论文须报告一阶段有效 N/F、
-     披露退化并相应降权这些 spec.
+  3. **基期 share one-hot 结构退化 (⚠ 归因两次订正: 2026-08-01 初订 + 同日复核分轨)**:
+     旧文写作「T=2 面板结构退化 …… 早期试跑面板仅 2017-2018 (84 banks × 2y)」, 把根因记在
+     **面板深度**上。该前提已失效: 2026-07-27/28 生产全链跑通后本机盘面即 **T=19 全量**
+     (1,247 banks × 19y / 23,693 bank-year; 2026-08-01 pyreadstat 直读 .dta 复核)。
+     2026-08-01 实跑同一退化**以相近量级复现**: one-hot 率 [scale]64.94% ·
+     [fintech_lf]81.82%(1,197/1,463) · [fintech_lc]81.08% · [geoprox]50.65% ·
+     [mauth]38.96% · [media]46.34%; canonical 基期 T0=[2010] 下 bartik_*_iv 有效率
+     2.769%–5.200% (同日另有 7.281%/8.420% 两值, 属 T0=[2011] / T0=[2010,2011] 基期
+     敏感性变体, 勿与 canonical 混引)。
+     ⚠ **成因必须分轨, 不可一句话概括** (2026-08-01 复核订正 —— 初版把两条路径混为
+     「基期 co-mention 稀疏」是错的):
+       · [type] / [scale] 走 ``compute_bartik_iv``, share 由 ``co_mentioned_banks``
+         构造。one-hot 有**两条**来源, 不是一条 (⚠ 2026-08-01 二次订正 —— 初版写作
+         "成因确为基期跨组共现为 0" 是**排他性过度断言**): ① ``if total == 0:`` 的
+         own-group 兜底 share=1.0 (fix(omni-g-ivdid-01)); ② 基期跨组共现**存在**但
+         全部落进单一组, 走 ``else`` 分支照常算出 share=1.0。二者在盘上均真实发生:
+         51 面板实测 950 个 one-hot bank-year 中, **171 个 (18.0%) 的 share=1.0 落在
+         与该行 ``bank_type`` **不同**的组上** (如 北京银行(city)→soe、南京银行(city)→foreign、
+         东亚银行(中国)(foreign)→joint), 这些**在构造上不可能**来自 own-group 兜底 ⟹
+         ② 支至少占 18.0% (该数是下界: 走 ② 支而恰好落回自身组者无法由此法分离);
+       · [fintech_lf] / [fintech_lc] / [geoprox] / [mauth] / [media] 走
+         ``compute_bartik_iv_fintech``, 其 docstring 明写「基于文章自身分类列, 而非
+         co_mentioned_banks」⟹ one-hot 成因是**基期年文章数偏少 + 类别高度集中**
+         (T=19 面板实算: lf 轨 app 95.7% vs tech 4.3%、lc 轨 97.1% vs 2.9%,
+         n=1,463/1,406, 源 ``51_panel_with_controls.parquet`` 2026-07-28 产物;
+         该 share 均值与 one-hot 率互为印证的**同一事实**, 不是叠加的第二条原因。
+         旧文的 96.7%/3.3% 是早期 T=2 帧测量, 量级同向但数值已刷新)。
+     两条路径的共同后果一致: 工具近共线于分组 FE、一阶段 F 弱。
+     ⚠ 措辞纪律: 面板深度 T **不出现在 share 公式里** (share 只由基期年文章构造),
+     故不能再以"试跑盘小"解释该退化; 但本次 T=2→T=19 对照**并非受控**
+     (基期年同时由 2017 改为 2010), 只能表述为"同一退化在 T=19 下以相近量级复现",
+     不得说成已完成证伪。论文须报告一阶段有效 N/F、披露该退化并相应降权这些 spec。
+     DiD(dcep/sandbox) 一节的历史记载 (处理年份 ≥2019 晚于早期试跑面板末年 2018
+     致 _post 恒 0) 仅对早期 T=2 帧成立; T=19 全量已覆盖 2007–2025, _post 有变异。
   4. **缺失语义 (fix(omni g-ivdid, 2026-06-11))**: 基期无文章的银行 share/IV 保持
      NaN (非 0 — 消除 GPSS 2020 incomplete-shares 伪零暴露); share>0 而该组该年
      shift 不可计算 (LOO 组内仅剩自身) → IV=NaN 传播 (不再零插补); 面板 year <
@@ -87,7 +114,7 @@ _IV_DID_REFERENCES = (
     "Gabaix, X., & Koijen, R. S. J. (2024). Granular instrumental variables. "
     "Journal of Political Economy, 132(7), 2274-2303. "
     "https://doi.org/10.1086/728743",
-    # [6] 聚类稳健 jackknife 标准误 — 少簇 (T=2/银行数少) bank-year 聚类下 2SLS·DiD 推断
+    # [6] 聚类稳健 jackknife 标准误 — 少簇 (年份少/银行数少) bank-year 聚类下 2SLS·DiD 推断
     "Hansen, B. E. (2026). Jackknife standard errors for clustered regression. "
     "The Review of Economic Studies. Advance online publication. "
     "https://doi.org/10.1093/restud/rdag050",
@@ -134,7 +161,7 @@ def _log_iv_did_method_refs(lg=None) -> None:
         _lg.info("      (白话: 用大机构的特异冲击做工具, 与本模块同组其他银行 LOO shift 同源)")
         _lg.info("    · 聚类稳健 jackknife 标准误 (少簇 bank-year 聚类下 2SLS/DiD 推断): "
                  + _IV_DID_REFERENCES[6])
-        _lg.info("      (白话: T=2/银行数少时常规聚类 SE 失真, 刀切 SE 给少簇稳健推断)")
+        _lg.info("      (白话: 簇数少 (年份少/银行数少) 时常规聚类 SE 失真, 刀切 SE 给少簇稳健推断)")
         _lg.info("    · 多向聚类 + 序列相关时间效应 wild bootstrap (bank×year 面板): "
                  + _IV_DID_REFERENCES[7])
         _lg.info("      (白话: 对 bank 与 year 两维同时聚类、时间效应序列相关时的稳健 p 值)")
@@ -495,7 +522,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
                 if valid_frac < 0.5:
                     logger.warning(f"    ⚠ {iv_col} 有效率 {pct4(valid_frac)} < 50% — "
                                    "基期退化/前视掩码致工具大面积缺失, 一阶段 N 偏低, "
-                                   "相应 2SLS spec 须降权并披露 (T=2 退化, GPSS 2020)")
+                                   "相应 2SLS spec 须降权并披露 (成因=基期有文章的银行数偏少 × 前视掩码; GPSS 2020)")
                 if iv_std is not None and float(np.nan_to_num(iv_std)) == 0.0 and n_valid > 0:
                     logger.warning(f"    ⚠ {iv_col} std=0 — 工具零方差 (近共线于 bank-type FE), "
                                    "一阶段弱工具风险高")
@@ -503,8 +530,9 @@ def compute_bartik_iv(panel: pd.DataFrame,
                 logger.warning(f"    IV 结果判读跳过 (非致命): {e}")
 
     # ── 一阶段强度诊断 (纯日志, golden-safe): 基期 share one-hot 退化率 ──
-    # T=2 试跑下基期 share 大面积退化为 own-type one-hot (模块头第 3 条, 实测
-    # 64% bank-year), 一阶段近共线于 bank-type FE → 弱工具。此处报 share≈1.0 行
+    # 基期 share 大面积退化为 own-type one-hot (模块头第 3 条; 早期 T=2 实测 64%,
+    # 2026-08-01 T=19 全量实测 38.96%–81.82%, 未随 T 放大而消失 —— 因 share 只由
+    # 基期年文章构造, 面板深度 T 不进公式), 一阶段近共线于 bank-type FE → 弱工具。此处报 share≈1.0 行
     # 占比, 让"工具弱在哪"自记入日志 (Hansen 2026/Hounyo-Lin 2026 少簇推断语境)。
     try:
         _share_cols = [f'bartik_{group_prefix}_share_{g}' for g in groups
@@ -522,7 +550,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
                 if _onehot_frac >= 0.5:
                     logger.warning(
                         f"    ⚠ [{group_prefix}] {pct4(_onehot_frac)} 基期 share one-hot "
-                        "退化 — 一阶段弱工具风险高, 相应 2SLS 须报 KP rk F 并降权 (T=2 预期)")
+                        "退化 — 一阶段弱工具风险高, 相应 2SLS 须报 KP rk F 并降权 (成因分解见模块头第 3 条)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  [{group_prefix}] 一阶段 share 退化诊断跳过 (非致命): {e}")
 
@@ -708,7 +736,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                 if valid_frac < 0.5:
                     logger.warning(f"    ⚠ {iv_col} 有效率 {pct4(valid_frac)} < 50% — "
                                    "基期退化/前视掩码致工具大面积缺失, 一阶段 N 偏低, "
-                                   "相应 2SLS spec 须降权并披露 (T=2 退化, GPSS 2020)")
+                                   "相应 2SLS spec 须降权并披露 (成因=基期有文章的银行数偏少 × 前视掩码; GPSS 2020)")
                 if iv_std is not None and float(np.nan_to_num(iv_std)) == 0.0 and n_valid > 0:
                     logger.warning(f"    ⚠ {iv_col} std=0 — 工具零方差 (近共线于 bank-type FE), "
                                    "一阶段弱工具风险高")
@@ -716,7 +744,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                 logger.warning(f"    IV 结果判读跳过 (非致命): {e}")
 
     # ── 一阶段强度诊断 (纯日志, golden-safe): 基期 share one-hot 退化率 ──
-    # 文章属性维度 (fintech 基期类别 96.7% app vs 3.3% tech, 模块头第 3 条) 同样
+    # 文章属性维度 (fintech 基期类别 T=19 实算 app 95.7% vs tech 4.3%, 模块头第 3 条) 同样
     # 易退化为 one-hot, 一阶段弱。报 share≈1.0 行占比让弱工具自记入日志。
     try:
         _share_cols = [f'bartik_{group_prefix}_share_{g}' for g in groups
@@ -734,7 +762,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                 if _onehot_frac >= 0.5:
                     logger.warning(
                         f"    ⚠ [{group_prefix}] {pct4(_onehot_frac)} 基期 share one-hot "
-                        "退化 — 一阶段弱工具风险高, 相应 2SLS 须报 KP rk F 并降权 (T=2 预期)")
+                        "退化 — 一阶段弱工具风险高, 相应 2SLS 须报 KP rk F 并降权 (成因分解见模块头第 3 条)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  [{group_prefix}] 一阶段 share 退化诊断跳过 (非致命): {e}")
 
@@ -987,8 +1015,8 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
             0
         )
 
-        # fix(ivdid-01): T=2 面板 + 处理年份均 ≥2019 (晚于面板末年) → _post 恒 0,
-        # DiD/event-study 在当前 corpus 上结构性不可识别。fail-loud 披露, 提醒下游
+        # fix(ivdid-01): 早期试跑 T=2 帧 (2017-2018) + 处理年份均 ≥2019 (晚于该帧末年) → _post 恒 0,
+        # DiD/event-study 在 _post 恒 0 时结构性不可识别 (早期试跑 T=2 帧即如此; T=19 全量下该守卫不触发)。fail-loud 披露, 提醒下游
         # 回归勿在 post≡0 spec 上估计 ATT (production T≥3 面板下自然恢复可识别)。
         if not (panel[f'{prefix}_post'] == 1).any():
             logger.warning(

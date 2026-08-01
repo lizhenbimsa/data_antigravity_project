@@ -1,7 +1,7 @@
 """tests/integration/test_validity_claim_gate_consistency.py
 
 WS-E (R-P0-2 + R3-01): per-dimension `validity_claim_gate` 的**可机械执行**护栏,
-把 manuscript 级效度声明门从纸面变 T=2 可跑回归。复用 paper_registry 加载 spec。
+把 manuscript 级效度声明门从纸面变早期试跑 T=2 可跑回归。复用 paper_registry 加载 spec。
 
 规则:
   - 对每篇有 `validation:` 块的 spec, 读 evidence_status;

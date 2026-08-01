@@ -152,7 +152,7 @@ class TestNoBaseExposureNaN:
             col = f'bartik_t_iv{track}'
             assert u[col].isna().all(), (
                 f"未映射银行 {col} 应 NaN (伪零消除), got {u[col].tolist()}")
-        # mapped 银行的 own-group one-hot 兜底不受影响 (T=2 退化披露行为保留)
+        # mapped 银行的 own-group one-hot 兜底不受影响 (早期试跑 T=2 退化披露行为保留)
         a = out[out['target_bank'] == 'bank_a']
         assert np.allclose(a[share_cols].sum(axis=1), 1.0)
 

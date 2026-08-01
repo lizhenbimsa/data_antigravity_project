@@ -551,10 +551,10 @@ def main():
                 f"  优雅降级: 轨道 {_skipped_tracks} indicator 列缺失而跳过 "
                 f"(ss 轨首跑前列未物化属预期; full/ctx 缺列说明上游 LM 子词典/clarity/"
                 f"num_intensity 列未落盘, 须先跑 stage 14/15/22 与 panel 重生)。")
-        # 小样本警告 (盘面 T=2 → bank-year 单元有限, HTMT/permutation 自由度低)
+        # 小样本警告 (早期试跑盘面 T=2 → bank-year 单元有限, HTMT/permutation 自由度低)
         if n_obs_masked < 50:
             logger.info(
-                f"  小样本提示: 当前仅 {n_obs_masked:,d} 个 bank-year 单元 (盘面 T=2 demo), "
+                f"  小样本提示: 当前仅 {n_obs_masked:,d} 个 bank-year 单元 (早期试跑盘面 T=2), "
                 f"HTMT 矩阵与 permutation null 自由度低, 此结果仅验证管道正确性; "
                 f"判别效度结论以全量 约1,819万 / T=19 实测为准。")
         logger.info("-" * 72)

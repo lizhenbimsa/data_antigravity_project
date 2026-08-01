@@ -1510,7 +1510,7 @@ def main():
 
         # (5) 小样本 / 依赖缺失警告。
         if _n_total < 50:
-            logger.info(f"  · ⚠ 小样本: 本次仅 {_n_total:,d} 篇 (盘面 T=2 演示规模) → 上述判读仅验证管道正确性, "
+            logger.info(f"  · ⚠ 小样本: 本次仅 {_n_total:,d} 篇 (早期试跑盘面 T=2 演示规模) → 上述判读仅验证管道正确性, "
                         f"全量结论以 约1,819万/T=19 实测为准。")
         if 'policy_cosine_sim_ss' not in df.columns:
             logger.warning("  · content_ss 未物化 → ss 三轨 (policy_cosine_sim_ss / _lg_ss) 未产出, "

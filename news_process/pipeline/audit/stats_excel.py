@@ -337,11 +337,11 @@ def main():
         else:
             logger.info("  (无任何字段成功统计)")
 
-        # ③ 小样本警告: 盘面 T=2 仅验证管道正确性, 结论以全量为准。
+        # ③ 小样本警告: 早期试跑盘面 T=2 仅验证管道正确性, 结论以全量为准。
         max_rows = max(stage_rowcounts.values()) if stage_rowcounts else 0
         if 0 < max_rows < 100000:
             logger.info(
-                f"  ⚠ 最大阶段样本 = {max_rows:,} 篇 (盘面 T=2 小样本, 仅验证管道与 Excel 导出正确性,"
+                f"  ⚠ 最大阶段样本 = {max_rows:,} 篇 (早期试跑盘面 T=2 小样本, 仅验证管道与 Excel 导出正确性,"
                 " 媒体/地区覆盖结论以全量 约1,819万/T=19 实测为准)"
             )
 

@@ -6,12 +6,12 @@
     40 面板残差 741 列无判定 (穷尽性断言失败): bal_w0725_tone_full ...
     步骤 01 失败 (exit=1, 墙钟 0.9102s) — fail-loud 中断, 后续步骤未跑
 
-根因是一类**T=2 → 生产规模的漏网**, 与超时表同型:
+根因是一类**早期试跑 T=2 → 生产规模的漏网**, 与超时表同型:
 `attention_media.py::compute_balanced_media_robustness` 在平衡子集为空时 `continue`,
-而盘上 T=2 dev **无任何媒体满足窗口内逐年覆盖** ⟹ 该族列从未落地过, v23 权威负清单
-(按 T=2 面板干跑定稿, CUT 410 / KEEP 294) 因此从未见过它们。2026-07-27/28 生产 T=19
+而早期试跑盘上 T=2 **无任何媒体满足窗口内逐年覆盖** ⟹ 该族列从未落地过, v23 权威负清单
+(按早期试跑 T=2 面板干跑定稿, CUT 410 / KEEP 294) 因此从未见过它们。2026-07-27/28 生产 T=19
 面板跑通后 741 列首次出现 → 穷尽性断言 (每列须 ∈ 纳入源列 ∪ 排除域) 无判据可用。
-源码 `attention_media.py:237` 早已预言: "(latent: 盘上 T=2 无满足者, T=19 全量触发)"。
+源码 `attention_media.py:237` 早已预言: "(latent: 早期试跑盘上 T=2 无满足者, T=19 全量触发)"。
 
 **处置 (2026-07-29 用户裁定)**: 738 个测度列**全部纳入**; 另 3 个 `n_media_bal_*`
 的零变异缺陷在上游根治 —— 旧实现 `panel[col_n] = len(balanced)` 把语料级标量广播到
@@ -116,7 +116,7 @@ class TestRegistry:
     def test_empty_panel_returns_empty_not_error(self, which):
         m = _load(which)
         assert m.discover_balanced_basenames({'target_bank', 'year'}) == [], (
-            '面板无 bal_w 列时应返回空列表 —— T=2 小样本下"无媒体满足逐年覆盖"是**预期**, '
+            '面板无 bal_w 列时应返回空列表 —— 早期试跑 T=2 小样本下"无媒体满足逐年覆盖"是**预期**, '
             '不是缺陷, 不得 fail (否则 dev 环境永远跑不了 registry)。')
 
     # ── ③ 短名预算 + 零碰撞 ──

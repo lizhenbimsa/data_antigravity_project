@@ -679,7 +679,7 @@ class TestNewColumnsLandingAndLabels:
 class TestFireSaleConfoundDiag:
     """混淆诊断 corr(cent_t-1, shock_t) 的配对子集零方差守卫 (G4)。
 
-    病灶: Series.corr 是 pairwise dropna 语义 — T=2 下 lag 后配对子集仅剩
+    病灶: Series.corr 是 pairwise dropna 语义 — 早期试跑 T=2 下 lag 后配对子集仅剩
     2018 年且该年 shock 全 0 → numpy corrcoef 除 0 → RuntimeWarning 漏 stderr。
     旧"全局 std>0"判法对此无效 (shock 2017 有方差, 全局判定放行)。
     修法 = 配对完备子集 (concat+dropna) 上双侧判 std>0。

@@ -46,8 +46,8 @@ _SCORE_PATTERNS = [
     'du_2022_score_', 'you_2018_score_',
     # v3.10.0 \u7b2c 6 \u90e8 L&M 2011 JF \u4e2d\u6587\u4e3b\u8bd1 (\u5217\u524d\u7f00\u522b\u540d 'loughran', \u6743\u5a01 =
     # tone_words.DICT_COLUMN_ALIAS / encode.DICT_NAMES)\u3002fix(2026-06-20): \u6b64\u524d\u672c\u524d\u7f00\u8868
-    # \u6f0f\u5217 loughran (\u65b0\u589e\u7b2c 6 \u90e8\u65f6\u672a\u540c\u6b65), \u81f4 exc_*(\u505c\u520a\u7a33\u5065\u6027; \u76d8\u9762 T=2 \u5373\u7f3a 12 \u5217) \u4e0e
-    # bal_*(\u5e73\u8861\u5a92\u4f53; T=19 \u5168\u91cf\u540c\u7406, T=2 \u5e73\u8861\u5b50\u96c6\u4e3a\u7a7a\u6545\u6682\u4e0d\u663e) \u4e24\u65cf loughran \u4e0e\u5176\u4f59 5 \u90e8
+    # \u6f0f\u5217 loughran (\u65b0\u589e\u7b2c 6 \u90e8\u65f6\u672a\u540c\u6b65), \u81f4 exc_*(\u505c\u520a\u7a33\u5065\u6027; \u65e9\u671f\u8bd5\u8dd1\u76d8\u9762 T=2 \u5373\u7f3a 12 \u5217) \u4e0e
+    # bal_*(\u5e73\u8861\u5a92\u4f53; T=19 \u5168\u91cf\u540c\u7406, \u65e9\u671f\u8bd5\u8dd1 T=2 \u5e73\u8861\u5b50\u96c6\u4e3a\u7a7a\u6545\u6682\u4e0d\u663e) \u4e24\u65cf loughran \u4e0e\u5176\u4f59 5 \u90e8
     # (jiang/yao/bian/du/you) \u4e0d\u5bf9\u79f0\u3002\u8865\u9f50\u540e\u516d\u90e8\u8d70\u5b8c\u5168\u76f8\u540c\u7684\u52a8\u6001\u53d1\u73b0\u8def\u5f84 (\u5b9e\u6d4b\u4ea7 12 \u4e2a
     # exc_loughran_*, \u540e\u7f00\u7ed3\u6784\u4e0e exc_jiang_2021_* \u5168\u7b49)\u3002
     'loughran_score_',
@@ -202,7 +202,7 @@ def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
 # 3 个时间窗口: 全样本 / 排除金融危机恢复期 / 排除四万亿刺激期
 # fix(F6, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-F6): T=19 口径收口 (90c40e92)
 # 改了 Stata 模板侧同类年窗与本文件 4 处注释, 漏改此功能常量 → 生产 T=19 下
-# bal_*/n_media_bal_* 整族静默剔 2025 年、"全样本" 窗名实不符 (dev T=2 平衡子集
+# bal_*/n_media_bal_* 整族静默剔 2025 年、"全样本" 窗名实不符 (早期试跑 T=2 平衡子集
 # 恒空列族不落地, 故历轮本机测试不可见)。右端点 2024→2025 且后缀同步更名
 # (D1 名实相符口径); gate 锁死端点与 f'w{start%100:02d}{end%100:02d}' 名实一致。
 ROBUSTNESS_WINDOWS = [
@@ -234,7 +234,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
         # fix(omni-g-attention-04, 2026-06-11): 平衡判据改逐年覆盖 — 旧端点判据
         # (first_year≤start ∧ last_year≥end, 无逐年检查) 会把间歇媒体 (如 2007 与
         # 2024 各一篇、中间年份全缺) 误纳入"平衡"子集, 与 Wooldridge §19.9.3 每期
-        # 观测的平衡面板定义不符 (latent: 盘上 T=2 无满足者, T=19 全量触发)。
+        # 观测的平衡面板定义不符 (latent: 早期试跑盘上 T=2 无满足者, T=19 全量触发)。
         # 窗口内 distinct year 数 == 窗口长度 ⟺ 每年都有报道。
         _window_len = end_year - start_year + 1
         _years_covered = df_w.groupby('媒体(中文)')['year'].nunique()
@@ -244,7 +244,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
         if len(df_b) == 0:
             logger.info(
                 f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口 "
-                f"(bal_w*/n_media_bal_* 列族本轮不落地 — 逐年覆盖判据下 dev T=2 无满足者属预期, "
+                f"(bal_w*/n_media_bal_* 列族本轮不落地 — 逐年覆盖判据下早期试跑 T=2 无满足者属预期, "
                 f"生产 T=19 全量应触发; 与'已接线等生产数据回填'族同性质, 非代码遗漏)")
             continue
 
@@ -439,7 +439,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
       已验证 fintech / 全部银行新闻 才是干净的议程份额)。在 12_full 全 bank-year 全集上 LEFT-join
       分子, 零-(verified-)fintech bank-year: index/pct/density → 0 (真零曝光),
       disp/sd/gap/share → NaN (无报道无离散度/借位)。时间维方法 (Da异常/AR/burstiness/月度) 全量后
-      opt-in, 此处不产 (T=2 试跑样本不可估, H2)。
+      opt-in, 此处不产 (早期试跑 T=2 样本不可估, H2)。
       三轨 ss 自动继承门控 (third-track-ss): _ss 列源 fintech_intensity_score_ss 与
       full/ctx 同处经 restrict_to_verified 门控的 s14 帧, semi-join 按 (docid,target_bank)
       track-agnostic → ss 列零额外门控代码即落入同一 verified 宇宙 (与 §⑪ 平价审计一致)。

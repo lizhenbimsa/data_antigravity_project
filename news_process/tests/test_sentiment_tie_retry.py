@@ -395,7 +395,8 @@ def test_resolver_drops_resolved_tracks_between_rounds(monkeypatch, models):
 # 一条跑满 80 次的 "200 空响应" 病链 (~1,000s) 会把整轮拖成 ~17 分钟
 # (2026-07-25 两趟生产日志实证, 外推剩余轮次 ≈ 22h)。
 # 这几个 gate 防的是**静默回退**: call site 漏传 max_retries 即重新继承 80,
-# 且日志/lineage 仍报 80 → 现象只在生产真跑时才暴露 (本机 T=2 测不出)。
+# 且日志/lineage 仍报 80 → 现象只在生产真跑时才暴露 (早期 T=2 试跑盘测不出;
+# 本机自 2026-07-27/28 起即 T=19 生产规模, 该盲区已消失)。
 
 
 class TestSentimentTieMaxRetries:

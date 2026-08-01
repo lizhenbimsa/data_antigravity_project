@@ -555,7 +555,7 @@ def run_stage(config=None, logger=None):
     # 小样本警告: 盘面 dual_both 子集偏小时只验证管道正确性
     if 0 < n_dual_both < 100:
         logger.info(
-            f"  ⚠ dual_both 子集仅 {n_dual_both} 篇 (盘面 T=2 小样本), κ 点估计与 CI 仅验证管道正确性; "
+            f"  ⚠ dual_both 子集仅 {n_dual_both} 篇 (早期试跑盘面 T=2 小样本), κ 点估计与 CI 仅验证管道正确性; "
             "全量结论以 约1,819万/T=19 实测为准。"
         )
     logger.info("-" * 72)

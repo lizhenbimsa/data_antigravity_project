@@ -541,7 +541,7 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
             logger.warning("  ⚠ 金科词典未加载 (FINTECH_AC=None): content_ss 已全部回退全文, "
                            "ss 轨此次不可用 (优雅降级, 不阻断管道; 修复词典路径后重跑可恢复)")
         if n_with_bank < 5000:
-            logger.info(f"  ⚠ 带 target_bank 的行数偏少 ({n_with_bank:,}), 多为盘面小样本 (如 T=2), "
+            logger.info(f"  ⚠ 带 target_bank 的行数偏少 ({n_with_bank:,}), 多为盘面小样本 (如早期试跑 T=2), "
                         "上述回退/分歧率仅供管道正确性验证, 全量结论以 约1,819万/T=19 实测为准")
         logger.info("-" * 72)
     except Exception as _e:  # noqa: BLE001 — 仅日志诊断, 绝不阻断写盘

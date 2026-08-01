@@ -309,7 +309,7 @@ def compute_variance_and_alpha(
                 # 仅当至少 1 个 item 有 ≥ 2 outlets 报道时 α 才有信号.
                 n_valid_items = int(np.sum(np.sum(~np.isnan(matrix), axis=0) >= 2))
                 if n_valid_items >= 1:
-                    # fix(2026-06-19 run-check F8): T=2 退化数据 (方差为零/评分不足) 喂给
+                    # fix(2026-06-19 run-check F8): 早期试跑 T=2 退化数据 (方差为零/评分不足) 喂给
                     # krippendorff 会在库内触发 numpy "invalid value encountered in scalar
                     # divide" RuntimeWarning; 结果本就是 NaN (已被 try/except 与下游消费正确处理),
                     # 故仅在 FP 错误态层面消噪, 不改任何 alpha 取值 → golden 安全。
@@ -702,7 +702,7 @@ def main():
             f"  检测到 {len(events)} 个 bank-level events (合并重叠 ±{EVENT_WINDOW_DAYS}d 窗后的独立 episode)"
         )
         logger.info(
-            "  ⚠ 盘面 T=2 小样本: 事件检测/媒体覆盖均稀疏, 仅验证管道正确性; "
+            "  ⚠ 早期试跑盘面 T=2 小样本: 事件检测/媒体覆盖均稀疏, 仅验证管道正确性; "
             "全量 约1,819万/T=19 实测 α 与覆盖率以生产 run 为准。"
         )
         logger.info("-" * 72)

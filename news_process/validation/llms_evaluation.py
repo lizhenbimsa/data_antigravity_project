@@ -2710,12 +2710,13 @@ def main():
                     f"  · 创新维度信度[{_dim}]: Krippendorff α={_grade_alpha(_info.get('krippendorffs_alpha'))}"
                     f" (折叠前 3 编码者, 可配对单元={_info.get('n_pairable_items')}, status={_info.get('status')})")
 
-        # (6) 小样本警告: 盘面 T=2 仅数百人工样本 → 点估计噪声不可忽略
+        # (6) 小样本警告: 人工金标准样本仅数百条 → 点估计噪声不可忽略 (与盘面深度无关)
         if not demo_mode and n_gold_ver < 300:
             logger.info(
                 f"  · ⚠ 人工金标准样本偏小 (n_gold_ver={n_gold_ver} < 300): "
                 "accuracy 点估计噪声不可忽略, 须连同 Wilson 95%CI 报告; "
-                "本机盘面为 T=2 子样, 仅验证管道正确性, 全量结论以 约1,819万/T=19 实测为准。"
+                "该限定来自**人工金标准样本量**而非盘面深度 (盘面自 2026-07-27/28 起即生产 T=19 全量); "
+                "扩标注样本后方可下定谳。"
             )
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

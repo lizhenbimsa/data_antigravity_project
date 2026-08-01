@@ -184,7 +184,7 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path,
     logger.info("       6(3), Article e17994. https://doi.org/10.1371/journal.pone.0017994")
     logger.info("       → 白话: 二部系统逐对做统计验证再留边是该文开创的范式; 本步骤 ② 支撑集重合 + ④ 富集")
     logger.info("         度即其确定性简化 (全量披露不做显著性剪边)。迁移边界: 该文超几何检验依大样本渐近,")
-    logger.info("         dev T=2 共同支撑小, 故本步骤只报点估计与方向, 逐对检验留给生产复跑。")
+    logger.info("         早期试跑 T=2 共同支撑小, 故本步骤只报点估计与方向, 逐对检验留给生产复跑。")
     logger.info("     · 固定度序列随机图理论: Fosdick, B. K., Larremore, D. B., Nishimura, J., & Ugander, J.")
     logger.info("       (2018). Configuring random graph models with fixed degree sequences. SIAM Review,")
     logger.info("       60(2), 315–355. https://doi.org/10.1137/16M1087175")

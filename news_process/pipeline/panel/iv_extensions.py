@@ -92,9 +92,18 @@ iv_extensions.py — 顶刊 IV 扩展族 (11 论文工具变量补全, 2026-06-1
   - 全程 float64 算术 (防 masked Int8 groupby 降型回绕, 见 iv_did.py
     fix(omni-g-ivdid-07) 同型披露)。
 
-T=2 试跑样本披露: 当前磁盘面板 2017-2018 (T=2, 176 行) 下, _lag1 变体仅
-2018 年有值、Bartik share 大面积 one-hot 退化 (iv_did.py 模块头第 3 条)。
-全量语料 (2007-2025, T=19) 下自然恢复。论文须报告一阶段有效 N 与 KP F。
+样本披露 (⚠ 2026-08-01 订正): 早期试跑面板 2017-2018 (T=2, 176 行) 下 _lag1 变体仅
+2018 年有值、Bartik share 大面积 one-hot 退化 (iv_did.py 模块头第 3 条)。旧文断言
+「全量语料 (2007-2025, T=19) 下自然恢复」—— 该预期**未获实跑支持**: 本机盘面自
+2026-07-27/28 起即 T=19 全量 (23,693 行; pyreadstat 直读 .dta 复核), 2026-08-01 实跑
+Bartik one-hot 率仍达 38.96%–81.82%、canonical 基期 T0=[2010] 下 bartik_*_iv 有效率
+2.769%–5.200% (另有 7.281%/8.420% 属 T0=[2011]/[2010,2011] 基期敏感性变体, 勿混引)。
+成因分轨见 iv_did.py 模块头第 3 条 —— [type]/[scale] 有 own-group 兜底与「共现集中于单一组」两条来源 (后者实测 ≥18%),
+[fintech_*]/[geoprox]/[mauth]/[media] 是基期年文章数少 + 类别高度集中; 二者都与
+面板深度 T 无关 (share 只由基期年文章构造, T 不进公式)。⚠ 该 T=2→T=19 对照并非
+受控 (基期年同时由 2017 改为 2010), 只能表述为"同量级复现", 不得说成已完成证伪。
+论文须报告一阶段有效 N 与 KP F, 并把该退化作为**结构性局限**披露,
+不得再写成"试跑盘所致"。
 """
 
 import os
@@ -576,7 +585,7 @@ def compute_iv_extensions(panel: pd.DataFrame,
         logger.info(f"    share_prefix=bartik_type_share_ (复用步骤 7e); "
                     f"outlet_col={OUTLET_COL!r}; add_lag1=True (滞后变体)")
         if n_T is not None:
-            _t2_note = " ⚠ T=2 试跑 (_lag1 仅末年有值/Bartik share one-hot 退化)" \
+            _t2_note = " ⚠ T≤2 短面板 (_lag1 仅末年有值/Bartik share one-hot 退化)" \
                 if n_T <= 2 else ""
             logger.info(f"    面板深度: {_yr_lo}–{_yr_hi} "
                         f"(T≈{n_T:,d}){_t2_note}")
@@ -789,7 +798,7 @@ def compute_iv_extensions(panel: pd.DataFrame,
 
     # ── 【结果分析】(仅日志, 不回写 panel/产物; golden-safe) ──
     # 逐 IV 列报有效率 (notna), 对照"一阶段最少有效观测"阈值给好/临界/弱判读。
-    # IV 列在 T=2 试跑下大面积退化属预期 (见模块头披露), 全量 T=19 自然恢复。
+    # IV 列大面积退化在早期 T=2 试跑与 T=19 全量下**均**复现 (见模块头订正), 不是试跑盘副作用。
     try:
         _iv_cols = [c for c in panel.columns
                     if ('leave_one_out_peer_' in c or c.startswith('lpeer_')
@@ -804,7 +813,7 @@ def compute_iv_extensions(panel: pd.DataFrame,
             n_valid = int(panel[c].notna().sum())
             frac = n_valid / n_panel if n_panel else 0.0
             if n_valid == 0:
-                verdict = "❌ 全 NaN (源列缺/组退化; T=2 下属预期)"
+                verdict = "❌ 全 NaN (源列缺/组退化; 基期稀疏下高发, T=19 全量仍复现)"
                 n_empty += 1
             elif n_valid < 10:
                 verdict = "⚠ 一阶段 N 偏少 (须报 KP rk F + AR CI)"
@@ -847,7 +856,7 @@ def compute_iv_extensions(panel: pd.DataFrame,
             _empty_frac = n_empty / len(_iv_cols)
             if _empty_frac >= 0.5:
                 logger.warning(f"  ⚠ {pct4(_empty_frac)} 的 IV 列全 NaN —— "
-                               "若非 T=2 试跑, 须排查上游源列/share/分组缺失。")
+                               "须排查上游源列/share/分组缺失 (T=19 全量下亦不豁免)。")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  [8z] 结果分析块失败 (忽略, 不影响 panel): {_e}")
 

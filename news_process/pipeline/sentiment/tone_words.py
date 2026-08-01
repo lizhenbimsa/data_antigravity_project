@@ -1358,7 +1358,7 @@ def _inject_custom_dicts_to_jieba():
 # 进程并行 worker + 工况自适应后端 (perf fix 2026-07-25)
 # ============================================================================
 # 病根 (与 stage 15 §1b 同型): jieba.cut / 状态机打分是纯 Python、持 GIL, 原两处
-#   `Parallel(prefer='threads')` 在 32 核上退化为单核 —— T=2 dev 实测 0.0657 s/篇,
+#   `Parallel(prefer='threads')` 在 32 核上退化为单核 —— 早期试跑 T=2 实测 0.0657 s/篇,
 #   外推生产 gated 语料 169,807 篇 ⟹ ④三轨词典打分 ≈3.1 小时 (占 stage 22 墙钟 66%),
 #   ③IDF 文档频率另 ≈6.5 分钟。
 # 修法: worker 提升为模块级 (loky 需 pickle-by-ref) + 工况自适应后端:
@@ -2544,7 +2544,7 @@ def main():
         # ── 指标②: negonly 消融变体与全规则的相关性 (主结果对程度/转折规则的敏感性) ──
         # 判读: corr(full规则, negonly) 越接近 1 → 主结果对去掉程度/转折越不敏感 (越稳健)。
         # 参考文档: 全量 T=19/bank-year 聚合参照 corr ≈ 0.998–0.999 高度共线 (稳健性对照, 非独立信号);
-        #           T=2 盘面样本小, 实测 r 会偏低 (与 verdict 文案口径一致, 见 ~line 1944)。
+        #           早期试跑 T=2 盘面样本小, 实测 r 会偏低 (与 verdict 文案口径一致, 见 ~line 1944)。
         logger.info("  · 指标② 规则消融稳健性 corr(msent_score, msent_negonly) — 仅否定 vs 全规则:")
         for track, tlabel in [('_full', '全文'), ('_ctx', '上下文片段'), ('_ss', '银行+金科同句')]:
             full_col, neg_col = f"msent_score{track}", f"msent_negonly{track}"
@@ -2554,16 +2554,16 @@ def main():
                 paired = pd.concat([a, b], axis=1).dropna()
                 if len(paired) >= 3 and paired.iloc[:, 0].std() > 0 and paired.iloc[:, 1].std() > 0:
                     r = float(paired.iloc[:, 0].corr(paired.iloc[:, 1]))
-                    verdict = ("稳健 (r≥0.95, 主结果不依赖程度/转折两规则; 全量 T=19/bank-year 聚合参照≈0.998-0.999, T=2 盘面更低)"
+                    verdict = ("稳健 (r≥0.95, 主结果不依赖程度/转折两规则; 全量 T=19/bank-year 聚合参照≈0.998-0.999, 早期试跑 T=2 盘面更低)"
                                if r >= 0.95 else
                                "中等 (程度/转折规则贡献可观, 须在稳健性表披露)"
                                if r >= 0.7 else "偏低 (规则贡献大, 需进一步核查)")
                     logger.info(f"      [{tlabel}] r={sig4(r)} → {verdict} (n={len(paired):,})")
                 else:
-                    logger.info(f"      [{tlabel}] 样本/方差不足 (n={len(paired):,}), 相关性不可计算 (T=2 盘面常见)")
+                    logger.info(f"      [{tlabel}] 样本/方差不足 (n={len(paired):,}), 相关性不可计算 (早期试跑 T=2 盘面常见)")
 
         # ── 指标③: Z-score 列的退化情况 (σ=0 常数列 → 整列 NaN 哨兵) ──
-        # 判读: 退化列越多 → 该轨/词典区分度越差 (小样本 T=2 下高发, 仅验证管道正确性)。
+        # 判读: 退化列越多 → 该轨/词典区分度越差 (小样本早期试跑 T=2 下高发, 仅验证管道正确性)。
         zcols = [c for c in processed_df.columns
                  if (c.endswith('_zscore_full') or c.endswith('_zscore_ctx') or c.endswith('_zscore_ss'))]
         if zcols:
@@ -2572,7 +2572,7 @@ def main():
                         f"其中退化(全 NaN, σ=0 常数列)={n_degraded} 列")
             if n_degraded > 0:
                 logger.warning(f"      ⚠ {n_degraded} 个 Z-score 列退化为全 NaN (σ=0): "
-                               f"该词典×轨在本样本无区分度; T=2 小样本下常见, 全量 T=19 应大幅缓解")
+                               f"该词典×轨在本样本无区分度; 早期试跑 T=2 小样本下常见, 全量 T=19 应大幅缓解")
 
         # ── 指标④: num_intensity 三轨 (数值披露强度, Davis & Tama-Sweet 2012 CAR) ──
         # 判读: num_intensity = 数字 token 数 / 句数, 是按句数归一化的**密度** (非原始计数)。
@@ -2645,7 +2645,7 @@ def main():
 
         # ── 指标⑨: 各词典主分 {dict}_score 分布 (全文轨, 均值/标准差) — 运行结果信息 ──
         # 判读: 主分 ∈ [-1,+1] self-normalized; 均值符号=该词典整体语调倾向 (>0 偏正 / <0 偏负),
-        # 标准差=区分度。σ≈0 → 该词典在本样本几乎无区分力 (T=2 盘面常见, 全量 T=19 应展开)。
+        # 标准差=区分度。σ≈0 → 该词典在本样本几乎无区分力 (早期试跑 T=2 盘面常见, 全量 T=19 应展开)。
         _score_dist = []
         for dn, _ in ALL_DICTIONARIES:
             col = f"{dn}_score_full"
@@ -2659,7 +2659,7 @@ def main():
 
         # ── 小样本 / 确定性提示 ──
         if input_rows < 1000:
-            logger.info(f"  ⚠ 小样本 ({input_rows:,} 行, 疑似 T=2 盘面): 上述判读仅验证管道正确性, "
+            logger.info(f"  ⚠ 小样本 ({input_rows:,} 行, 疑似早期试跑 T=2 盘面): 上述判读仅验证管道正确性, "
                         f"全量结论以 约1,819万/T=19 实测为准")
         logger.info("  ✓ 确定性: 纯 CPU, 无 LLM/网络/API ($0); 同 jieba==0.42.1 + 同词典文件 → 逐位可复现")
         logger.info("-" * 72)

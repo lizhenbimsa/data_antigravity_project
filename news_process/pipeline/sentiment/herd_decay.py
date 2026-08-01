@@ -633,7 +633,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     # 规模画像 (deepen_runtime, round8 2026-06-29): articles-per-bank 分布 (p50/p90/max) +
     # 触发 >2000 篇分支 (7 天窗双指针分桶 O(N·window)) 而非 dense pairwise (O(N^2)) 的银行数,
-    # 让"本次实际走哪条计算路径主导"自文档化, 便于全量 run 审计计算复杂度 regime。盘面 T=2
+    # 让"本次实际走哪条计算路径主导"自文档化, 便于全量 run 审计计算复杂度 regime。早期试跑盘面 T=2
     # 小样下全部走 dense; 全量 约1,819万/T=19 头部大行 (工农中建招) 才进分桶分支。⚠ 注: 真正的
     # dense/bucketed 切换在 _compute_similar_counts_for_track 按**年度前缀** (prefix_end<=2000)
     # 逐年判定, 故 bank 级篇数是其上界代理 (年度切分后实际更小)。纯只读 groupby 规模, 整块
@@ -1109,7 +1109,7 @@ def main():
         elif _mw_full >= 0.9995 and _flag_full == _flag_full and _flag_full < 0.001:
             # 退化为全 1.0 (无任何降权) 往往意味着上游文本列缺失或样本过稀, 需告警
             logger.warning(
-                "  ⚠ full 轨 herd_weight≈1.0 且跟风占比≈0 — 几乎未检出任何转抄。盘面 T=2 小样本"
+                "  ⚠ full 轨 herd_weight≈1.0 且跟风占比≈0 — 几乎未检出任何转抄。早期试跑盘面 T=2 小样本"
                 "下属预期(每银行每年文章稀疏, 7 天窗内难凑相似前驱); 但若全量 run 出现, 须排查"
                 "文本列是否缺失/向量化是否大面积降级。"
             )
@@ -1128,13 +1128,13 @@ def main():
         if _ctx_eq_full:
             logger.warning(
                 "  ⚠ ctx 轨 herd_weight 与 full 轨逐位相同 — content_ctx 缺列或全 fallback, "
-                "ctx 退化为非独立轨 (盘面 T=2 全无跟风时三轨权重同为 1.0 亦会逐位相同, 非必然 "
+                "ctx 退化为非独立轨 (早期试跑盘面 T=2 全无跟风时三轨权重同为 1.0 亦会逐位相同, 非必然 "
                 "content_ctx 缺列/fallback; 若全量 run 出现再查 stage 14 ctx_materializer 是否物化 content_ctx)。"
             )
         if _ss_eq_full:
             logger.warning(
                 "  ⚠ ss 轨 herd_weight 与 full 轨逐位相同 — content_ss 缺列或全 fallback (无银行∧"
-                "金科同句共现), ss 退化为非独立轨 (盘面 T=2 / 同句共现稀疏时可能发生)。"
+                "金科同句共现), ss 退化为非独立轨 (早期试跑盘面 T=2 / 同句共现稀疏时可能发生)。"
             )
         if _have['full'] and _have['ctx'] and _have['ss'] and not _ctx_eq_full and not _ss_eq_full:
             logger.info(
@@ -1152,12 +1152,12 @@ def main():
                 )
             else:
                 logger.info(
-                    "  阈值敏感性: 各 τ 权重无方差或 spearman 不可用 (盘面 T=2 小样本下常见, ρ 无定义)。"
+                    "  阈值敏感性: 各 τ 权重无方差或 spearman 不可用 (早期试跑盘面 T=2 小样本下常见, ρ 无定义)。"
                 )
         # 小样本 / 全量提醒
         if _n_total < 5000:
             logger.info(
-                f"  ⚠ 小样本提醒: 当前 {_n_total:,} 篇属盘面 T=2 规模, 上述跟风占比/降权强度仅验证"
+                f"  ⚠ 小样本提醒: 当前 {_n_total:,} 篇属早期试跑盘面 T=2 规模, 上述跟风占比/降权强度仅验证"
                 "管道正确性; 全量结论 (转抄密集度/三轨分化) 以 约1,819万/T=19 实测为准 (max_features "
                 "已上调至 5e6 不再截断咬合, fix omni-g-herd-02; 词表撞 5e6 才记 warning)。"
             )

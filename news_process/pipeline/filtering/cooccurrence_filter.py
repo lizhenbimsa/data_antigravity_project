@@ -550,11 +550,11 @@ def main():
                         )
         except Exception as _ye:  # noqa: BLE001 — 年份分层诊断绝不阻断产物
             logger.info(f"  [年份分层 keep 率] 计算跳过 (不影响产物): {_ye}")
-        # 小样本警告 (盘面 T=2)
+        # 小样本警告 (早期试跑盘面 T=2)
         if n_banks_out <= 2 or n_in < 5000:
             logger.warning(
                 f"  [小样本警告] 当前为盘面小样本 (过滤前 {n_in:,d} 行 / {n_banks_in:,d} 家 → "
-                f"过滤后 {n_out:,d} 行 / {n_banks_out:,d} 家, 疑似 T=2 验证盘): 上述 keep 率/"
+                f"过滤后 {n_out:,d} 行 / {n_banks_out:,d} 家, 疑似早期试跑 T=2 验证盘): 上述 keep 率/"
                 f"银行覆盖仅用于验证管道正确性, 全量结论以 约1,819万/T=19 实测为准。"
             )
     except Exception as _e:  # noqa: BLE001 — 诊断日志绝不阻断产物落盘

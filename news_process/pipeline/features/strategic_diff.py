@@ -1032,7 +1032,7 @@ def _compute_centroid_scores(vectors, bank_list, is_sparse=False,
 #      df_t1.empty 判据) —— 切分口径一旦漂移就是静默改测度;
 #   ② joblib.Parallel 按**提交序**返回, 不按完成序 → 归并序恒定;
 #   ③ 年数 < _PROC_PARALLEL_MIN_YEARS 或只配到 1 worker 时**回落串行**, 与旧码逐字节
-#      同路径 (T=2 dev / golden 小样本因此零行为变化);
+#      同路径 (早期试跑 T=2 / golden 小样本因此零行为变化);
 #   ④ worker 体内**零 logger 调用** —— 降级/失败告警一律回传, 由父端统一 emit,
 #      保证告警不丢也不重, 且 worker 被父进程直接调用 (串行回落) 时行为一致。
 #   ⚠ 本模块**没有**模块级 setup_logging (只 logging.getLogger), 故 loky worker import
@@ -1111,7 +1111,7 @@ def _proc_workers(n_tasks: int) -> int:
 # F44 (多块池化的 norm) 钉死; `_compute_centroid_scores` 的三处归约 (`sum(axis=0)` /
 # `einsum('ij,ij->i')` / `norm(axis=1)`) 实测**线程无关** (1/2/8/16/24 五档 ×
 # emb/tfidf/theta 三形态全同, 含同线程数重复两次的控制组) ⟹ 不需要额外钉。
-#: ⚠ 三条轨是**三次独立提交**, 每次任务数 = 该轨的年数 N (不是 3N)。T=2 dev 每轨仅
+#: ⚠ 三条轨是**三次独立提交**, 每次任务数 = 该轨的年数 N (不是 3N)。早期试跑 T=2 每轨仅
 #: 2 个任务 ⟹ 恒串行; 生产 T=19 每轨 19 个任务 ⟹ 并行。(初版注释写成"3 轨 × N 年
 #: 扁平池 / T=2 dev (6)", 与实现不符, 2026-08-01 订正。)
 _STRAT_PARALLEL_MIN_YEARS = 12
@@ -1434,7 +1434,7 @@ def _run_year_tasks(tasks, worker, *extra, min_tasks=None, n_jobs=None,
       ① **阈值不能跨模块硬借**。``policy_similarity`` 的任务池是「3 轨 × N 年」扁平池,
          只要 N≥2 就 ≥6 个任务, 直接复用 4 这个阈值会让**现存单测也走进并行分支** ——
          而单测靠 ``monkeypatch`` 打桩, **桩不会传播进 loky 子进程** ⟹ 测试当场失真。
-         故调用方须能自设更高阈值 (如 12/20), 让 toy fixture 与 T=2 dev 一律串行。
+         故调用方须能自设更高阈值 (如 12/20), 让 toy fixture 与早期试跑 T=2 一律串行。
       ② **并行度必须可控**。方案自设的风控「首跑用 P=8 观测 RSS, 确认后再上 12」
          在旧签名下**根本够不着** —— n_jobs 是函数内部算死的。
 

@@ -1449,7 +1449,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # fix(omni-g-encode-08, 2026-06-11): dtype pin — pandas groupby.agg 对 nullable
     # Int8/Int16/Int32 源列做 sum 时按【结果值域】选输出 dtype (所有组和 ∈[-128,127]
     # 保留 Int8, 任一组和超界静默升 Int64) → 计数/和列 schema 随数据规模漂移
-    # (T=2 试跑 .dta 为 byte, T=19 全量翻 long), parquet/.dta 存储型跨规模不稳定。
+    # (早期试跑 T=2 .dta 为 byte, T=19 全量翻 long), parquet/.dta 存储型跨规模不稳定。
     # 出口统一 pin 为 Int64: 值无损 (Int8⊂Int64), 消除值依赖性。
     _narrow_int_dtypes = {'Int8', 'Int16', 'Int32'}
     for _pin_col in valid_agg:
@@ -1723,7 +1723,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         f"mean={sig4(_ta_v.mean())}, std={sig4(_ta_v.std())}, "
                         f"median={sig4(_ta_v.median())}")
                 else:
-                    logger.info("  📈 tone_gap_tech_app: 无满足 min-n≥5 的合格 cell (T=2 小样常态)")
+                    logger.info("  📈 tone_gap_tech_app: 无满足 min-n≥5 的合格 cell (早期试跑 T=2 小样常态)")
             except Exception as _e:  # noqa: BLE001
                 logger.warning(f"  tone_gap_tech_app 分布统计跳过 (不影响聚合): {_e}")
 
@@ -1877,7 +1877,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     f"mean={sig4(_gap_v.mean())}, std={sig4(_gap_v.std())}, "
                     f"median={sig4(_gap_v.median())}")
             else:
-                logger.info("  📈 tone_gap_sub_symb: 无满足 min-n≥5 的合格 cell (T=2 小样常态)")
+                logger.info("  📈 tone_gap_sub_symb: 无满足 min-n≥5 的合格 cell (早期试跑 T=2 小样常态)")
 
         # innovation_substantiveness 恒等式校验（二分类）— fix(omni-g-encode-07,
         # 2026-06-11): 严格 == 统一为 R6 `>=` (与 collab 维度一致)
@@ -2037,7 +2037,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         f"mean={sig4(_ic_v.mean())}, std={sig4(_ic_v.std())}, "
                         f"median={sig4(_ic_v.median())}")
                 else:
-                    logger.info("  📈 tone_gap_indep_collab: 无满足 min-n≥5 的合格 cell (T=2 小样常态)")
+                    logger.info("  📈 tone_gap_indep_collab: 无满足 min-n≥5 的合格 cell (早期试跑 T=2 小样常态)")
             except Exception as _e:  # noqa: BLE001
                 logger.warning(f"  tone_gap_indep_collab 分布统计跳过 (不影响聚合): {_e}")
 
@@ -2382,7 +2382,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         _n_rows = int(panel.shape[0])
         logger.info("-" * 60)
         logger.info("📊 Bank-Year 聚合结果判读")
-        # 面板深度 (T): 顶刊计量 FE 识别力随 T 提升; T=2 为试跑退化警告
+        # 面板深度 (T): 顶刊计量 FE 识别力随 T 提升; 早期试跑 T=2 为试跑退化警告
         if _n_years >= 5:
             logger.info(f"  面板深度: T={_n_years:,d} 年 × {_n_banks:,d} 银行 → "
                         f"良好 (双向 FE 识别力充分)")

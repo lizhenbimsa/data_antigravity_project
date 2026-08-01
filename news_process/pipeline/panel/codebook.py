@@ -1010,7 +1010,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                           '得分, 构念含义不继承)',
                 notes='mean(逐篇净语调) ≡ ' + _b + '_net_tone (pos/neg 同 NaN 掩码恒等'
                       '式)。掩码 n 口径 = 净语调非缺篇数 (禁用 pos_count: argmax 判正'
-                      '数, 内生)。dev T=2 稀疏格大面积 NaN 属预期退化。⚠ per-model'
+                      '数, 内生)。早期试跑 T=2 稀疏格大面积 NaN 属预期退化。⚠ per-model'
                       + _PER_MODEL_HANSEN_NOTE + '。',
                 category=_bd_cat, track=_trk,
             )
@@ -1053,7 +1053,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                 source_stage=_bd_stage,
                 reference='构造=本项目定义; 前提动机(非方法出处): Tetlock (2007) JF; '
                           'Da, Engelberg & Gao (2015) RFS',
-                notes='分母>0 由月号互异+门槛 6 结构保证。dev T=2 大概率全 NaN (有效'
+                notes='分母>0 由月号互异+门槛 6 结构保证。早期试跑 T=2 大概率全 NaN (有效'
                       '月不足) 属预期退化, 生产 T=19 多数格 10-12 有效月。⚠ per-model'
                       + _PER_MODEL_HANSEN_NOTE + '。',
                 category=_bd_cat, track=_trk,
@@ -1590,7 +1590,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 40'),
         # P1-2 (2026-07-11): 中文为主英文括注 (原 'Named-Entity Density (...)')
         ('avg_named_entity', '命名实体密度(specificity实体面)', 'token fraction', '[0,1] ∪ NaN',
-         'bank-year mean of (nr/ns/nt/nz 具名实体/总 token); specificity 的纯实体子集(不含 m 数词), 拆出实体面以与数字面(num_intensity)正交. ⚠ avg_specificity 真子集分子(机械相关); T=2 盘面实测 article corr≈0.81 / bank-year≈0.75-0.80 — 中高相关非别名(信息量充分, 可作独立 specificity-面稳健性列), 但因子集机械相关勿与 avg_specificity 同进同一回归式(corr 数值待生产 T=19 回填)',
+         'bank-year mean of (nr/ns/nt/nz 具名实体/总 token); specificity 的纯实体子集(不含 m 数词), 拆出实体面以与数字面(num_intensity)正交. ⚠ avg_specificity 真子集分子(机械相关); 早期试跑 T=2 盘面实测 article corr≈0.81 / bank-year≈0.75-0.80 — 中高相关非别名(信息量充分, 可作独立 specificity-面稳健性列), 但因子集机械相关勿与 avg_specificity 同进同一回归式(corr 数值待生产 T=19 回填)',
          'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 40'),
         ('avg_within_doc_redund', '篇内冗余度(字符3-gram)', 'ratio', '[0,1] ∪ NaN',
          'bank-year mean of (1 − 唯一字符3-gram/全部字符3-gram); 篇内自重复(与 staleness 跨篇正交)',
@@ -2058,7 +2058,7 @@ def _log_codebook_result_analysis(
         n_rows = len(panel)
         logger.info(f"     · 面板维度: {n_rows:,d} 行 × {len(panel.columns):,d} 列")
         if n_rows < 200:
-            logger.warning(f"     · ⚠ 面板深度仅 {n_rows:,d} 行 (T 小样本, 如 T=2 试跑); "
+            logger.warning(f"     · ⚠ 面板深度仅 {n_rows:,d} 行 (T 小样本, 如早期试跑 T=2); "
                            "codebook 统计量 (均值/分位) 仅供结构核对, 非生产规模解读")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  codebook 结果解读打印失败 (不影响生成): {e}")
@@ -2075,7 +2075,7 @@ _METHODOLOGY_DECLARATION = """## 方法学声明
    ③ 顶刊闸允许 field 领域刊占比 ≤30% (SSOT = config/top_journal_list.yaml);
    ④ wp/preprint 不计入"非顶刊"分母。
 3. 字数计量单位 = **CJK 汉字数** (Unicode 基本区 + 扩展 A; 英文/数字/标点/空白均不计): 全量 ≥1000 汉字 / 关键核心指标 (core) ≥5000 汉字; 引文段以英文/DOI 为主, 汉字贡献不计入闸。
-4. 动态统计段数值为生成期从面板实测注入 (本机 T=2 开发面板), 生产 T=19 重生后以实读为准 (基数禁写死)。
+4. 动态统计段数值为生成期从盘上面板实测注入 (盘面自 2026-07-27/28 起即生产 T=19 全量, 23,693 bank-year / 1,247 banks / 2007–2025); 面板重生后一律以实读为准 (基数禁写死)。
 """
 
 _MD_SUMMARY_FIELDS = ('变量名', '标签', '数据类型', '来源阶段', '变量类别', '文本轨道')

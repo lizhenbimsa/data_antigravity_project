@@ -511,7 +511,7 @@ def _log_result_analysis(
     try:
         logger.info("  📊 关键指标解读 (替代锚点投影结果, 数字均 4 位有效数字)")
         n_obs = len(panel)
-        # ① 面板深度 (T=2 小样本下退化警告)
+        # ① 面板深度 (早期试跑 T=2 小样本下退化警告)
         n_banks = panel["target_bank"].nunique() if "target_bank" in panel else 0
         n_years = panel["year"].nunique() if "year" in panel else 0
         logger.info(
@@ -520,7 +520,7 @@ def _log_result_analysis(
         if n_obs < 30:
             logger.info(
                 "        ⚠ 小样本 (<30 obs): A2 β 符号/比值验收在生产规模 (T=19) 才有充分功效, "
-                "本盘 T=2 试跑仅作链路自检 (优雅降级)"
+                "早期试跑盘 T=2 仅作链路自检 (优雅降级)"
             )
 
         # ② 文章级投影分布

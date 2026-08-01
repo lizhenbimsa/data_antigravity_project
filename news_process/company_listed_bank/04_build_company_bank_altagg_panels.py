@@ -437,7 +437,7 @@ def _log_result_stats(scheme: str, panel: pd.DataFrame, company_col: str) -> Non
                         float(by.min()), float(by.max()))
         logger.info("    【判读·frozenw】① 非缺格点/覆盖率: 是什么=该轨至少一列 cw 有值的 company×year")
         logger.info("      占满骨架比例; 为什么看=frozenw 的有效样本面决定下游估计功效与共同样本对齐")
-        logger.info("      (D10⑤) 的交集大小; 怎么判=dev T=2 <1% 属预期退化, 生产 T=19 仍如此则查 merge 键")
+        logger.info("      (D10⑤) 的交集大小; 怎么判=早期试跑 T=2 <1% 属预期退化, 生产 T=19 仍如此则查 merge 键")
         logger.info("      错配 (R2-P1-1 锚); 依据=GPSS (2020) 基期份额覆盖披露义务。② 左截断格: look-ahead")
         logger.info("      防线 (Banz & Breen 1986 谱系) — gate④ 已断言基期前恒 NaN, 此处报规模供 codebook")
         logger.info("      对账; 左截断格数≈有基期公司覆盖行−基期后行, 骤降=基期系统性提前的漂移信号。")
@@ -945,7 +945,7 @@ def main(argv=None) -> int:
                     CODEBOOK_ALTAGG_BEGIN, CODEBOOK_ALTAGG_END)
     logger.info("codebook「替代聚合面板章」upsert 完成 (幂等 section-replace, 保全 03 七权章)")
 
-    logger.info("【判读】dev T=2 语料仅 2017–2018 非零 → frozen 基期几乎全 2017、仅 2018 有非平凡冻结差,"
+    logger.info("【判读】早期试跑 T=2 语料仅 2017–2018 非零 → frozen 基期几乎全 2017、仅 2018 有非平凡冻结差,"
                 " base_year=窗末年格 frozen≡cw 恒等 — 全部属预期构造退化 (生产 T=19 恢复), 非 bug。")
     logger.info("--- 阶段完成: %s (%.4g 秒) ---", Path(__file__).stem, time.monotonic() - t_start)
     return 0

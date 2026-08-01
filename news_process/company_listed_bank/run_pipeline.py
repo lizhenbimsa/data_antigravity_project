@@ -413,7 +413,7 @@ def _log_run_summary(step_stats: list[tuple[str, str, float]], total: float) -> 
     logger.info("    生产重跑后 §9.4 级联义务生效 (哈希锚 bump → 02 pair 指纹 → 03 双向锁), 墙钟与 IO 同步放大")
     logger.info("  · 判读框架 (本节每个统计量的四层口径): ①是什么 (统计量定义与口径) → ②为什么看 (它防哪类")
     logger.info("    威胁: 静默漏列/幸存者偏差/stale 产物/形态漂移) → ③怎么判 (dev 实测健康区间) → ④学术依据")
-    logger.info("    (见下方 📖 节逐条锚定); 所有健康区间均为 dev T=2 实测锚, 生产 T=19 首跑须按实测重标定,")
+    logger.info("    (见下方 📖 节逐条锚定); 所有健康区间均为早期试跑 T=2 实测锚, 生产 T=19 首跑须按实测重标定,")
     logger.info("    耗时基线不可跨状态外推 (07-16 审计裁定: 预算=最近同状态实测)")
 
 

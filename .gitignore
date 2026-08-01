@@ -221,3 +221,6 @@ replication_v3.2.0_*/
 # data/llm_archive/manifest.json + 取回脚本 scripts/data_acquisition/fetch_llm_archive.py。
 # (manifest.json 不在 responses/ 下, 故仍可被 git 追踪。)
 data/llm_archive/responses/
+# 同型轨 (2026-08-01 补): _lg / 其它后缀的播种归档同样只留 manifest, 实体不进 git
+# —— 盘上 data/llm_archive_seed_lg/responses/2026-07-25.jsonl 实测 13 GB, 原规则未覆盖。
+data/llm_archive*/responses/

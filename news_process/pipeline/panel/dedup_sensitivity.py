@@ -78,7 +78,7 @@ Stata 用法 (敏感性检验本体): 主回归逐一以 attention_index_full_<v
   ③ 试跑样本只动了 1–3% 文章, 所以算出来的相关性高到 0.999 是必然的、不算"强稳健
      性证据" — 真正的证据是把每个变体的列丢进主回归, 看系数符号和显著性稳不稳。
 
-⚠ 试跑样本 caveat (METHOD-3): 当前盘上 T=2 / ~176 bank-year, 变体仅追加剔除 1–3%
+⚠ 样本 caveat (METHOD-3): 本机盘面已是生产 T=19 全量 (23,693 bank-year; 早期试跑盘曾为 T=2/~176), 变体仅追加剔除 1–3%
   文章 → 与生产锚点的 Pearson 相关接近 1.0 是低剔除率下的**预期平凡结果**, 非充分
   稳健性证据。真正的稳健性结论须来自主回归系数在各变体下的稳定性 (Stata Table A),
   而非面板内相关性; 全量 约1,819万/T=19 下剔除率与相关性都可能很不同, 当前数字不可外推。
@@ -356,7 +356,7 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
             'raw_equivalent': False,
         }
         # 与生产锚点指标的相关性 + 逐 bank-year Δ 分布 (METHOD-3/4: 单一相关性在低
-        # 剔除率/T=2 下接近平凡, 故并报 Δ 分布"谁受影响多大"; 真稳健性证据须来自
+        # 剔除率/早期试跑 T=2 下接近平凡, 故并报 Δ 分布"谁受影响多大"; 真稳健性证据须来自
         # 主回归系数稳定性 (Stata Table A), 非面板内相关性)。
         if 'attention_index_full' in merged.columns:
             base = merged['attention_index_full']
@@ -422,7 +422,7 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                    else "高剔除(扰动较强, 检验更有力)")
             logger.info(f"    · {_sfx}: 存活率 {pct4(_ret) if _ret is not None else 'NA'}"
                         f" / corr={sig4(_corr) if _corr is not None else 'NA'} → {_rv}")
-        # 试跑样本 caveat (METHOD-3): T=2/~176 bank-year 下结论须来自 Stata Table A
+        # 样本 caveat (METHOD-3): 无论早期 T=2/~176 还是当前 T=19/23,693 bank-year, 结论都须来自 Stata Table A
         logger.info("  · ⚠ 稳健性结论须来自主回归各变体系数符号/显著性稳定 (Stata Table A), "
                     "非面板内相关性; 当前试跑数字 (1–3% 剔除率→corr≈1) 不可外推至全量 约1,819万/T=19")
     except Exception as _e:  # noqa: BLE001 — 结果解读块绝不阻断面板主流程

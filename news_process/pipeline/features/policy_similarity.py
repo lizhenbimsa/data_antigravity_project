@@ -225,7 +225,7 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix,
 # ⚠ 阈值**刻意不复用** `strategic_diff._PROC_PARALLEL_MIN_YEARS` (=4): 本池是
 #   「3 轨 × N 年」扁平池, N≥2 就 ≥6 个任务, 用 4 会让**现存单测也走进并行分支** ——
 #   而单测靠 monkeypatch 打桩, 桩不传播进 loky 子进程 ⟹ 测试当场失真。
-#   12 这个值把 T=2 dev (3×2=6) 与 toy fixture 一律留在串行, 生产 (3×19=57) 走并行。
+#   12 这个值把早期试跑 T=2 (3×2=6) 与 toy fixture 一律留在串行, 生产 (3×19=57) 走并行。
 _AUTH_PARALLEL_MIN_TASKS = 12
 
 #: 并行度运维旁路。stage 40 单跑 28 小时, 出事重跑代价极高 —— 留一个不改代码就能

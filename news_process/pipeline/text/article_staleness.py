@@ -898,7 +898,7 @@ def main():
                         "ss 轨现仅 surface。重跑 30a 产出 emb_ss 后即恢复三轨平价 (下游聚合对缺列'缺列即跳过', 不崩)。")
         # 小样本警告
         if n_art < 5000:
-            logger.info(f"  ⚠ article 行数偏少 ({n_art:,}), 多为盘面小样本 (如 T=2): 第一周文章无前窗→大量 NaN, "
+            logger.info(f"  ⚠ article 行数偏少 ({n_art:,}), 多为盘面小样本 (如早期试跑 T=2): 第一周文章无前窗→大量 NaN, "
                         "上述覆盖率/均值/相关性仅供验证管道正确性, 全量结论以 约1,819万/T=19 实测为准。")
         logger.info("-" * 72)
     except Exception as _e:

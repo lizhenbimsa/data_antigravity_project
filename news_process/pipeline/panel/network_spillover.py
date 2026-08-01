@@ -45,8 +45,8 @@
 输入: 41_panel_encode_aggregate 生成的面板 + 篇章级 df_exploded
 输出: 面板中追加 peer_tone_lag1_*、33 种网络指标 (含 WS-A net 级 + WS-C GF)、bank_cogn_mean 列
 
-T=2 样本披露 (metric-audit V3 data-02): fix(network-03) 后, 孤立银行(无共现同行)
-的 peer_tone/peer_tone_2nd/peer_cov 正确置 NaN(而非伪零)。当前 T=2(2017-2018)
+早期试跑 T=2 样本披露 (metric-audit V3 data-02): fix(network-03) 后, 孤立银行(无共现同行)
+的 peer_tone/peer_tone_2nd/peer_cov 正确置 NaN(而非伪零)。早期试跑 T=2(2017-2018)
 corpus 下, 去伪零后一阶 peer 网仅约 32 bank-year 有值、且全部落 2018 单截面;
 brokerage 2SLS 有效 N≈22(含 DV), 在 absorb(bank_id year) 下 bank FE 饱和、
 **不足以识别**。须待 production run 扩 T≥3 + 结局变量(ROA 等)取数后重估; 论文勿在
@@ -716,7 +716,7 @@ def compute_network_spillovers(
                 _cov = panel[_primary].notna().sum()
                 _cov_frac = _cov / _n_total if _n_total else float('nan')
                 if _cov_frac < 0.05:
-                    _verdict = "❌ 极稀疏 (T=2 单截面退化, 不足识别; 须 production T≥3)"
+                    _verdict = "❌ 极稀疏 (早期试跑 T=2 单截面退化, 不足识别; 须 production T≥3)"
                 elif _cov_frac < 0.30:
                     _verdict = "⚠ 偏稀疏 (孤立银行去伪零后, 一阶 peer 网覆盖低)"
                 else:
@@ -1393,7 +1393,7 @@ def compute_bank_network_centrality(
     try:
         if _zero_var_cols:
             logger.info(f"  📊 零方差列诊断: {len(_zero_var_cols):,d} 列方差=0 "
-                        f"(进回归被吸收, 多因 T=2 退化/正则图): {_zero_var_cols[:8]}"
+                        f"(进回归被吸收, 多因早期试跑 T=2 退化/正则图): {_zero_var_cols[:8]}"
                         f"{' ...' if len(_zero_var_cols) > 8 else ''}")
         else:
             logger.info("  📊 零方差列诊断: ✅ 无零方差中心度列")
@@ -1919,9 +1919,10 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         # 且行随机, fillna(0) 把缺 tone 同行伪零注入分子而权重仍留在行和(=1)分母 → 在 T=19
         # 全量(缺 tone 同行有真实新闻/权重)下加权均值向 0 衰减。改为仅对 OBSERVED-tone 同行
         # 加权均值并按观测权重和重归一; denom>0 同时覆盖"有同行"(孤立行守卫)与"有观测-tone 同行"。
-        # ⚠ 落盘提示 (NSP-A): 本嵌入轨依赖 25_article_embeddings(当前缺), stage 45 未重跑嵌入
-        # pass, 故盘上 emb_peer_tone 仍是旧 fillna 值、golden 暂未反映本修(repro 仍绿因二者同陈旧)。
-        # T=2 上本修为近-no-op (15 个缺 tone 银行 ln_news_coverage=0 → W_emb 权重~0, 旧≈新,
+        # ⚠ 落盘提示 (NSP-A, ⚠ 2026-08-01 订正): 旧注写「25_article_embeddings 当前缺」——
+        # 已失实, 该产物 2026-07/08 生产链已落盘 (17.9 GB)。仍成立的只有一条: **golden 夹具**
+        # 本身仍是 T=2 规模且未随之重生, 故 repro 绿是两侧同陈旧所致; 受控重生 golden 时须复核本列。
+        # 早期试跑 T=2 上本修为近-no-op (15 个缺 tone 银行 ln_news_coverage=0 → W_emb 权重~0, 旧≈新,
         # 盘上 [0.953,0.969] 即正确值); 真实差异仅现于 T=19。落盘待带 embeddings 的 production run。
         _track_tone_vecs = {}  # 输出列名 -> emb_peer_tone ndarray (按 bank_list 对齐)
         _Wemb = W_emb.values
@@ -1979,7 +1980,7 @@ def _enforce_row_parity(panel: pd.DataFrame) -> pd.DataFrame:
     当 MAIN(Qwen) 与 _lg(emb3large) 覆盖 (bank,year) 键集不同 (per-year 单侧 embed
     miss) 时两遍非空 → left-merge 后单边孤儿, 违反 co-primary both-or-neither 铁律。
     此处对每对 (canonical, _lg) 嵌入网络列强制: 任一 NaN → 两列同置 NaN。
-    ⚠ T=2 全命中 0 孤儿 → orphan 恒空 → 按构造 no-op 字节不变 (golden-safe)。
+    ⚠ 早期试跑 T=2 全命中 0 孤儿 → orphan 恒空 → 按构造 no-op 字节不变 (golden-safe)。
     """
     net_lg = [c for c in panel.columns
               if '_lg' in c and ('emb_peer_tone' in c or 'bank_emb_sim' in c)]

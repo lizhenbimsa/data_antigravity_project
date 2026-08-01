@@ -14,7 +14,7 @@ both-or-neither 把**已经算成功的 `_lg` 臂**也一并置 NaN。
   · S10 (本 gate)  — 在**验收侧**兜底: 不管未来换成哪条崩塌路径, 只要症状是
                      "同族一轨有值 / 另一轨整列空", 就必须 loud ERROR。
 
-**刻意不做"凡全 NaN 就报错"**: T=2 dev 与未播种轨上大量列合法全 NaN, 那样报只会
+**刻意不做"凡全 NaN 就报错"**: 早期试跑 T=2 与未播种轨上大量列合法全 NaN, 那样报只会
 变成噪声、进而被无视 —— 那是告警失效的经典路径。判据取"列**存在**却整列空, 同族
 别的轨却有值", 因为轨整体缺失时列压根不会被创建, 故此状态无歧义。
 """
@@ -120,7 +120,7 @@ def test_lg_family_is_separate_from_main():
 # ── ② 合法场景不得误报 (否则告警会被无视) ──
 
 def test_whole_family_empty_is_not_an_error():
-    """三轨全空 = 该族整体未播种 (T=2 dev 常态), 只记不报。"""
+    """三轨全空 = 该族整体未播种 (早期试跑 T=2 常态), 只记不报。"""
     panel = pd.DataFrame({
         'coh_emb_full': _nans(), 'coh_emb_ctx': _nans(), 'coh_emb_ss': _nans(),
     })

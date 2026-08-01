@@ -626,7 +626,7 @@ def main():
             )
         if after_count < 100:
             logger.info(
-                f"  ⚠ 金科子集仅 {after_count:,} 篇 (盘面 T=2 小样本): 上述比率仅验证管道正确性, "
+                f"  ⚠ 金科子集仅 {after_count:,} 篇 (早期试跑盘面 T=2 小样本): 上述比率仅验证管道正确性, "
                 "全量结论以 约1,819万/T=19 实测为准。"
             )
         logger.info("-" * 72)

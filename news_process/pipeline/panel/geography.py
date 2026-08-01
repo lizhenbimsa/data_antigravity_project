@@ -554,7 +554,7 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
 
     # ── 校验: 标准化后年内 std ≈ 1 ──
     # 📊 结果判读: z-score 自洽性 = 各年内标准差应 ≈ 1.0 (容差 0.1); 偏离提示
-    #    年内有效样本过少 (T=2 小样本) 或上游列异常。
+    #    年内有效样本过少 (早期试跑 T=2 小样本) 或上游列异常。
     sample_z_cols = [c for c in panel.columns if c.endswith('_z')][:5]
     for col in sample_z_cols:
         within_std = (panel[has_news].dropna(subset=[col])
@@ -790,11 +790,11 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
 #     - 省级: 31 个省, 每省包含较多银行, IV 变异来源更宏观
 #     - 城市级: 329 个城市, IV 变异更精细
 #
-#   ⚠ 弱工具变量警告 (实测, T=2 当前面板): 两级 LOO-IV 的一阶段 F
+#   ⚠ 弱工具变量警告 (实测, 早期试跑 T=2 面板): 两级 LOO-IV 的一阶段 F
 #     统计量均极弱, 远低于 10 的弱工具阈值 (Staiger-Stock 1997):
 #       省级 (prov)  F ≈ 0.25
 #       城市级 (city) F ≈ 0.037   ← 城市级反而 *更弱*, 非"通常更高"
-#     根因: T=2 面板深度 + 地理稀疏 (每个 (geo, year) 单元内有效银行
+#     根因: 早期试跑 T=2 面板深度 + 地理稀疏 (每个 (geo, year) 单元内有效银行
 #     数极少, leave-one-out 后变异几乎枯竭) → 工具相关性接近于零。
 #     因此这两个 LOO-IV **不得**作为强因果识别的主 IV 使用; 仅可
 #     作为 falsification / 稳健性展示。production run (spec 声明 T=19)
@@ -1063,7 +1063,7 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
     )
 
     # 📊 结果判读: LOO-IV 列的有效占比; 过低提示地理稀疏/单一银行组多 →
-    #    弱工具风险 (T=2 面板已知一阶段 F≪10, 仅作 falsification, 见上文披露)。
+    #    弱工具风险 (早期试跑 T=2 面板已知一阶段 F≪10, 仅作 falsification, 见上文披露)。
     try:
         _n_loo = len(new_cols)
         if _n_loo > 0:

@@ -390,9 +390,9 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段46: Stata 数据导出 (pyreadstat .dta + labels)",
         script="46_stata_export.py",
         group="main", kind="export",
-        # 🔴 F19: 旧值 600s 的注释依据是「小面板 (~168 行)」—— 那是 **T=2 dev 面板**。
-        # 生产面板由 86 banks × 2 years = 172 行 涨到 bank_list 全量 × 2007-2025,
-        # 且最宽 dta 已 3,400+ 列 → pyreadstat 写盘时间不可按 T=2 外推。提至 1h。
+        # 🔴 F19: 旧值 600s 的注释依据是「小面板 (~168 行)」—— 那是 **早期试跑 T=2 面板**。
+        # 生产面板由 86 banks × 2 years = 172 行 涨到 1,247 banks × 2007-2025 = 23,693 行,
+        # 最宽 dta 4,183 列 (2026-08-01 pyreadstat 直读复核) → 不可按早期试跑外推。提至 1h。
         timeout=3600,  # 跨平台 pyreadstat 写 .dta + labels + codebook
     ),
 
@@ -401,7 +401,8 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段51: 伪造检验对照变量构建",
         script="51_falsification_test.py",
         group="main", kind="falsification",
-        # F19: 生产规模未实测; T=2 时在默认 7200s 内完成。输入随面板放大 → 提至 3h 留余量。
+        # F19: ⚠ 2026-08-01 订正 —— 「生产规模未实测」已失效: 2026-07-28 生产全链实跑
+        # 产出 51_panel_with_controls (23,693×4,194), 余量充裕; timeout=10800 保留作长尾保护。
         timeout=10800,
     ),
 ]

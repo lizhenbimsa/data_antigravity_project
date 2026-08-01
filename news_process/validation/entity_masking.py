@@ -1216,7 +1216,7 @@ def main():
             logger.warning(f"  ▶ 整体结论: 轨道 {failed_tracks} 未通过 — 提示 LLM 可能部分依赖银行身份, "
                            "下游情感变量或掺'身份偏见', 须在论文如实披露并加附录敏感性。")
 
-        # 小样本警告 (盘面 T=2 退化场景)
+        # 小样本警告 (早期试跑盘面 T=2 退化场景)
         if n_total_sample < 200:
             logger.info(f"  ⚠小样本提示: 本次仅 {n_total_sample:,d} 条 (远小于 EM_CFG.sample_size 目标), "
                         "一致率/κ 抽样方差大、混淆矩阵稀疏, 仅用于验证管道正确性; "

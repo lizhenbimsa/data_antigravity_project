@@ -891,7 +891,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
                 "(min Pearson 需有效样本 n≥10, 即 Pearson df=n−2≥8) / 全 NaN, 本阶段无稳健性结论。"
             )
         logger.info(
-            f"  ⚠ 样本 = {n_obs:,} 篇 (盘面 T=2 小样本仅验证管道正确性, "
+            f"  ⚠ 样本 = {n_obs:,} 篇 (早期试跑盘面 T=2 小样本仅验证管道正确性, "
             "全量结论以 约1,819万/T=19 实测为准)"
         )
         logger.info("-" * 72)

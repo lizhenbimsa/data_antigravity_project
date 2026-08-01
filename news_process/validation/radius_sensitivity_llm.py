@@ -469,7 +469,7 @@ def _log_estimate_analysis(n_articles: int, estimates: Dict[str, int]) -> None:
         naive = int(estimates.get('naive_full_track_count', 0))
         savings = estimates.get('savings_factor', 0)
         logger.info(f"     · 候选文章 N={n_articles:,} 篇 "
-                    f"({'充足' if n_articles >= 100 else '偏小(T=2 试跑?), κ 估计噪声大'})")
+                    f"({'充足' if n_articles >= 100 else '偏小(早期试跑 T=2?), κ 估计噪声大'})")
         logger.info(f"     · 优化后总调用={total:,} 次 "
                     f"(= 每 radius {per_radius:,} × {len(RADII_TO_TEST) - 1} new radii, 仅 ctx 轨)")
         logger.info(f"     · 朴素误估 (full+ctx 双轨全重跑)={naive:,} 次 → "

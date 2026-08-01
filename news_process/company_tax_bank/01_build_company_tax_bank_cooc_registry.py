@@ -559,10 +559,10 @@ DEFERRED_BASENAMES = {
 # 🔴 **为何是新增而非负清单遗漏**: `bal_w*` = 平衡媒体面板稳健性 (Wooldridge 2010 §19.9.3
 #   样本流失; 只留窗口内**逐年**都有报道的媒体, 在该子集上重算 bank-year 均值)。
 #   `attention_media.py::compute_balanced_media_robustness` 在平衡子集为空时 `continue`,
-#   而**盘上 T=2 dev 无任何媒体满足逐年覆盖** ⟹ 该族列从未落地过, v23 负清单 (按 T=2 面板
+#   而**早期试跑盘上 T=2 无任何媒体满足逐年覆盖** ⟹ 该族列从未落地过, v23 负清单 (按 T=2 面板
 #   干跑定稿, CUT 410 / KEEP 294) 因此从未见过它们。2026-07-27/28 生产 T=19 全链跑通后
 #   741 列首次出现 → 穷尽性断言 (每列须 ∈ 纳入源列 ∪ 排除域) 当场崩, 入口⑧⑨ 全链中断。
-#   源码 attention_media.py:237 早已预言: "(latent: 盘上 T=2 无满足者, T=19 全量触发)"。
+#   源码 attention_media.py:237 早已预言: "(latent: 早期试跑盘上 T=2 无满足者, T=19 全量触发)"。
 #
 # 处置 = **用户 2026-07-29 裁定: 738 个测度列全部纳入**; 另 3 个 n_media_bal_* 的零变异
 #   缺陷在上游 attention_media.py 一并根治 (由语料级标量广播改逐 bank-year 计数), 修后
@@ -587,7 +587,7 @@ def discover_balanced_basenames(colset: set[str]) -> list[tuple[str, str]]:
 
     · 测度列 `bal_w{窗口}_{底层基名}_{轨}` → 基名 `bal_w{窗口}_{底层基名}` (标准三轨);
     · 计数列 `n_media_bal_w{窗口}`         → 基名同名 (裸名 ⟹ resolve_cols 判 track-agnostic)。
-    盘上无该族 (如 T=2 dev) 时返回空列表 —— 不 fail, 因为"列不落地"是该族在小样本下的
+    盘上无该族 (如早期试跑 T=2) 时返回空列表 —— 不 fail, 因为"列不落地"是该族在小样本下的
     **预期行为**, 不是缺陷。
     """
     bases: set[str] = set()
@@ -1050,7 +1050,7 @@ def main(argv=None) -> int:
                            wl, fam)
 
     # BAL 平衡媒体稳健性族补注册 (2026-07-29 用户裁定纳入; 沿用 WP0-6 ③ 同一"负清单缺席即补注册"机制)
-    # v23 负清单按 T=2 面板定稿, 该族当时零列落地故从未入册; T=19 生产面板首次出现 741 列。
+    # v23 负清单按早期试跑 T=2 面板定稿, 该族当时零列落地故从未入册; T=19 生产面板首次出现 741 列。
     _bal_rows = [(f, b) for f, b in discover_balanced_basenames(set40)
                  if b not in seen_keep and b not in cut_set]
     if _bal_rows:
@@ -1060,7 +1060,7 @@ def main(argv=None) -> int:
         _n_cnt = len(_bal_rows) - _n_meas
         logger.warning(
             "BAL 平衡媒体稳健性族补注册: %d 基名 (测度 %d + 逐 bank-year 计数 %d), emit_panel=true "
-            "— v23 负清单按 T=2 面板定稿, 该族当年零列落地 (无媒体满足窗口内逐年覆盖) 故从未入册; "
+            "— v23 负清单按早期试跑 T=2 面板定稿, 该族当年零列落地 (无媒体满足窗口内逐年覆盖) 故从未入册; "
             "T=19 生产面板首次触发。⚠ 同源孪生族 exc_* (停刊稳健性, 相同 82 底层基名) 仍按 "
             "D15_1_PEER 排除 — 口径不对称, 待裁定",
             len(_bal_rows), _n_meas, _n_cnt)
@@ -1340,7 +1340,7 @@ def main(argv=None) -> int:
     logger.info("  ⑥ 排除域: %s 列全部持理由码 (码集全枚举, 设计上不存在无码残差); 最大簇为 DUP_OF_40"
                 " (51↔40 重复列簿记)", f"{len(excluded):,}")
     logger.info("     与 D15_3_MOMENT (std/sum/count/skew 伴生矩); TEXT/KEY 仅标记文章级与键列, 不构成信息损失。")
-    logger.info("  ⑦ 生产 T=19 预期: 本步骤仅依赖列名不依赖行数 → dev(T=2) 与生产(T=19) 的 registry 应逐字节一致;")
+    logger.info("  ⑦ 生产 T=19 预期: 本步骤仅依赖列名不依赖行数 → 早期试跑(T=2) 与生产(T=19) 的 registry 应逐字节一致;")
     logger.info("     例外仅共享树 40 面板重生增删列 → 表现为残差闸/缺列 WARNING 变化, 均为显式信号而非静默漂移。")
     logger.info("-" * 70)
     logger.info("  ⏱ 各子阶段墙钟耗时与吞吐 (4 位有效数字):")
