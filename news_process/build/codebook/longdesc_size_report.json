@@ -23,20 +23,20 @@
   },
   "gpt54nano_tone_full": {
    "cjk": 6688,
-   "chars": 17018,
-   "utf8_bytes": 30801,
+   "chars": 17026,
+   "utf8_bytes": 30809,
    "tier": "core"
   },
   "gpt54nano_tone_sum_full": {
    "cjk": 1347,
-   "chars": 4796,
-   "utf8_bytes": 7619,
+   "chars": 4800,
+   "utf8_bytes": 7623,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_full": {
    "cjk": 1770,
-   "chars": 5641,
-   "utf8_bytes": 9373,
+   "chars": 5645,
+   "utf8_bytes": 9377,
    "tier": "standard"
   },
   "gpt54nano_cont_sum_full": {
@@ -47,44 +47,44 @@
   },
   "gpt54nano_tone_std_full": {
    "cjk": 6376,
-   "chars": 16415,
-   "utf8_bytes": 29548,
+   "chars": 16423,
+   "utf8_bytes": 29556,
    "tier": "standard"
   },
   "gpt54nano_sub_frac_full": {
    "cjk": 2060,
-   "chars": 6794,
-   "utf8_bytes": 11140,
+   "chars": 6798,
+   "utf8_bytes": 11144,
    "tier": "standard"
   },
   "gpt54nano_tech_frac_full": {
    "cjk": 1696,
-   "chars": 5334,
-   "utf8_bytes": 8877,
+   "chars": 5336,
+   "utf8_bytes": 8879,
    "tier": "standard"
   },
   "gpt54nano_collab_frac_full": {
    "cjk": 1814,
-   "chars": 5965,
-   "utf8_bytes": 9763,
+   "chars": 5967,
+   "utf8_bytes": 9765,
    "tier": "standard"
   },
   "gemini31_tone_full": {
    "cjk": 6699,
-   "chars": 17029,
-   "utf8_bytes": 30828,
+   "chars": 17039,
+   "utf8_bytes": 30838,
    "tier": "core"
   },
   "gemini31_tone_sum_full": {
    "cjk": 1340,
-   "chars": 4785,
-   "utf8_bytes": 7594,
+   "chars": 4789,
+   "utf8_bytes": 7598,
    "tier": "standard"
   },
   "gemini31_cont_mean_full": {
    "cjk": 1846,
-   "chars": 5814,
-   "utf8_bytes": 9704,
+   "chars": 5818,
+   "utf8_bytes": 9708,
    "tier": "standard"
   },
   "gemini31_cont_sum_full": {
@@ -95,44 +95,44 @@
   },
   "gemini31_tone_std_full": {
    "cjk": 6396,
-   "chars": 16416,
-   "utf8_bytes": 29591,
+   "chars": 16424,
+   "utf8_bytes": 29599,
    "tier": "standard"
   },
   "gemini31_sub_frac_full": {
    "cjk": 2029,
-   "chars": 6851,
-   "utf8_bytes": 11136,
+   "chars": 6859,
+   "utf8_bytes": 11144,
    "tier": "standard"
   },
   "gemini31_tech_frac_full": {
    "cjk": 1693,
-   "chars": 5256,
-   "utf8_bytes": 8797,
+   "chars": 5258,
+   "utf8_bytes": 8799,
    "tier": "standard"
   },
   "gemini31_collab_frac_full": {
    "cjk": 1821,
-   "chars": 6001,
-   "utf8_bytes": 9815,
+   "chars": 6005,
+   "utf8_bytes": 9819,
    "tier": "standard"
   },
   "deepseekv4_tone_full": {
    "cjk": 6983,
-   "chars": 17394,
-   "utf8_bytes": 31769,
+   "chars": 17400,
+   "utf8_bytes": 31775,
    "tier": "core"
   },
   "deepseekv4_tone_sum_full": {
    "cjk": 1414,
-   "chars": 4862,
-   "utf8_bytes": 7823,
+   "chars": 4864,
+   "utf8_bytes": 7825,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_full": {
    "cjk": 1733,
-   "chars": 5572,
-   "utf8_bytes": 9224,
+   "chars": 5576,
+   "utf8_bytes": 9228,
    "tier": "standard"
   },
   "deepseekv4_cont_sum_full": {
@@ -143,56 +143,56 @@
   },
   "deepseekv4_tone_std_full": {
    "cjk": 6537,
-   "chars": 16671,
-   "utf8_bytes": 30126,
+   "chars": 16677,
+   "utf8_bytes": 30132,
    "tier": "standard"
   },
   "deepseekv4_sub_frac_full": {
    "cjk": 2131,
-   "chars": 6973,
-   "utf8_bytes": 11460,
+   "chars": 6977,
+   "utf8_bytes": 11464,
    "tier": "standard"
   },
   "deepseekv4_tech_frac_full": {
    "cjk": 1693,
-   "chars": 5302,
-   "utf8_bytes": 8836,
+   "chars": 5304,
+   "utf8_bytes": 8838,
    "tier": "standard"
   },
   "deepseekv4_collab_frac_full": {
    "cjk": 1948,
-   "chars": 6137,
-   "utf8_bytes": 10211,
+   "chars": 6139,
+   "utf8_bytes": 10213,
    "tier": "standard"
   },
   "llm_vote_tone_full": {
    "cjk": 6714,
-   "chars": 15337,
-   "utf8_bytes": 29257,
+   "chars": 15341,
+   "utf8_bytes": 29261,
    "tier": "core"
   },
   "llm_vote_tone_sum_full": {
    "cjk": 2622,
-   "chars": 7427,
-   "utf8_bytes": 12985,
+   "chars": 7429,
+   "utf8_bytes": 12987,
    "tier": "standard"
   },
   "llm_vote_tone_std_full": {
    "cjk": 6153,
-   "chars": 14177,
-   "utf8_bytes": 26939,
+   "chars": 14181,
+   "utf8_bytes": 26943,
    "tier": "standard"
   },
   "pos_frac_full": {
    "cjk": 2363,
-   "chars": 6325,
-   "utf8_bytes": 11202,
+   "chars": 6327,
+   "utf8_bytes": 11204,
    "tier": "standard"
   },
   "neg_frac_full": {
    "cjk": 2735,
-   "chars": 7619,
-   "utf8_bytes": 13276,
+   "chars": 7621,
+   "utf8_bytes": 13278,
    "tier": "standard"
   },
   "pos_count_full": {
@@ -209,14 +209,14 @@
   },
   "llm_vote_cont_full": {
    "cjk": 6981,
-   "chars": 18205,
-   "utf8_bytes": 32787,
+   "chars": 18209,
+   "utf8_bytes": 32791,
    "tier": "core"
   },
   "llm_vote_cont_sum_full": {
    "cjk": 1970,
-   "chars": 5982,
-   "utf8_bytes": 10084,
+   "chars": 5984,
+   "utf8_bytes": 10086,
    "tier": "standard"
   },
   "jiang_2021_tone_full": {
@@ -983,38 +983,38 @@
   },
   "gpt54nano_tone_ctx": {
    "cjk": 6415,
-   "chars": 16433,
-   "utf8_bytes": 29654,
+   "chars": 16441,
+   "utf8_bytes": 29662,
    "tier": "standard"
   },
   "gpt54nano_tone_sum_ctx": {
    "cjk": 1354,
-   "chars": 4824,
-   "utf8_bytes": 7665,
+   "chars": 4828,
+   "utf8_bytes": 7669,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_ctx": {
    "cjk": 1762,
-   "chars": 5689,
-   "utf8_bytes": 9407,
+   "chars": 5693,
+   "utf8_bytes": 9411,
    "tier": "standard"
   },
   "gpt54nano_cont_sum_ctx": {
    "cjk": 1698,
-   "chars": 5611,
-   "utf8_bytes": 9193,
+   "chars": 5613,
+   "utf8_bytes": 9195,
    "tier": "standard"
   },
   "gpt54nano_tone_std_ctx": {
    "cjk": 6409,
-   "chars": 16419,
-   "utf8_bytes": 29624,
+   "chars": 16427,
+   "utf8_bytes": 29632,
    "tier": "standard"
   },
   "gpt54nano_sub_frac_ctx": {
    "cjk": 2031,
-   "chars": 6561,
-   "utf8_bytes": 10839,
+   "chars": 6563,
+   "utf8_bytes": 10841,
    "tier": "standard"
   },
   "gpt54nano_tech_frac_ctx": {
@@ -1025,44 +1025,44 @@
   },
   "gpt54nano_collab_frac_ctx": {
    "cjk": 1768,
-   "chars": 5874,
-   "utf8_bytes": 9579,
+   "chars": 5876,
+   "utf8_bytes": 9581,
    "tier": "standard"
   },
   "gemini31_tone_ctx": {
    "cjk": 6435,
-   "chars": 16434,
-   "utf8_bytes": 29697,
+   "chars": 16442,
+   "utf8_bytes": 29705,
    "tier": "standard"
   },
   "gemini31_tone_sum_ctx": {
    "cjk": 1364,
-   "chars": 4834,
-   "utf8_bytes": 7695,
+   "chars": 4838,
+   "utf8_bytes": 7699,
    "tier": "standard"
   },
   "gemini31_cont_mean_ctx": {
    "cjk": 1837,
-   "chars": 5887,
-   "utf8_bytes": 9765,
+   "chars": 5891,
+   "utf8_bytes": 9769,
    "tier": "standard"
   },
   "gemini31_cont_sum_ctx": {
    "cjk": 1728,
-   "chars": 5645,
-   "utf8_bytes": 9285,
+   "chars": 5647,
+   "utf8_bytes": 9287,
    "tier": "standard"
   },
   "gemini31_tone_std_ctx": {
    "cjk": 6419,
-   "chars": 16454,
-   "utf8_bytes": 29669,
+   "chars": 16462,
+   "utf8_bytes": 29677,
    "tier": "standard"
   },
   "gemini31_sub_frac_ctx": {
    "cjk": 2076,
-   "chars": 6632,
-   "utf8_bytes": 11003,
+   "chars": 6634,
+   "utf8_bytes": 11005,
    "tier": "standard"
   },
   "gemini31_tech_frac_ctx": {
@@ -1073,44 +1073,44 @@
   },
   "gemini31_collab_frac_ctx": {
    "cjk": 1766,
-   "chars": 5880,
-   "utf8_bytes": 9581,
+   "chars": 5882,
+   "utf8_bytes": 9583,
    "tier": "standard"
   },
   "deepseekv4_tone_ctx": {
    "cjk": 6576,
-   "chars": 16689,
-   "utf8_bytes": 30232,
+   "chars": 16695,
+   "utf8_bytes": 30238,
    "tier": "standard"
   },
   "deepseekv4_tone_sum_ctx": {
    "cjk": 1412,
-   "chars": 4918,
-   "utf8_bytes": 7873,
+   "chars": 4922,
+   "utf8_bytes": 7877,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_ctx": {
    "cjk": 1886,
-   "chars": 6039,
-   "utf8_bytes": 10009,
+   "chars": 6043,
+   "utf8_bytes": 10013,
    "tier": "standard"
   },
   "deepseekv4_cont_sum_ctx": {
    "cjk": 1809,
-   "chars": 5687,
-   "utf8_bytes": 9495,
+   "chars": 5689,
+   "utf8_bytes": 9497,
    "tier": "standard"
   },
   "deepseekv4_tone_std_ctx": {
    "cjk": 6570,
-   "chars": 16675,
-   "utf8_bytes": 30202,
+   "chars": 16681,
+   "utf8_bytes": 30208,
    "tier": "standard"
   },
   "deepseekv4_sub_frac_ctx": {
    "cjk": 2127,
-   "chars": 6696,
-   "utf8_bytes": 11181,
+   "chars": 6698,
+   "utf8_bytes": 11183,
    "tier": "standard"
   },
   "deepseekv4_tech_frac_ctx": {
@@ -1127,32 +1127,32 @@
   },
   "llm_vote_tone_ctx": {
    "cjk": 6162,
-   "chars": 14311,
-   "utf8_bytes": 27083,
+   "chars": 14315,
+   "utf8_bytes": 27087,
    "tier": "standard"
   },
   "llm_vote_tone_sum_ctx": {
    "cjk": 2646,
-   "chars": 7420,
-   "utf8_bytes": 12994,
+   "chars": 7422,
+   "utf8_bytes": 12996,
    "tier": "standard"
   },
   "llm_vote_tone_std_ctx": {
    "cjk": 6205,
-   "chars": 14234,
-   "utf8_bytes": 27098,
+   "chars": 14238,
+   "utf8_bytes": 27102,
    "tier": "standard"
   },
   "pos_frac_ctx": {
    "cjk": 2516,
-   "chars": 6529,
-   "utf8_bytes": 11718,
+   "chars": 6531,
+   "utf8_bytes": 11720,
    "tier": "standard"
   },
   "neg_frac_ctx": {
    "cjk": 2769,
-   "chars": 7583,
-   "utf8_bytes": 13300,
+   "chars": 7585,
+   "utf8_bytes": 13302,
    "tier": "standard"
   },
   "pos_count_ctx": {
@@ -1169,14 +1169,14 @@
   },
   "llm_vote_cont_ctx": {
    "cjk": 6165,
-   "chars": 16701,
-   "utf8_bytes": 29571,
+   "chars": 16705,
+   "utf8_bytes": 29575,
    "tier": "standard"
   },
   "llm_vote_cont_sum_ctx": {
    "cjk": 1998,
-   "chars": 5902,
-   "utf8_bytes": 10040,
+   "chars": 5904,
+   "utf8_bytes": 10042,
    "tier": "standard"
   },
   "jiang_2021_tone_ctx": {
@@ -1943,20 +1943,20 @@
   },
   "gpt54nano_tone_ss": {
    "cjk": 6409,
-   "chars": 16489,
-   "utf8_bytes": 29700,
+   "chars": 16497,
+   "utf8_bytes": 29708,
    "tier": "standard"
   },
   "gpt54nano_tone_sum_ss": {
    "cjk": 1376,
-   "chars": 4812,
-   "utf8_bytes": 7697,
+   "chars": 4814,
+   "utf8_bytes": 7699,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_ss": {
    "cjk": 1767,
-   "chars": 5669,
-   "utf8_bytes": 9389,
+   "chars": 5673,
+   "utf8_bytes": 9393,
    "tier": "standard"
   },
   "gpt54nano_cont_sum_ss": {
@@ -1967,14 +1967,14 @@
   },
   "gpt54nano_tone_std_ss": {
    "cjk": 6403,
-   "chars": 16475,
-   "utf8_bytes": 29670,
+   "chars": 16483,
+   "utf8_bytes": 29678,
    "tier": "standard"
   },
   "gpt54nano_sub_frac_ss": {
    "cjk": 2093,
-   "chars": 6713,
-   "utf8_bytes": 11125,
+   "chars": 6715,
+   "utf8_bytes": 11127,
    "tier": "standard"
   },
   "gpt54nano_tech_frac_ss": {
@@ -1985,26 +1985,26 @@
   },
   "gpt54nano_collab_frac_ss": {
    "cjk": 1777,
-   "chars": 5834,
-   "utf8_bytes": 9563,
+   "chars": 5836,
+   "utf8_bytes": 9565,
    "tier": "standard"
   },
   "gemini31_tone_ss": {
    "cjk": 6429,
-   "chars": 16490,
-   "utf8_bytes": 29743,
+   "chars": 16498,
+   "utf8_bytes": 29751,
    "tier": "standard"
   },
   "gemini31_tone_sum_ss": {
    "cjk": 1358,
-   "chars": 4793,
-   "utf8_bytes": 7642,
+   "chars": 4795,
+   "utf8_bytes": 7644,
    "tier": "standard"
   },
   "gemini31_cont_mean_ss": {
    "cjk": 1830,
-   "chars": 5888,
-   "utf8_bytes": 9740,
+   "chars": 5892,
+   "utf8_bytes": 9744,
    "tier": "standard"
   },
   "gemini31_cont_sum_ss": {
@@ -2015,14 +2015,14 @@
   },
   "gemini31_tone_std_ss": {
    "cjk": 6413,
-   "chars": 16510,
-   "utf8_bytes": 29715,
+   "chars": 16518,
+   "utf8_bytes": 29723,
    "tier": "standard"
   },
   "gemini31_sub_frac_ss": {
    "cjk": 2067,
-   "chars": 6700,
-   "utf8_bytes": 11062,
+   "chars": 6702,
+   "utf8_bytes": 11064,
    "tier": "standard"
   },
   "gemini31_tech_frac_ss": {
@@ -2033,26 +2033,26 @@
   },
   "gemini31_collab_frac_ss": {
    "cjk": 1744,
-   "chars": 5789,
-   "utf8_bytes": 9452,
+   "chars": 5791,
+   "utf8_bytes": 9454,
    "tier": "standard"
   },
   "deepseekv4_tone_ss": {
    "cjk": 6570,
-   "chars": 16745,
-   "utf8_bytes": 30278,
+   "chars": 16751,
+   "utf8_bytes": 30284,
    "tier": "standard"
   },
   "deepseekv4_tone_sum_ss": {
    "cjk": 1358,
-   "chars": 4792,
-   "utf8_bytes": 7639,
+   "chars": 4794,
+   "utf8_bytes": 7641,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_ss": {
    "cjk": 1851,
-   "chars": 5894,
-   "utf8_bytes": 9790,
+   "chars": 5898,
+   "utf8_bytes": 9794,
    "tier": "standard"
   },
   "deepseekv4_cont_sum_ss": {
@@ -2063,14 +2063,14 @@
   },
   "deepseekv4_tone_std_ss": {
    "cjk": 6564,
-   "chars": 16731,
-   "utf8_bytes": 30248,
+   "chars": 16737,
+   "utf8_bytes": 30254,
    "tier": "standard"
   },
   "deepseekv4_sub_frac_ss": {
    "cjk": 2074,
-   "chars": 6692,
-   "utf8_bytes": 11060,
+   "chars": 6694,
+   "utf8_bytes": 11062,
    "tier": "standard"
   },
   "deepseekv4_tech_frac_ss": {
@@ -2087,32 +2087,32 @@
   },
   "llm_vote_tone_ss": {
    "cjk": 6153,
-   "chars": 14248,
-   "utf8_bytes": 27004,
+   "chars": 14252,
+   "utf8_bytes": 27008,
    "tier": "standard"
   },
   "llm_vote_tone_sum_ss": {
    "cjk": 2678,
-   "chars": 7531,
-   "utf8_bytes": 13174,
+   "chars": 7533,
+   "utf8_bytes": 13176,
    "tier": "standard"
   },
   "llm_vote_tone_std_ss": {
    "cjk": 6121,
-   "chars": 14147,
-   "utf8_bytes": 26837,
+   "chars": 14151,
+   "utf8_bytes": 26841,
    "tier": "standard"
   },
   "pos_frac_ss": {
    "cjk": 2445,
-   "chars": 6487,
-   "utf8_bytes": 11525,
+   "chars": 6489,
+   "utf8_bytes": 11527,
    "tier": "standard"
   },
   "neg_frac_ss": {
    "cjk": 2777,
-   "chars": 7715,
-   "utf8_bytes": 13449,
+   "chars": 7717,
+   "utf8_bytes": 13451,
    "tier": "standard"
   },
   "pos_count_ss": {
@@ -2129,14 +2129,14 @@
   },
   "llm_vote_cont_ss": {
    "cjk": 6122,
-   "chars": 16655,
-   "utf8_bytes": 29447,
+   "chars": 16659,
+   "utf8_bytes": 29451,
    "tier": "standard"
   },
   "llm_vote_cont_sum_ss": {
    "cjk": 1978,
-   "chars": 5876,
-   "utf8_bytes": 9973,
+   "chars": 5878,
+   "utf8_bytes": 9975,
    "tier": "standard"
   },
   "jiang_2021_tone_ss": {
@@ -2903,92 +2903,92 @@
   },
   "avg_llm_conf_full": {
    "cjk": 2341,
-   "chars": 7302,
-   "utf8_bytes": 12144,
+   "chars": 7304,
+   "utf8_bytes": 12146,
    "tier": "standard"
   },
   "avg_llm_conf_std_full": {
    "cjk": 2329,
-   "chars": 7115,
-   "utf8_bytes": 11923,
+   "chars": 7117,
+   "utf8_bytes": 11925,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_full": {
    "cjk": 2338,
-   "chars": 7573,
-   "utf8_bytes": 12426,
+   "chars": 7575,
+   "utf8_bytes": 12428,
    "tier": "standard"
   },
   "avg_gemini31_conf_full": {
    "cjk": 2959,
-   "chars": 8183,
-   "utf8_bytes": 14323,
+   "chars": 8185,
+   "utf8_bytes": 14325,
    "tier": "standard"
   },
   "avg_deepseekv4_conf_full": {
    "cjk": 2464,
-   "chars": 7507,
-   "utf8_bytes": 12606,
+   "chars": 7511,
+   "utf8_bytes": 12610,
    "tier": "standard"
   },
   "avg_llm_conf_ctx": {
    "cjk": 2332,
-   "chars": 7188,
-   "utf8_bytes": 12006,
+   "chars": 7190,
+   "utf8_bytes": 12008,
    "tier": "standard"
   },
   "avg_llm_conf_std_ctx": {
    "cjk": 2365,
-   "chars": 7227,
-   "utf8_bytes": 12109,
+   "chars": 7229,
+   "utf8_bytes": 12111,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_ctx": {
    "cjk": 2335,
-   "chars": 7452,
-   "utf8_bytes": 12295,
+   "chars": 7454,
+   "utf8_bytes": 12297,
    "tier": "standard"
   },
   "avg_gemini31_conf_ctx": {
    "cjk": 2904,
-   "chars": 8045,
-   "utf8_bytes": 14077,
+   "chars": 8047,
+   "utf8_bytes": 14079,
    "tier": "standard"
   },
   "avg_deepseekv4_conf_ctx": {
    "cjk": 2423,
-   "chars": 7420,
-   "utf8_bytes": 12443,
+   "chars": 7422,
+   "utf8_bytes": 12445,
    "tier": "standard"
   },
   "avg_llm_conf_ss": {
    "cjk": 2312,
-   "chars": 7242,
-   "utf8_bytes": 12026,
+   "chars": 7244,
+   "utf8_bytes": 12028,
    "tier": "standard"
   },
   "avg_llm_conf_std_ss": {
    "cjk": 2306,
-   "chars": 7251,
-   "utf8_bytes": 12019,
+   "chars": 7253,
+   "utf8_bytes": 12021,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_ss": {
    "cjk": 2320,
-   "chars": 7567,
-   "utf8_bytes": 12382,
+   "chars": 7569,
+   "utf8_bytes": 12384,
    "tier": "standard"
   },
   "avg_gemini31_conf_ss": {
    "cjk": 2905,
-   "chars": 8112,
-   "utf8_bytes": 14151,
+   "chars": 8114,
+   "utf8_bytes": 14153,
    "tier": "standard"
   },
   "avg_deepseekv4_conf_ss": {
    "cjk": 2424,
-   "chars": 7446,
-   "utf8_bytes": 12469,
+   "chars": 7448,
+   "utf8_bytes": 12471,
    "tier": "standard"
   },
   "n_articles": {
@@ -3041,38 +3041,38 @@
   },
   "avg_agreement_rate_full": {
    "cjk": 7605,
-   "chars": 16490,
-   "utf8_bytes": 32098,
+   "chars": 16492,
+   "utf8_bytes": 32100,
    "tier": "core"
   },
   "avg_agreement_rate_s_full": {
    "cjk": 2151,
-   "chars": 6846,
-   "utf8_bytes": 11315,
+   "chars": 6848,
+   "utf8_bytes": 11317,
    "tier": "standard"
   },
   "avg_agreement_rate_ctx": {
    "cjk": 6993,
-   "chars": 15628,
-   "utf8_bytes": 29991,
+   "chars": 15630,
+   "utf8_bytes": 29993,
    "tier": "standard"
   },
   "avg_agreement_rate_s_ctx": {
    "cjk": 2123,
-   "chars": 6822,
-   "utf8_bytes": 11239,
+   "chars": 6824,
+   "utf8_bytes": 11241,
    "tier": "standard"
   },
   "avg_agreement_rate_ss": {
    "cjk": 6854,
-   "chars": 15484,
-   "utf8_bytes": 29567,
+   "chars": 15486,
+   "utf8_bytes": 29569,
    "tier": "standard"
   },
   "avg_agreement_rate_s_ss": {
    "cjk": 2124,
-   "chars": 6894,
-   "utf8_bytes": 11304,
+   "chars": 6896,
+   "utf8_bytes": 11306,
    "tier": "standard"
   },
   "frac_ctx_fallback": {
@@ -3149,8 +3149,8 @@
   },
   "llm_vote_score_w_sum_full": {
    "cjk": 2413,
-   "chars": 7197,
-   "utf8_bytes": 12224,
+   "chars": 7199,
+   "utf8_bytes": 12226,
    "tier": "standard"
   },
   "llm_vote_cont_w_sum_full": {
@@ -3179,8 +3179,8 @@
   },
   "gpt54nano_cont_w_sum_full": {
    "cjk": 1656,
-   "chars": 5601,
-   "utf8_bytes": 9069,
+   "chars": 5603,
+   "utf8_bytes": 9071,
    "tier": "standard"
   },
   "gemini31_score_w_sum_full": {
@@ -3191,8 +3191,8 @@
   },
   "gemini31_cont_w_sum_full": {
    "cjk": 1639,
-   "chars": 5631,
-   "utf8_bytes": 9065,
+   "chars": 5635,
+   "utf8_bytes": 9069,
    "tier": "standard"
   },
   "deepseekv4_score_w_sum_full": {
@@ -3203,8 +3203,8 @@
   },
   "deepseekv4_cont_w_sum_full": {
    "cjk": 1687,
-   "chars": 5685,
-   "utf8_bytes": 9209,
+   "chars": 5687,
+   "utf8_bytes": 9211,
    "tier": "standard"
   },
   "jiang_2021_score_w_sum_full": {
@@ -3317,8 +3317,8 @@
   },
   "llm_vote_score_w_sum_ctx": {
    "cjk": 2368,
-   "chars": 7143,
-   "utf8_bytes": 12072,
+   "chars": 7145,
+   "utf8_bytes": 12074,
    "tier": "standard"
   },
   "llm_vote_cont_w_sum_ctx": {
@@ -3341,8 +3341,8 @@
   },
   "gpt54nano_score_w_sum_ctx": {
    "cjk": 1698,
-   "chars": 6002,
-   "utf8_bytes": 9583,
+   "chars": 6004,
+   "utf8_bytes": 9585,
    "tier": "standard"
   },
   "gpt54nano_cont_w_sum_ctx": {
@@ -3353,8 +3353,8 @@
   },
   "gemini31_score_w_sum_ctx": {
    "cjk": 1750,
-   "chars": 6046,
-   "utf8_bytes": 9737,
+   "chars": 6048,
+   "utf8_bytes": 9739,
    "tier": "standard"
   },
   "gemini31_cont_w_sum_ctx": {
@@ -3365,8 +3365,8 @@
   },
   "deepseekv4_score_w_sum_ctx": {
    "cjk": 1794,
-   "chars": 6167,
-   "utf8_bytes": 9953,
+   "chars": 6169,
+   "utf8_bytes": 9955,
    "tier": "standard"
   },
   "deepseekv4_cont_w_sum_ctx": {
@@ -3485,8 +3485,8 @@
   },
   "llm_vote_score_w_sum_ss": {
    "cjk": 2436,
-   "chars": 7281,
-   "utf8_bytes": 12351,
+   "chars": 7283,
+   "utf8_bytes": 12353,
    "tier": "standard"
   },
   "llm_vote_cont_w_sum_ss": {
@@ -3719,44 +3719,44 @@
   },
   "llm_vote_cont_hw_sum_full": {
    "cjk": 2464,
-   "chars": 7247,
-   "utf8_bytes": 12346,
+   "chars": 7249,
+   "utf8_bytes": 12348,
    "tier": "standard"
   },
   "gpt54nano_score_hw_sum_full": {
    "cjk": 1339,
-   "chars": 5634,
-   "utf8_bytes": 8480,
+   "chars": 5636,
+   "utf8_bytes": 8482,
    "tier": "standard"
   },
   "gpt54nano_cont_hw_sum_full": {
    "cjk": 1931,
-   "chars": 6005,
-   "utf8_bytes": 10015,
+   "chars": 6011,
+   "utf8_bytes": 10021,
    "tier": "standard"
   },
   "gemini31_score_hw_sum_full": {
    "cjk": 1338,
-   "chars": 5621,
-   "utf8_bytes": 8457,
+   "chars": 5623,
+   "utf8_bytes": 8459,
    "tier": "standard"
   },
   "gemini31_cont_hw_sum_full": {
    "cjk": 1942,
-   "chars": 6051,
-   "utf8_bytes": 10083,
+   "chars": 6061,
+   "utf8_bytes": 10093,
    "tier": "standard"
   },
   "deepseekv4_score_hw_sum_full": {
    "cjk": 1375,
-   "chars": 5705,
-   "utf8_bytes": 8617,
+   "chars": 5707,
+   "utf8_bytes": 8619,
    "tier": "standard"
   },
   "deepseekv4_cont_hw_sum_full": {
    "cjk": 1990,
-   "chars": 6073,
-   "utf8_bytes": 10203,
+   "chars": 6077,
+   "utf8_bytes": 10207,
    "tier": "standard"
   },
   "jiang_2021_score_hw_sum_full": {
@@ -3875,44 +3875,44 @@
   },
   "llm_vote_cont_hw_sum_ctx": {
    "cjk": 2349,
-   "chars": 6943,
-   "utf8_bytes": 11804,
+   "chars": 6945,
+   "utf8_bytes": 11806,
    "tier": "standard"
   },
   "gpt54nano_score_hw_sum_ctx": {
    "cjk": 1338,
-   "chars": 5619,
-   "utf8_bytes": 8466,
+   "chars": 5621,
+   "utf8_bytes": 8468,
    "tier": "standard"
   },
   "gpt54nano_cont_hw_sum_ctx": {
    "cjk": 1914,
-   "chars": 5995,
-   "utf8_bytes": 9971,
+   "chars": 6005,
+   "utf8_bytes": 9981,
    "tier": "standard"
   },
   "gemini31_score_hw_sum_ctx": {
    "cjk": 1326,
-   "chars": 5626,
-   "utf8_bytes": 8451,
+   "chars": 5628,
+   "utf8_bytes": 8453,
    "tier": "standard"
   },
   "gemini31_cont_hw_sum_ctx": {
    "cjk": 1943,
-   "chars": 6024,
-   "utf8_bytes": 10056,
+   "chars": 6034,
+   "utf8_bytes": 10066,
    "tier": "standard"
   },
   "deepseekv4_score_hw_sum_ctx": {
    "cjk": 1371,
-   "chars": 5721,
-   "utf8_bytes": 8625,
+   "chars": 5723,
+   "utf8_bytes": 8627,
    "tier": "standard"
   },
   "deepseekv4_cont_hw_sum_ctx": {
    "cjk": 1992,
-   "chars": 6053,
-   "utf8_bytes": 10179,
+   "chars": 6059,
+   "utf8_bytes": 10185,
    "tier": "standard"
   },
   "jiang_2021_score_hw_sum_ctx": {
@@ -4031,32 +4031,32 @@
   },
   "llm_vote_cont_hw_sum_ss": {
    "cjk": 2501,
-   "chars": 7260,
-   "utf8_bytes": 12438,
+   "chars": 7262,
+   "utf8_bytes": 12440,
    "tier": "standard"
   },
   "gpt54nano_score_hw_sum_ss": {
    "cjk": 1343,
-   "chars": 5542,
-   "utf8_bytes": 8397,
+   "chars": 5544,
+   "utf8_bytes": 8399,
    "tier": "standard"
   },
   "gpt54nano_cont_hw_sum_ss": {
    "cjk": 1917,
-   "chars": 6007,
-   "utf8_bytes": 9988,
+   "chars": 6013,
+   "utf8_bytes": 9994,
    "tier": "standard"
   },
   "gemini31_score_hw_sum_ss": {
    "cjk": 1356,
-   "chars": 5607,
-   "utf8_bytes": 8486,
+   "chars": 5609,
+   "utf8_bytes": 8488,
    "tier": "standard"
   },
   "gemini31_cont_hw_sum_ss": {
    "cjk": 1910,
-   "chars": 5996,
-   "utf8_bytes": 9963,
+   "chars": 6002,
+   "utf8_bytes": 9969,
    "tier": "standard"
   },
   "deepseekv4_score_hw_sum_ss": {
@@ -4067,8 +4067,8 @@
   },
   "deepseekv4_cont_hw_sum_ss": {
    "cjk": 1968,
-   "chars": 6071,
-   "utf8_bytes": 10152,
+   "chars": 6075,
+   "utf8_bytes": 10156,
    "tier": "standard"
   },
   "jiang_2021_score_hw_sum_ss": {
@@ -4553,32 +4553,32 @@
   },
   "gpt54nano_score_mw_sum_full": {
    "cjk": 1754,
-   "chars": 5662,
-   "utf8_bytes": 9313,
+   "chars": 5670,
+   "utf8_bytes": 9321,
    "tier": "standard"
   },
   "gpt54nano_cont_mw_sum_full": {
    "cjk": 2282,
-   "chars": 7796,
-   "utf8_bytes": 12540,
+   "chars": 7798,
+   "utf8_bytes": 12542,
    "tier": "standard"
   },
   "gemini31_score_mw_sum_full": {
    "cjk": 1698,
-   "chars": 5614,
-   "utf8_bytes": 9149,
+   "chars": 5622,
+   "utf8_bytes": 9157,
    "tier": "standard"
   },
   "gemini31_cont_mw_sum_full": {
    "cjk": 2282,
-   "chars": 7813,
-   "utf8_bytes": 12557,
+   "chars": 7817,
+   "utf8_bytes": 12561,
    "tier": "standard"
   },
   "deepseekv4_score_mw_sum_full": {
    "cjk": 1763,
-   "chars": 5699,
-   "utf8_bytes": 9366,
+   "chars": 5705,
+   "utf8_bytes": 9372,
    "tier": "standard"
   },
   "deepseekv4_cont_mw_sum_full": {
@@ -4709,38 +4709,38 @@
   },
   "gpt54nano_score_mw_sum_ctx": {
    "cjk": 1750,
-   "chars": 5665,
-   "utf8_bytes": 9310,
+   "chars": 5673,
+   "utf8_bytes": 9318,
    "tier": "standard"
   },
   "gpt54nano_cont_mw_sum_ctx": {
    "cjk": 2308,
-   "chars": 7755,
-   "utf8_bytes": 12547,
+   "chars": 7759,
+   "utf8_bytes": 12551,
    "tier": "standard"
   },
   "gemini31_score_mw_sum_ctx": {
    "cjk": 1707,
-   "chars": 5653,
-   "utf8_bytes": 9206,
+   "chars": 5663,
+   "utf8_bytes": 9216,
    "tier": "standard"
   },
   "gemini31_cont_mw_sum_ctx": {
    "cjk": 2307,
-   "chars": 7754,
-   "utf8_bytes": 12544,
+   "chars": 7758,
+   "utf8_bytes": 12548,
    "tier": "standard"
   },
   "deepseekv4_score_mw_sum_ctx": {
    "cjk": 1792,
-   "chars": 5748,
-   "utf8_bytes": 9469,
+   "chars": 5754,
+   "utf8_bytes": 9475,
    "tier": "standard"
   },
   "deepseekv4_cont_mw_sum_ctx": {
    "cjk": 2358,
-   "chars": 7955,
-   "utf8_bytes": 12848,
+   "chars": 7957,
+   "utf8_bytes": 12850,
    "tier": "standard"
   },
   "jiang_2021_score_mw_sum_ctx": {
@@ -4865,32 +4865,32 @@
   },
   "gpt54nano_score_mw_sum_ss": {
    "cjk": 1724,
-   "chars": 5642,
-   "utf8_bytes": 9233,
+   "chars": 5650,
+   "utf8_bytes": 9241,
    "tier": "standard"
   },
   "gpt54nano_cont_mw_sum_ss": {
    "cjk": 2329,
-   "chars": 7789,
-   "utf8_bytes": 12620,
+   "chars": 7791,
+   "utf8_bytes": 12622,
    "tier": "standard"
   },
   "gemini31_score_mw_sum_ss": {
    "cjk": 1708,
-   "chars": 5632,
-   "utf8_bytes": 9191,
+   "chars": 5640,
+   "utf8_bytes": 9199,
    "tier": "standard"
   },
   "gemini31_cont_mw_sum_ss": {
    "cjk": 2313,
-   "chars": 7720,
-   "utf8_bytes": 12519,
+   "chars": 7722,
+   "utf8_bytes": 12521,
    "tier": "standard"
   },
   "deepseekv4_score_mw_sum_ss": {
    "cjk": 1743,
-   "chars": 5599,
-   "utf8_bytes": 9226,
+   "chars": 5603,
+   "utf8_bytes": 9230,
    "tier": "standard"
   },
   "deepseekv4_cont_mw_sum_ss": {
@@ -5021,26 +5021,26 @@
   },
   "gpt54nano_pos_count_full": {
    "cjk": 2061,
-   "chars": 6236,
-   "utf8_bytes": 10594,
+   "chars": 6238,
+   "utf8_bytes": 10596,
    "tier": "standard"
   },
   "gpt54nano_pos_symb_count_full": {
    "cjk": 1393,
-   "chars": 5417,
-   "utf8_bytes": 8357,
+   "chars": 5423,
+   "utf8_bytes": 8363,
    "tier": "standard"
   },
   "gemini31_pos_count_full": {
    "cjk": 2068,
-   "chars": 6278,
-   "utf8_bytes": 10648,
+   "chars": 6280,
+   "utf8_bytes": 10650,
    "tier": "standard"
   },
   "gemini31_pos_symb_count_full": {
    "cjk": 1412,
-   "chars": 5417,
-   "utf8_bytes": 8399,
+   "chars": 5423,
+   "utf8_bytes": 8405,
    "tier": "standard"
   },
   "deepseekv4_pos_count_full": {
@@ -5051,8 +5051,8 @@
   },
   "deepseekv4_pos_symb_count_full": {
    "cjk": 1429,
-   "chars": 5409,
-   "utf8_bytes": 8419,
+   "chars": 5413,
+   "utf8_bytes": 8423,
    "tier": "standard"
   },
   "dict_pos_count_full": {
@@ -5213,38 +5213,38 @@
   },
   "gpt54nano_pos_count_ctx": {
    "cjk": 2048,
-   "chars": 6248,
-   "utf8_bytes": 10571,
+   "chars": 6252,
+   "utf8_bytes": 10575,
    "tier": "standard"
   },
   "gpt54nano_pos_symb_count_ctx": {
    "cjk": 1439,
-   "chars": 5345,
-   "utf8_bytes": 8363,
+   "chars": 5351,
+   "utf8_bytes": 8369,
    "tier": "standard"
   },
   "gemini31_pos_count_ctx": {
    "cjk": 2078,
-   "chars": 6318,
-   "utf8_bytes": 10705,
+   "chars": 6322,
+   "utf8_bytes": 10709,
    "tier": "standard"
   },
   "gemini31_pos_symb_count_ctx": {
    "cjk": 1428,
-   "chars": 5344,
-   "utf8_bytes": 8346,
+   "chars": 5350,
+   "utf8_bytes": 8352,
    "tier": "standard"
   },
   "deepseekv4_pos_count_ctx": {
    "cjk": 2091,
-   "chars": 6372,
-   "utf8_bytes": 10775,
+   "chars": 6374,
+   "utf8_bytes": 10777,
    "tier": "standard"
   },
   "deepseekv4_pos_symb_count_ctx": {
    "cjk": 1463,
-   "chars": 5406,
-   "utf8_bytes": 8468,
+   "chars": 5408,
+   "utf8_bytes": 8470,
    "tier": "standard"
   },
   "dict_pos_count_ctx": {
@@ -5405,26 +5405,26 @@
   },
   "gpt54nano_pos_count_ss": {
    "cjk": 2072,
-   "chars": 6273,
-   "utf8_bytes": 10654,
+   "chars": 6275,
+   "utf8_bytes": 10656,
    "tier": "standard"
   },
   "gpt54nano_pos_symb_count_ss": {
    "cjk": 1471,
-   "chars": 5380,
-   "utf8_bytes": 8475,
+   "chars": 5384,
+   "utf8_bytes": 8479,
    "tier": "standard"
   },
   "gemini31_pos_count_ss": {
    "cjk": 2052,
-   "chars": 6265,
-   "utf8_bytes": 10606,
+   "chars": 6267,
+   "utf8_bytes": 10608,
    "tier": "standard"
   },
   "gemini31_pos_symb_count_ss": {
    "cjk": 1445,
-   "chars": 5356,
-   "utf8_bytes": 8397,
+   "chars": 5360,
+   "utf8_bytes": 8401,
    "tier": "standard"
   },
   "deepseekv4_pos_count_ss": {
@@ -5435,8 +5435,8 @@
   },
   "deepseekv4_pos_symb_count_ss": {
    "cjk": 1440,
-   "chars": 5306,
-   "utf8_bytes": 8341,
+   "chars": 5308,
+   "utf8_bytes": 8343,
    "tier": "standard"
   },
   "dict_pos_count_ss": {
@@ -5585,20 +5585,20 @@
   },
   "gpt54nano_neg_count_full": {
    "cjk": 1759,
-   "chars": 5640,
-   "utf8_bytes": 9339,
+   "chars": 5644,
+   "utf8_bytes": 9343,
    "tier": "standard"
   },
   "gemini31_neg_count_full": {
    "cjk": 1756,
-   "chars": 5644,
-   "utf8_bytes": 9341,
+   "chars": 5648,
+   "utf8_bytes": 9345,
    "tier": "standard"
   },
   "deepseekv4_neg_count_full": {
    "cjk": 1788,
-   "chars": 5703,
-   "utf8_bytes": 9466,
+   "chars": 5705,
+   "utf8_bytes": 9468,
    "tier": "standard"
   },
   "jiang_2021_neg_count_full": {
@@ -5657,20 +5657,20 @@
   },
   "gpt54nano_neg_count_ctx": {
    "cjk": 1759,
-   "chars": 5648,
-   "utf8_bytes": 9353,
+   "chars": 5652,
+   "utf8_bytes": 9357,
    "tier": "standard"
   },
   "gemini31_neg_count_ctx": {
    "cjk": 1762,
-   "chars": 5749,
-   "utf8_bytes": 9462,
+   "chars": 5755,
+   "utf8_bytes": 9468,
    "tier": "standard"
   },
   "deepseekv4_neg_count_ctx": {
    "cjk": 1824,
-   "chars": 5735,
-   "utf8_bytes": 9572,
+   "chars": 5739,
+   "utf8_bytes": 9576,
    "tier": "standard"
   },
   "jiang_2021_neg_count_ctx": {
@@ -5729,20 +5729,20 @@
   },
   "gpt54nano_neg_count_ss": {
    "cjk": 1765,
-   "chars": 5662,
-   "utf8_bytes": 9388,
+   "chars": 5666,
+   "utf8_bytes": 9392,
    "tier": "standard"
   },
   "gemini31_neg_count_ss": {
    "cjk": 1770,
-   "chars": 5647,
-   "utf8_bytes": 9383,
+   "chars": 5651,
+   "utf8_bytes": 9387,
    "tier": "standard"
   },
   "deepseekv4_neg_count_ss": {
    "cjk": 1834,
-   "chars": 5686,
-   "utf8_bytes": 9548,
+   "chars": 5688,
+   "utf8_bytes": 9550,
    "tier": "standard"
   },
   "jiang_2021_neg_count_ss": {
@@ -6029,98 +6029,98 @@
   },
   "avg_ft_intensity": {
    "cjk": 6043,
-   "chars": 13821,
-   "utf8_bytes": 26246,
+   "chars": 13823,
+   "utf8_bytes": 26248,
    "tier": "standard"
   },
   "avg_ft_intensity_std": {
    "cjk": 5971,
-   "chars": 13782,
-   "utf8_bytes": 26057,
+   "chars": 13784,
+   "utf8_bytes": 26059,
    "tier": "standard"
   },
   "avg_ft_intensity_full": {
    "cjk": 6705,
-   "chars": 14920,
-   "utf8_bytes": 28683,
+   "chars": 14922,
+   "utf8_bytes": 28685,
    "tier": "core"
   },
   "avg_ft_intensity_full_std": {
    "cjk": 6013,
-   "chars": 13666,
-   "utf8_bytes": 26023,
+   "chars": 13668,
+   "utf8_bytes": 26025,
    "tier": "standard"
   },
   "avg_ft_intensity_ctx": {
    "cjk": 5960,
-   "chars": 13592,
-   "utf8_bytes": 25843,
+   "chars": 13594,
+   "utf8_bytes": 25845,
    "tier": "standard"
   },
   "avg_ft_intensity_ctx_std": {
    "cjk": 5993,
-   "chars": 13602,
-   "utf8_bytes": 25915,
+   "chars": 13604,
+   "utf8_bytes": 25917,
    "tier": "standard"
   },
   "avg_ft_intensity_ss": {
    "cjk": 6013,
-   "chars": 13808,
-   "utf8_bytes": 26166,
+   "chars": 13810,
+   "utf8_bytes": 26168,
    "tier": "standard"
   },
   "avg_ft_intensity_ss_std": {
    "cjk": 5998,
-   "chars": 13638,
-   "utf8_bytes": 25961,
+   "chars": 13640,
+   "utf8_bytes": 25963,
    "tier": "standard"
   },
   "avg_ft_intensity_lg": {
    "cjk": 6087,
-   "chars": 14120,
-   "utf8_bytes": 26637,
+   "chars": 14124,
+   "utf8_bytes": 26641,
    "tier": "standard"
   },
   "avg_ft_intensity_lg_std": {
    "cjk": 6022,
-   "chars": 13950,
-   "utf8_bytes": 26323,
+   "chars": 13952,
+   "utf8_bytes": 26325,
    "tier": "standard"
   },
   "avg_ft_intensity_lg_full": {
    "cjk": 6662,
-   "chars": 14946,
-   "utf8_bytes": 28637,
+   "chars": 14950,
+   "utf8_bytes": 28641,
    "tier": "core"
   },
   "avg_ft_intensity_lg_full_std": {
    "cjk": 6026,
-   "chars": 13899,
-   "utf8_bytes": 26282,
+   "chars": 13901,
+   "utf8_bytes": 26284,
    "tier": "standard"
   },
   "avg_ft_intensity_lg_ctx": {
    "cjk": 6031,
-   "chars": 13943,
-   "utf8_bytes": 26350,
+   "chars": 13945,
+   "utf8_bytes": 26352,
    "tier": "standard"
   },
   "avg_ft_intensity_lg_ctx_std": {
    "cjk": 6028,
-   "chars": 13778,
-   "utf8_bytes": 26165,
+   "chars": 13780,
+   "utf8_bytes": 26167,
    "tier": "standard"
   },
   "avg_ft_intensity_lg_ss": {
    "cjk": 6021,
-   "chars": 13907,
-   "utf8_bytes": 26283,
+   "chars": 13909,
+   "utf8_bytes": 26285,
    "tier": "standard"
   },
   "avg_ft_intensity_lg_ss_std": {
    "cjk": 6042,
-   "chars": 13810,
-   "utf8_bytes": 26225,
+   "chars": 13812,
+   "utf8_bytes": 26227,
    "tier": "standard"
   },
   "avg_llm_prob_score_full": {
@@ -6137,8 +6137,8 @@
   },
   "llm_prob_score_sum_full": {
    "cjk": 2357,
-   "chars": 7076,
-   "utf8_bytes": 11999,
+   "chars": 7078,
+   "utf8_bytes": 12001,
    "tier": "standard"
   },
   "llm_prob_score_w_sum_full": {
@@ -6173,8 +6173,8 @@
   },
   "llm_prob_score_sum_ctx": {
    "cjk": 2329,
-   "chars": 7103,
-   "utf8_bytes": 11962,
+   "chars": 7105,
+   "utf8_bytes": 11964,
    "tier": "standard"
   },
   "llm_prob_score_w_sum_ctx": {
@@ -6209,8 +6209,8 @@
   },
   "llm_prob_score_sum_ss": {
    "cjk": 2343,
-   "chars": 7211,
-   "utf8_bytes": 12103,
+   "chars": 7213,
+   "utf8_bytes": 12105,
    "tier": "standard"
   },
   "llm_prob_score_w_sum_ss": {
@@ -6239,20 +6239,20 @@
   },
   "sum_wd_vw_gpt54nano_full": {
    "cjk": 2798,
-   "chars": 7975,
-   "utf8_bytes": 13771,
+   "chars": 7977,
+   "utf8_bytes": 13773,
    "tier": "standard"
   },
   "sum_wd_vw_gemini31_full": {
    "cjk": 3354,
-   "chars": 8676,
-   "utf8_bytes": 15607,
+   "chars": 8678,
+   "utf8_bytes": 15609,
    "tier": "standard"
   },
   "sum_wd_vw_deepseekv4_full": {
    "cjk": 3347,
-   "chars": 9568,
-   "utf8_bytes": 16512,
+   "chars": 9572,
+   "utf8_bytes": 16516,
    "tier": "standard"
   },
   "sum_wd_vw_prob_full": {
@@ -6269,8 +6269,8 @@
   },
   "sum_wd_mw_gpt54nano_full": {
    "cjk": 2400,
-   "chars": 7203,
-   "utf8_bytes": 12177,
+   "chars": 7205,
+   "utf8_bytes": 12179,
    "tier": "standard"
   },
   "sum_wd_mw_gemini31_full": {
@@ -6281,8 +6281,8 @@
   },
   "sum_wd_mw_deepseekv4_full": {
    "cjk": 2322,
-   "chars": 6408,
-   "utf8_bytes": 11195,
+   "chars": 6410,
+   "utf8_bytes": 11197,
    "tier": "standard"
   },
   "sum_wd_mw_prob_full": {
@@ -6305,14 +6305,14 @@
   },
   "sum_wd_hw_gemini31_full": {
    "cjk": 2289,
-   "chars": 6806,
-   "utf8_bytes": 11550,
+   "chars": 6808,
+   "utf8_bytes": 11552,
    "tier": "standard"
   },
   "sum_wd_hw_deepseekv4_full": {
    "cjk": 2796,
-   "chars": 7238,
-   "utf8_bytes": 13015,
+   "chars": 7240,
+   "utf8_bytes": 13017,
    "tier": "standard"
   },
   "sum_wd_hw_prob_full": {
@@ -6329,20 +6329,20 @@
   },
   "sum_wd_vw_gpt54nano_ctx": {
    "cjk": 2767,
-   "chars": 7799,
-   "utf8_bytes": 13533,
+   "chars": 7801,
+   "utf8_bytes": 13535,
    "tier": "standard"
   },
   "sum_wd_vw_gemini31_ctx": {
    "cjk": 3289,
-   "chars": 8506,
-   "utf8_bytes": 15302,
+   "chars": 8508,
+   "utf8_bytes": 15304,
    "tier": "standard"
   },
   "sum_wd_vw_deepseekv4_ctx": {
    "cjk": 3381,
-   "chars": 9505,
-   "utf8_bytes": 16507,
+   "chars": 9509,
+   "utf8_bytes": 16511,
    "tier": "standard"
   },
   "sum_wd_vw_prob_ctx": {
@@ -6359,8 +6359,8 @@
   },
   "sum_wd_mw_gpt54nano_ctx": {
    "cjk": 2373,
-   "chars": 7034,
-   "utf8_bytes": 11954,
+   "chars": 7036,
+   "utf8_bytes": 11956,
    "tier": "standard"
   },
   "sum_wd_mw_gemini31_ctx": {
@@ -6371,8 +6371,8 @@
   },
   "sum_wd_mw_deepseekv4_ctx": {
    "cjk": 2278,
-   "chars": 6512,
-   "utf8_bytes": 11214,
+   "chars": 6514,
+   "utf8_bytes": 11216,
    "tier": "standard"
   },
   "sum_wd_mw_prob_ctx": {
@@ -6395,14 +6395,14 @@
   },
   "sum_wd_hw_gemini31_ctx": {
    "cjk": 2286,
-   "chars": 6721,
-   "utf8_bytes": 11461,
+   "chars": 6723,
+   "utf8_bytes": 11463,
    "tier": "standard"
   },
   "sum_wd_hw_deepseekv4_ctx": {
    "cjk": 2826,
-   "chars": 7274,
-   "utf8_bytes": 13113,
+   "chars": 7276,
+   "utf8_bytes": 13115,
    "tier": "standard"
   },
   "sum_wd_hw_prob_ctx": {
@@ -6419,20 +6419,20 @@
   },
   "sum_wd_vw_gpt54nano_ss": {
    "cjk": 2857,
-   "chars": 7966,
-   "utf8_bytes": 13886,
+   "chars": 7968,
+   "utf8_bytes": 13888,
    "tier": "standard"
   },
   "sum_wd_vw_gemini31_ss": {
    "cjk": 3283,
-   "chars": 8667,
-   "utf8_bytes": 15458,
+   "chars": 8669,
+   "utf8_bytes": 15460,
    "tier": "standard"
   },
   "sum_wd_vw_deepseekv4_ss": {
    "cjk": 3400,
-   "chars": 9596,
-   "utf8_bytes": 16650,
+   "chars": 9600,
+   "utf8_bytes": 16654,
    "tier": "standard"
   },
   "sum_wd_vw_prob_ss": {
@@ -6449,8 +6449,8 @@
   },
   "sum_wd_mw_gpt54nano_ss": {
    "cjk": 2462,
-   "chars": 7200,
-   "utf8_bytes": 12304,
+   "chars": 7202,
+   "utf8_bytes": 12306,
    "tier": "standard"
   },
   "sum_wd_mw_gemini31_ss": {
@@ -6461,8 +6461,8 @@
   },
   "sum_wd_mw_deepseekv4_ss": {
    "cjk": 2240,
-   "chars": 6424,
-   "utf8_bytes": 11048,
+   "chars": 6426,
+   "utf8_bytes": 11050,
    "tier": "standard"
   },
   "sum_wd_mw_prob_ss": {
@@ -6485,14 +6485,14 @@
   },
   "sum_wd_hw_gemini31_ss": {
    "cjk": 2283,
-   "chars": 6822,
-   "utf8_bytes": 11553,
+   "chars": 6824,
+   "utf8_bytes": 11555,
    "tier": "standard"
   },
   "sum_wd_hw_deepseekv4_ss": {
    "cjk": 2808,
-   "chars": 7270,
-   "utf8_bytes": 13079,
+   "chars": 7272,
+   "utf8_bytes": 13081,
    "tier": "standard"
   },
   "sum_wd_hw_prob_ss": {
@@ -7007,50 +7007,50 @@
   },
   "gpt54nano_tone_tech_full": {
    "cjk": 6364,
-   "chars": 16409,
-   "utf8_bytes": 29528,
+   "chars": 16417,
+   "utf8_bytes": 29536,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_tech_full": {
    "cjk": 1808,
-   "chars": 5777,
-   "utf8_bytes": 9581,
+   "chars": 5781,
+   "utf8_bytes": 9585,
    "tier": "standard"
   },
   "gemini31_tone_tech_full": {
    "cjk": 6374,
-   "chars": 16443,
-   "utf8_bytes": 29572,
+   "chars": 16451,
+   "utf8_bytes": 29580,
    "tier": "standard"
   },
   "gemini31_cont_mean_tech_full": {
    "cjk": 1888,
-   "chars": 6003,
-   "utf8_bytes": 9977,
+   "chars": 6007,
+   "utf8_bytes": 9981,
    "tier": "standard"
   },
   "deepseekv4_tone_tech_full": {
    "cjk": 6525,
-   "chars": 16666,
-   "utf8_bytes": 30107,
+   "chars": 16672,
+   "utf8_bytes": 30113,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_tech_full": {
    "cjk": 1730,
-   "chars": 5583,
-   "utf8_bytes": 9225,
+   "chars": 5587,
+   "utf8_bytes": 9229,
    "tier": "standard"
   },
   "llm_vote_tone_tech_full": {
    "cjk": 6147,
-   "chars": 14229,
-   "utf8_bytes": 26969,
+   "chars": 14233,
+   "utf8_bytes": 26973,
    "tier": "standard"
   },
   "llm_vote_cont_tech_full": {
    "cjk": 6092,
-   "chars": 16604,
-   "utf8_bytes": 29328,
+   "chars": 16608,
+   "utf8_bytes": 29332,
    "tier": "standard"
   },
   "jiang_2021_tone_tech_full": {
@@ -7181,50 +7181,50 @@
   },
   "gpt54nano_tone_tech_ctx": {
    "cjk": 6387,
-   "chars": 16446,
-   "utf8_bytes": 29605,
+   "chars": 16454,
+   "utf8_bytes": 29613,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_tech_ctx": {
    "cjk": 1764,
-   "chars": 5750,
-   "utf8_bytes": 9466,
+   "chars": 5754,
+   "utf8_bytes": 9470,
    "tier": "standard"
   },
   "gemini31_tone_tech_ctx": {
    "cjk": 6407,
-   "chars": 16446,
-   "utf8_bytes": 29647,
+   "chars": 16454,
+   "utf8_bytes": 29655,
    "tier": "standard"
   },
   "gemini31_cont_mean_tech_ctx": {
    "cjk": 1820,
-   "chars": 5887,
-   "utf8_bytes": 9721,
+   "chars": 5891,
+   "utf8_bytes": 9725,
    "tier": "standard"
   },
   "deepseekv4_tone_tech_ctx": {
    "cjk": 6548,
-   "chars": 16703,
-   "utf8_bytes": 30184,
+   "chars": 16709,
+   "utf8_bytes": 30190,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_tech_ctx": {
    "cjk": 1866,
-   "chars": 5923,
-   "utf8_bytes": 9853,
+   "chars": 5927,
+   "utf8_bytes": 9857,
    "tier": "standard"
   },
   "llm_vote_tone_tech_ctx": {
    "cjk": 6140,
-   "chars": 14218,
-   "utf8_bytes": 26950,
+   "chars": 14222,
+   "utf8_bytes": 26954,
    "tier": "standard"
   },
   "llm_vote_cont_tech_ctx": {
    "cjk": 6245,
-   "chars": 16733,
-   "utf8_bytes": 29775,
+   "chars": 16737,
+   "utf8_bytes": 29779,
    "tier": "standard"
   },
   "jiang_2021_tone_tech_ctx": {
@@ -7355,50 +7355,50 @@
   },
   "gpt54nano_tone_tech_ss": {
    "cjk": 6381,
-   "chars": 16501,
-   "utf8_bytes": 29650,
+   "chars": 16509,
+   "utf8_bytes": 29658,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_tech_ss": {
    "cjk": 1797,
-   "chars": 5855,
-   "utf8_bytes": 9637,
+   "chars": 5859,
+   "utf8_bytes": 9641,
    "tier": "standard"
   },
   "gemini31_tone_tech_ss": {
    "cjk": 6401,
-   "chars": 16501,
-   "utf8_bytes": 29692,
+   "chars": 16509,
+   "utf8_bytes": 29700,
    "tier": "standard"
   },
   "gemini31_cont_mean_tech_ss": {
    "cjk": 1783,
-   "chars": 5849,
-   "utf8_bytes": 9603,
+   "chars": 5853,
+   "utf8_bytes": 9607,
    "tier": "standard"
   },
   "deepseekv4_tone_tech_ss": {
    "cjk": 6542,
-   "chars": 16758,
-   "utf8_bytes": 30229,
+   "chars": 16764,
+   "utf8_bytes": 30235,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_tech_ss": {
    "cjk": 1835,
-   "chars": 5969,
-   "utf8_bytes": 9831,
+   "chars": 5973,
+   "utf8_bytes": 9835,
    "tier": "standard"
   },
   "llm_vote_tone_tech_ss": {
    "cjk": 6124,
-   "chars": 14151,
-   "utf8_bytes": 26845,
+   "chars": 14155,
+   "utf8_bytes": 26849,
    "tier": "standard"
   },
   "llm_vote_cont_tech_ss": {
    "cjk": 6254,
-   "chars": 16740,
-   "utf8_bytes": 29806,
+   "chars": 16744,
+   "utf8_bytes": 29810,
    "tier": "standard"
   },
   "jiang_2021_tone_tech_ss": {
@@ -7535,50 +7535,50 @@
   },
   "gpt54nano_tone_app_full": {
    "cjk": 6378,
-   "chars": 16458,
-   "utf8_bytes": 29603,
+   "chars": 16466,
+   "utf8_bytes": 29611,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_app_full": {
    "cjk": 1807,
-   "chars": 5777,
-   "utf8_bytes": 9581,
+   "chars": 5781,
+   "utf8_bytes": 9585,
    "tier": "standard"
   },
   "gemini31_tone_app_full": {
    "cjk": 6398,
-   "chars": 16458,
-   "utf8_bytes": 29645,
+   "chars": 16466,
+   "utf8_bytes": 29653,
    "tier": "standard"
   },
   "gemini31_cont_mean_app_full": {
    "cjk": 1746,
-   "chars": 5616,
-   "utf8_bytes": 9290,
+   "chars": 5620,
+   "utf8_bytes": 9294,
    "tier": "standard"
   },
   "deepseekv4_tone_app_full": {
    "cjk": 6539,
-   "chars": 16715,
-   "utf8_bytes": 30182,
+   "chars": 16721,
+   "utf8_bytes": 30188,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_app_full": {
    "cjk": 1783,
-   "chars": 5683,
-   "utf8_bytes": 9433,
+   "chars": 5687,
+   "utf8_bytes": 9437,
    "tier": "standard"
   },
   "llm_vote_tone_app_full": {
    "cjk": 6223,
-   "chars": 14339,
-   "utf8_bytes": 27233,
+   "chars": 14343,
+   "utf8_bytes": 27237,
    "tier": "standard"
   },
   "llm_vote_cont_app_full": {
    "cjk": 6259,
-   "chars": 16812,
-   "utf8_bytes": 29888,
+   "chars": 16816,
+   "utf8_bytes": 29892,
    "tier": "standard"
   },
   "jiang_2021_tone_app_full": {
@@ -7709,50 +7709,50 @@
   },
   "gpt54nano_tone_app_ctx": {
    "cjk": 6411,
-   "chars": 16461,
-   "utf8_bytes": 29678,
+   "chars": 16469,
+   "utf8_bytes": 29686,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_app_ctx": {
    "cjk": 1777,
-   "chars": 5785,
-   "utf8_bytes": 9527,
+   "chars": 5793,
+   "utf8_bytes": 9535,
    "tier": "standard"
   },
   "gemini31_tone_app_ctx": {
    "cjk": 6421,
-   "chars": 16495,
-   "utf8_bytes": 29722,
+   "chars": 16503,
+   "utf8_bytes": 29730,
    "tier": "standard"
   },
   "gemini31_cont_mean_app_ctx": {
    "cjk": 1830,
-   "chars": 5925,
-   "utf8_bytes": 9775,
+   "chars": 5933,
+   "utf8_bytes": 9783,
    "tier": "standard"
   },
   "deepseekv4_tone_app_ctx": {
    "cjk": 6572,
-   "chars": 16718,
-   "utf8_bytes": 30257,
+   "chars": 16724,
+   "utf8_bytes": 30263,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_app_ctx": {
    "cjk": 1752,
-   "chars": 5724,
-   "utf8_bytes": 9406,
+   "chars": 5728,
+   "utf8_bytes": 9410,
    "tier": "standard"
   },
   "llm_vote_tone_app_ctx": {
    "cjk": 6280,
-   "chars": 14410,
-   "utf8_bytes": 27426,
+   "chars": 14414,
+   "utf8_bytes": 27430,
    "tier": "standard"
   },
   "llm_vote_cont_app_ctx": {
    "cjk": 6241,
-   "chars": 16727,
-   "utf8_bytes": 29759,
+   "chars": 16731,
+   "utf8_bytes": 29763,
    "tier": "standard"
   },
   "jiang_2021_tone_app_ctx": {
@@ -7883,50 +7883,50 @@
   },
   "gpt54nano_tone_app_ss": {
    "cjk": 6405,
-   "chars": 16516,
-   "utf8_bytes": 29723,
+   "chars": 16524,
+   "utf8_bytes": 29731,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_app_ss": {
    "cjk": 1770,
-   "chars": 5751,
-   "utf8_bytes": 9481,
+   "chars": 5755,
+   "utf8_bytes": 9485,
    "tier": "standard"
   },
   "gemini31_tone_app_ss": {
    "cjk": 6415,
-   "chars": 16550,
-   "utf8_bytes": 29767,
+   "chars": 16558,
+   "utf8_bytes": 29775,
    "tier": "standard"
   },
   "gemini31_cont_mean_app_ss": {
    "cjk": 1842,
-   "chars": 5890,
-   "utf8_bytes": 9774,
+   "chars": 5894,
+   "utf8_bytes": 9778,
    "tier": "standard"
   },
   "deepseekv4_tone_app_ss": {
    "cjk": 6566,
-   "chars": 16773,
-   "utf8_bytes": 30302,
+   "chars": 16779,
+   "utf8_bytes": 30308,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_app_ss": {
    "cjk": 1752,
-   "chars": 5645,
-   "utf8_bytes": 9329,
+   "chars": 5649,
+   "utf8_bytes": 9333,
    "tier": "standard"
   },
   "llm_vote_tone_app_ss": {
    "cjk": 6179,
-   "chars": 14254,
-   "utf8_bytes": 27060,
+   "chars": 14258,
+   "utf8_bytes": 27064,
    "tier": "standard"
   },
   "llm_vote_cont_app_ss": {
    "cjk": 6242,
-   "chars": 16729,
-   "utf8_bytes": 29771,
+   "chars": 16733,
+   "utf8_bytes": 29775,
    "tier": "standard"
   },
   "jiang_2021_tone_app_ss": {
@@ -8057,14 +8057,14 @@
   },
   "tech_frac": {
    "cjk": 5298,
-   "chars": 14320,
-   "utf8_bytes": 25355,
+   "chars": 14322,
+   "utf8_bytes": 25357,
    "tier": "core"
   },
   "app_frac": {
    "cjk": 6752,
-   "chars": 19701,
-   "utf8_bytes": 33601,
+   "chars": 19703,
+   "utf8_bytes": 33603,
    "tier": "core"
   },
   "avg_category_confidence_full": {
@@ -8153,8 +8153,8 @@
   },
   "llm_vote_tone_tech_lc_ctx": {
    "cjk": 6122,
-   "chars": 14268,
-   "utf8_bytes": 26960,
+   "chars": 14272,
+   "utf8_bytes": 26964,
    "tier": "standard"
   },
   "llm_prob_score_tech_lc_ctx": {
@@ -8171,8 +8171,8 @@
   },
   "llm_vote_tone_app_lc_ctx": {
    "cjk": 6177,
-   "chars": 14339,
-   "utf8_bytes": 27141,
+   "chars": 14343,
+   "utf8_bytes": 27145,
    "tier": "standard"
   },
   "llm_prob_score_app_lc_ctx": {
@@ -8183,14 +8183,14 @@
   },
   "tech_frac_lc": {
    "cjk": 4792,
-   "chars": 13082,
-   "utf8_bytes": 23071,
+   "chars": 13084,
+   "utf8_bytes": 23073,
    "tier": "standard"
   },
   "app_frac_lc": {
    "cjk": 6340,
-   "chars": 18859,
-   "utf8_bytes": 31913,
+   "chars": 18861,
+   "utf8_bytes": 31915,
    "tier": "standard"
   },
   "tone_gap_tech_app_lc_ctx": {
@@ -8207,8 +8207,8 @@
   },
   "llm_vote_tone_tech_ls_ss": {
    "cjk": 6135,
-   "chars": 14253,
-   "utf8_bytes": 26967,
+   "chars": 14257,
+   "utf8_bytes": 26971,
    "tier": "standard"
   },
   "llm_prob_score_tech_ls_ss": {
@@ -8225,8 +8225,8 @@
   },
   "llm_vote_tone_app_ls_ss": {
    "cjk": 6208,
-   "chars": 14347,
-   "utf8_bytes": 27213,
+   "chars": 14351,
+   "utf8_bytes": 27217,
    "tier": "standard"
   },
   "llm_prob_score_app_ls_ss": {
@@ -8237,14 +8237,14 @@
   },
   "tech_frac_ls": {
    "cjk": 4779,
-   "chars": 13093,
-   "utf8_bytes": 23063,
+   "chars": 13095,
+   "utf8_bytes": 23065,
    "tier": "standard"
   },
   "app_frac_ls": {
    "cjk": 6351,
-   "chars": 19022,
-   "utf8_bytes": 32114,
+   "chars": 19024,
+   "utf8_bytes": 32116,
    "tier": "standard"
   },
   "tone_gap_tech_app_ls_ss": {
@@ -8261,8 +8261,8 @@
   },
   "llm_vote_tone_sub_full": {
    "cjk": 6145,
-   "chars": 14249,
-   "utf8_bytes": 26989,
+   "chars": 14253,
+   "utf8_bytes": 26993,
    "tier": "standard"
   },
   "llm_prob_score_sub_full": {
@@ -8273,26 +8273,26 @@
   },
   "gpt54nano_tone_sub_full": {
    "cjk": 6344,
-   "chars": 16474,
-   "utf8_bytes": 29553,
+   "chars": 16482,
+   "utf8_bytes": 29561,
    "tier": "standard"
   },
   "gemini31_tone_sub_full": {
    "cjk": 6354,
-   "chars": 16508,
-   "utf8_bytes": 29597,
+   "chars": 16516,
+   "utf8_bytes": 29605,
    "tier": "standard"
   },
   "deepseekv4_tone_sub_full": {
    "cjk": 6505,
-   "chars": 16731,
-   "utf8_bytes": 30132,
+   "chars": 16737,
+   "utf8_bytes": 30138,
    "tier": "standard"
   },
   "llm_vote_tone_sub_ctx": {
    "cjk": 6171,
-   "chars": 14290,
-   "utf8_bytes": 27084,
+   "chars": 14294,
+   "utf8_bytes": 27088,
    "tier": "standard"
   },
   "llm_prob_score_sub_ctx": {
@@ -8303,26 +8303,26 @@
   },
   "gpt54nano_tone_sub_ctx": {
    "cjk": 6367,
-   "chars": 16511,
-   "utf8_bytes": 29630,
+   "chars": 16519,
+   "utf8_bytes": 29638,
    "tier": "standard"
   },
   "gemini31_tone_sub_ctx": {
    "cjk": 6387,
-   "chars": 16511,
-   "utf8_bytes": 29672,
+   "chars": 16519,
+   "utf8_bytes": 29680,
    "tier": "standard"
   },
   "deepseekv4_tone_sub_ctx": {
    "cjk": 6528,
-   "chars": 16768,
-   "utf8_bytes": 30209,
+   "chars": 16774,
+   "utf8_bytes": 30215,
    "tier": "standard"
   },
   "llm_vote_tone_sub_ss": {
    "cjk": 6134,
-   "chars": 14177,
-   "utf8_bytes": 26891,
+   "chars": 14181,
+   "utf8_bytes": 26895,
    "tier": "standard"
   },
   "llm_prob_score_sub_ss": {
@@ -8333,20 +8333,20 @@
   },
   "gpt54nano_tone_sub_ss": {
    "cjk": 6361,
-   "chars": 16566,
-   "utf8_bytes": 29675,
+   "chars": 16574,
+   "utf8_bytes": 29683,
    "tier": "standard"
   },
   "gemini31_tone_sub_ss": {
    "cjk": 6381,
-   "chars": 16565,
-   "utf8_bytes": 29716,
+   "chars": 16573,
+   "utf8_bytes": 29724,
    "tier": "standard"
   },
   "deepseekv4_tone_sub_ss": {
    "cjk": 6522,
-   "chars": 16823,
-   "utf8_bytes": 30254,
+   "chars": 16829,
+   "utf8_bytes": 30260,
    "tier": "standard"
   },
   "n_articles_symb": {
@@ -8357,8 +8357,8 @@
   },
   "llm_vote_tone_symb_full": {
    "cjk": 6120,
-   "chars": 14221,
-   "utf8_bytes": 26907,
+   "chars": 14225,
+   "utf8_bytes": 26911,
    "tier": "standard"
   },
   "llm_prob_score_symb_full": {
@@ -8369,26 +8369,26 @@
   },
   "gpt54nano_tone_symb_full": {
    "cjk": 6349,
-   "chars": 16502,
-   "utf8_bytes": 29585,
+   "chars": 16510,
+   "utf8_bytes": 29593,
    "tier": "standard"
   },
   "gemini31_tone_symb_full": {
    "cjk": 6369,
-   "chars": 16502,
-   "utf8_bytes": 29627,
+   "chars": 16510,
+   "utf8_bytes": 29635,
    "tier": "standard"
   },
   "deepseekv4_tone_symb_full": {
    "cjk": 6510,
-   "chars": 16759,
-   "utf8_bytes": 30164,
+   "chars": 16765,
+   "utf8_bytes": 30170,
    "tier": "standard"
   },
   "llm_vote_tone_symb_ctx": {
    "cjk": 6172,
-   "chars": 14264,
-   "utf8_bytes": 27066,
+   "chars": 14268,
+   "utf8_bytes": 27070,
    "tier": "standard"
   },
   "llm_prob_score_symb_ctx": {
@@ -8399,26 +8399,26 @@
   },
   "gpt54nano_tone_symb_ctx": {
    "cjk": 6382,
-   "chars": 16505,
-   "utf8_bytes": 29660,
+   "chars": 16513,
+   "utf8_bytes": 29668,
    "tier": "standard"
   },
   "gemini31_tone_symb_ctx": {
    "cjk": 6392,
-   "chars": 16539,
-   "utf8_bytes": 29704,
+   "chars": 16547,
+   "utf8_bytes": 29712,
    "tier": "standard"
   },
   "deepseekv4_tone_symb_ctx": {
    "cjk": 6543,
-   "chars": 16762,
-   "utf8_bytes": 30239,
+   "chars": 16768,
+   "utf8_bytes": 30245,
    "tier": "standard"
   },
   "llm_vote_tone_symb_ss": {
    "cjk": 6117,
-   "chars": 14152,
-   "utf8_bytes": 26832,
+   "chars": 14156,
+   "utf8_bytes": 26836,
    "tier": "standard"
   },
   "llm_prob_score_symb_ss": {
@@ -8429,20 +8429,20 @@
   },
   "gpt54nano_tone_symb_ss": {
    "cjk": 6376,
-   "chars": 16560,
-   "utf8_bytes": 29705,
+   "chars": 16568,
+   "utf8_bytes": 29713,
    "tier": "standard"
   },
   "gemini31_tone_symb_ss": {
    "cjk": 6386,
-   "chars": 16594,
-   "utf8_bytes": 29749,
+   "chars": 16602,
+   "utf8_bytes": 29757,
    "tier": "standard"
   },
   "deepseekv4_tone_symb_ss": {
    "cjk": 6537,
-   "chars": 16817,
-   "utf8_bytes": 30284,
+   "chars": 16823,
+   "utf8_bytes": 30290,
    "tier": "standard"
   },
   "sub_frac": {
@@ -8471,8 +8471,8 @@
   },
   "llm_vote_tone_sub_sc_ctx": {
    "cjk": 6149,
-   "chars": 14271,
-   "utf8_bytes": 27017,
+   "chars": 14275,
+   "utf8_bytes": 27021,
    "tier": "standard"
   },
   "llm_prob_score_sub_sc_ctx": {
@@ -8489,8 +8489,8 @@
   },
   "llm_vote_tone_symb_sc_ctx": {
    "cjk": 6100,
-   "chars": 14207,
-   "utf8_bytes": 26855,
+   "chars": 14211,
+   "utf8_bytes": 26859,
    "tier": "standard"
   },
   "llm_prob_score_symb_sc_ctx": {
@@ -8525,8 +8525,8 @@
   },
   "llm_vote_tone_sub_ss_ss": {
    "cjk": 6145,
-   "chars": 14237,
-   "utf8_bytes": 26975,
+   "chars": 14241,
+   "utf8_bytes": 26979,
    "tier": "standard"
   },
   "llm_prob_score_sub_ss_ss": {
@@ -8543,8 +8543,8 @@
   },
   "llm_vote_tone_symb_ss_ss": {
    "cjk": 6129,
-   "chars": 14220,
-   "utf8_bytes": 26926,
+   "chars": 14224,
+   "utf8_bytes": 26930,
    "tier": "standard"
   },
   "llm_prob_score_symb_ss_ss": {
@@ -8591,20 +8591,20 @@
   },
   "gpt54nano_tone_indep_full": {
    "cjk": 1936,
-   "chars": 6628,
-   "utf8_bytes": 10754,
+   "chars": 6636,
+   "utf8_bytes": 10762,
    "tier": "standard"
   },
   "gemini31_tone_indep_full": {
    "cjk": 1924,
-   "chars": 6635,
-   "utf8_bytes": 10733,
+   "chars": 6645,
+   "utf8_bytes": 10743,
    "tier": "standard"
   },
   "deepseekv4_tone_indep_full": {
    "cjk": 2005,
-   "chars": 6727,
-   "utf8_bytes": 10996,
+   "chars": 6735,
+   "utf8_bytes": 11004,
    "tier": "standard"
   },
   "llm_vote_tone_indep_ctx": {
@@ -8621,20 +8621,20 @@
   },
   "gpt54nano_tone_indep_ctx": {
    "cjk": 1905,
-   "chars": 6440,
-   "utf8_bytes": 10489,
+   "chars": 6444,
+   "utf8_bytes": 10493,
    "tier": "standard"
   },
   "gemini31_tone_indep_ctx": {
    "cjk": 1882,
-   "chars": 6435,
-   "utf8_bytes": 10446,
+   "chars": 6439,
+   "utf8_bytes": 10450,
    "tier": "standard"
   },
   "deepseekv4_tone_indep_ctx": {
    "cjk": 1929,
-   "chars": 6530,
-   "utf8_bytes": 10645,
+   "chars": 6534,
+   "utf8_bytes": 10649,
    "tier": "standard"
   },
   "llm_vote_tone_indep_ss": {
@@ -8651,20 +8651,20 @@
   },
   "gpt54nano_tone_indep_ss": {
    "cjk": 2012,
-   "chars": 6618,
-   "utf8_bytes": 10907,
+   "chars": 6622,
+   "utf8_bytes": 10911,
    "tier": "standard"
   },
   "gemini31_tone_indep_ss": {
    "cjk": 1921,
-   "chars": 6475,
-   "utf8_bytes": 10568,
+   "chars": 6479,
+   "utf8_bytes": 10572,
    "tier": "standard"
   },
   "deepseekv4_tone_indep_ss": {
    "cjk": 1973,
-   "chars": 6530,
-   "utf8_bytes": 10743,
+   "chars": 6534,
+   "utf8_bytes": 10747,
    "tier": "standard"
   },
   "n_articles_collab": {
@@ -8675,92 +8675,92 @@
   },
   "llm_vote_tone_collab_full": {
    "cjk": 2191,
-   "chars": 7099,
-   "utf8_bytes": 11648,
+   "chars": 7101,
+   "utf8_bytes": 11650,
    "tier": "standard"
   },
   "llm_prob_score_collab_full": {
    "cjk": 2832,
-   "chars": 8914,
-   "utf8_bytes": 14709,
+   "chars": 8916,
+   "utf8_bytes": 14711,
    "tier": "standard"
   },
   "gpt54nano_tone_collab_full": {
    "cjk": 1519,
-   "chars": 5066,
-   "utf8_bytes": 8242,
+   "chars": 5074,
+   "utf8_bytes": 8250,
    "tier": "standard"
   },
   "gemini31_tone_collab_full": {
    "cjk": 1511,
-   "chars": 4998,
-   "utf8_bytes": 8156,
+   "chars": 5006,
+   "utf8_bytes": 8164,
    "tier": "standard"
   },
   "deepseekv4_tone_collab_full": {
    "cjk": 1543,
-   "chars": 5106,
-   "utf8_bytes": 8326,
+   "chars": 5110,
+   "utf8_bytes": 8330,
    "tier": "standard"
   },
   "llm_vote_tone_collab_ctx": {
    "cjk": 2193,
-   "chars": 7101,
-   "utf8_bytes": 11653,
+   "chars": 7103,
+   "utf8_bytes": 11655,
    "tier": "standard"
   },
   "llm_prob_score_collab_ctx": {
    "cjk": 2798,
-   "chars": 9071,
-   "utf8_bytes": 14800,
+   "chars": 9073,
+   "utf8_bytes": 14802,
    "tier": "standard"
   },
   "gpt54nano_tone_collab_ctx": {
    "cjk": 1573,
-   "chars": 5113,
-   "utf8_bytes": 8396,
+   "chars": 5117,
+   "utf8_bytes": 8400,
    "tier": "standard"
   },
   "gemini31_tone_collab_ctx": {
    "cjk": 1527,
-   "chars": 4982,
-   "utf8_bytes": 8170,
+   "chars": 4986,
+   "utf8_bytes": 8174,
    "tier": "standard"
   },
   "deepseekv4_tone_collab_ctx": {
    "cjk": 1546,
-   "chars": 4974,
-   "utf8_bytes": 8199,
+   "chars": 4978,
+   "utf8_bytes": 8203,
    "tier": "standard"
   },
   "llm_vote_tone_collab_ss": {
    "cjk": 2188,
-   "chars": 7133,
-   "utf8_bytes": 11665,
+   "chars": 7135,
+   "utf8_bytes": 11667,
    "tier": "standard"
   },
   "llm_prob_score_collab_ss": {
    "cjk": 2862,
-   "chars": 9135,
-   "utf8_bytes": 15001,
+   "chars": 9137,
+   "utf8_bytes": 15003,
    "tier": "standard"
   },
   "gpt54nano_tone_collab_ss": {
    "cjk": 1572,
-   "chars": 5024,
-   "utf8_bytes": 8314,
+   "chars": 5028,
+   "utf8_bytes": 8318,
    "tier": "standard"
   },
   "gemini31_tone_collab_ss": {
    "cjk": 1544,
-   "chars": 4983,
-   "utf8_bytes": 8212,
+   "chars": 4987,
+   "utf8_bytes": 8216,
    "tier": "standard"
   },
   "deepseekv4_tone_collab_ss": {
    "cjk": 1564,
-   "chars": 4998,
-   "utf8_bytes": 8264,
+   "chars": 5002,
+   "utf8_bytes": 8268,
    "tier": "standard"
   },
   "indep_frac": {
@@ -8777,8 +8777,8 @@
   },
   "tone_gap_indep_collab": {
    "cjk": 2798,
-   "chars": 8236,
-   "utf8_bytes": 14078,
+   "chars": 8238,
+   "utf8_bytes": 14080,
    "tier": "standard"
   },
   "n_articles_indep_cm_ctx": {
@@ -8807,14 +8807,14 @@
   },
   "llm_vote_tone_collab_cm_ctx": {
    "cjk": 2069,
-   "chars": 7316,
-   "utf8_bytes": 11597,
+   "chars": 7318,
+   "utf8_bytes": 11599,
    "tier": "standard"
   },
   "llm_prob_score_collab_cm_ctx": {
    "cjk": 3171,
-   "chars": 8113,
-   "utf8_bytes": 14611,
+   "chars": 8112,
+   "utf8_bytes": 14610,
    "tier": "standard"
   },
   "indep_frac_cm": {
@@ -8825,8 +8825,8 @@
   },
   "collab_frac_cm": {
    "cjk": 1894,
-   "chars": 6567,
-   "utf8_bytes": 10558,
+   "chars": 6569,
+   "utf8_bytes": 10560,
    "tier": "standard"
   },
   "tone_gap_indep_collab_cm_ctx": {
@@ -8861,14 +8861,14 @@
   },
   "llm_vote_tone_collab_cm_ss": {
    "cjk": 2159,
-   "chars": 7308,
-   "utf8_bytes": 11774,
+   "chars": 7310,
+   "utf8_bytes": 11776,
    "tier": "standard"
   },
   "llm_prob_score_collab_cm_ss": {
    "cjk": 3329,
-   "chars": 8375,
-   "utf8_bytes": 15188,
+   "chars": 8374,
+   "utf8_bytes": 15187,
    "tier": "standard"
   },
   "indep_frac_cm_ss": {
@@ -8879,8 +8879,8 @@
   },
   "collab_frac_cm_ss": {
    "cjk": 1846,
-   "chars": 6481,
-   "utf8_bytes": 10392,
+   "chars": 6483,
+   "utf8_bytes": 10394,
    "tier": "standard"
   },
   "tone_gap_indep_collab_cm_ss": {
@@ -9317,32 +9317,32 @@
   },
   "llm_vote_tone_vw_full": {
    "cjk": 6093,
-   "chars": 14126,
-   "utf8_bytes": 26754,
+   "chars": 14130,
+   "utf8_bytes": 26758,
    "tier": "standard"
   },
   "llm_vote_cont_vw_full": {
    "cjk": 6110,
-   "chars": 16571,
-   "utf8_bytes": 29330,
+   "chars": 16575,
+   "utf8_bytes": 29334,
    "tier": "standard"
   },
   "gpt54nano_tone_vw_full": {
    "cjk": 6371,
-   "chars": 16454,
-   "utf8_bytes": 29579,
+   "chars": 16462,
+   "utf8_bytes": 29587,
    "tier": "standard"
   },
   "gemini31_tone_vw_full": {
    "cjk": 6391,
-   "chars": 16454,
-   "utf8_bytes": 29621,
+   "chars": 16462,
+   "utf8_bytes": 29629,
    "tier": "standard"
   },
   "deepseekv4_tone_vw_full": {
    "cjk": 6532,
-   "chars": 16711,
-   "utf8_bytes": 30158,
+   "chars": 16717,
+   "utf8_bytes": 30164,
    "tier": "standard"
   },
   "jiang_2021_tone_vw_full": {
@@ -9461,32 +9461,32 @@
   },
   "llm_vote_tone_vw_ctx": {
    "cjk": 6127,
-   "chars": 14224,
-   "utf8_bytes": 26924,
+   "chars": 14228,
+   "utf8_bytes": 26928,
    "tier": "standard"
   },
   "llm_vote_cont_vw_ctx": {
    "cjk": 6234,
-   "chars": 16826,
-   "utf8_bytes": 29845,
+   "chars": 16830,
+   "utf8_bytes": 29849,
    "tier": "standard"
   },
   "gpt54nano_tone_vw_ctx": {
    "cjk": 6404,
-   "chars": 16457,
-   "utf8_bytes": 29654,
+   "chars": 16465,
+   "utf8_bytes": 29662,
    "tier": "standard"
   },
   "gemini31_tone_vw_ctx": {
    "cjk": 6414,
-   "chars": 16491,
-   "utf8_bytes": 29698,
+   "chars": 16499,
+   "utf8_bytes": 29706,
    "tier": "standard"
   },
   "deepseekv4_tone_vw_ctx": {
    "cjk": 6565,
-   "chars": 16714,
-   "utf8_bytes": 30233,
+   "chars": 16720,
+   "utf8_bytes": 30239,
    "tier": "standard"
   },
   "jiang_2021_tone_vw_ctx": {
@@ -9605,32 +9605,32 @@
   },
   "llm_vote_tone_vw_ss": {
    "cjk": 6092,
-   "chars": 14070,
-   "utf8_bytes": 26698,
+   "chars": 14074,
+   "utf8_bytes": 26702,
    "tier": "standard"
   },
   "llm_vote_cont_vw_ss": {
    "cjk": 6232,
-   "chars": 16780,
-   "utf8_bytes": 29806,
+   "chars": 16784,
+   "utf8_bytes": 29810,
    "tier": "standard"
   },
   "gpt54nano_tone_vw_ss": {
    "cjk": 6398,
-   "chars": 16512,
-   "utf8_bytes": 29699,
+   "chars": 16520,
+   "utf8_bytes": 29707,
    "tier": "standard"
   },
   "gemini31_tone_vw_ss": {
    "cjk": 6408,
-   "chars": 16546,
-   "utf8_bytes": 29743,
+   "chars": 16554,
+   "utf8_bytes": 29751,
    "tier": "standard"
   },
   "deepseekv4_tone_vw_ss": {
    "cjk": 6559,
-   "chars": 16769,
-   "utf8_bytes": 30278,
+   "chars": 16775,
+   "utf8_bytes": 30284,
    "tier": "standard"
   },
   "jiang_2021_tone_vw_ss": {
@@ -9749,32 +9749,32 @@
   },
   "llm_vote_tone_mw_full": {
    "cjk": 6096,
-   "chars": 14123,
-   "utf8_bytes": 26759,
+   "chars": 14127,
+   "utf8_bytes": 26763,
    "tier": "standard"
   },
   "llm_vote_cont_mw_full": {
    "cjk": 6295,
-   "chars": 16930,
-   "utf8_bytes": 30077,
+   "chars": 16934,
+   "utf8_bytes": 30081,
    "tier": "standard"
   },
   "gpt54nano_tone_mw_full": {
    "cjk": 6369,
-   "chars": 16492,
-   "utf8_bytes": 29611,
+   "chars": 16500,
+   "utf8_bytes": 29619,
    "tier": "standard"
   },
   "gemini31_tone_mw_full": {
    "cjk": 6389,
-   "chars": 16492,
-   "utf8_bytes": 29653,
+   "chars": 16500,
+   "utf8_bytes": 29661,
    "tier": "standard"
   },
   "deepseekv4_tone_mw_full": {
    "cjk": 6530,
-   "chars": 16749,
-   "utf8_bytes": 30190,
+   "chars": 16755,
+   "utf8_bytes": 30196,
    "tier": "standard"
   },
   "jiang_2021_tone_mw_full": {
@@ -9893,32 +9893,32 @@
   },
   "llm_vote_tone_mw_ctx": {
    "cjk": 6154,
-   "chars": 14251,
-   "utf8_bytes": 27007,
+   "chars": 14255,
+   "utf8_bytes": 27011,
    "tier": "standard"
   },
   "llm_vote_cont_mw_ctx": {
    "cjk": 6200,
-   "chars": 16749,
-   "utf8_bytes": 29699,
+   "chars": 16753,
+   "utf8_bytes": 29703,
    "tier": "standard"
   },
   "gpt54nano_tone_mw_ctx": {
    "cjk": 6402,
-   "chars": 16495,
-   "utf8_bytes": 29686,
+   "chars": 16503,
+   "utf8_bytes": 29694,
    "tier": "standard"
   },
   "gemini31_tone_mw_ctx": {
    "cjk": 6412,
-   "chars": 16529,
-   "utf8_bytes": 29730,
+   "chars": 16537,
+   "utf8_bytes": 29738,
    "tier": "standard"
   },
   "deepseekv4_tone_mw_ctx": {
    "cjk": 6563,
-   "chars": 16752,
-   "utf8_bytes": 30265,
+   "chars": 16758,
+   "utf8_bytes": 30271,
    "tier": "standard"
   },
   "jiang_2021_tone_mw_ctx": {
@@ -10037,32 +10037,32 @@
   },
   "llm_vote_tone_mw_ss": {
    "cjk": 6096,
-   "chars": 14098,
-   "utf8_bytes": 26736,
+   "chars": 14102,
+   "utf8_bytes": 26740,
    "tier": "standard"
   },
   "llm_vote_cont_mw_ss": {
    "cjk": 6223,
-   "chars": 16725,
-   "utf8_bytes": 29730,
+   "chars": 16729,
+   "utf8_bytes": 29734,
    "tier": "standard"
   },
   "gpt54nano_tone_mw_ss": {
    "cjk": 6396,
-   "chars": 16550,
-   "utf8_bytes": 29731,
+   "chars": 16558,
+   "utf8_bytes": 29739,
    "tier": "standard"
   },
   "gemini31_tone_mw_ss": {
    "cjk": 6406,
-   "chars": 16584,
-   "utf8_bytes": 29775,
+   "chars": 16592,
+   "utf8_bytes": 29783,
    "tier": "standard"
   },
   "deepseekv4_tone_mw_ss": {
    "cjk": 6557,
-   "chars": 16807,
-   "utf8_bytes": 30310,
+   "chars": 16813,
+   "utf8_bytes": 30316,
    "tier": "standard"
   },
   "jiang_2021_tone_mw_ss": {
@@ -10181,32 +10181,32 @@
   },
   "llm_vote_tone_hw_full": {
    "cjk": 6142,
-   "chars": 14169,
-   "utf8_bytes": 26899,
+   "chars": 14173,
+   "utf8_bytes": 26903,
    "tier": "standard"
   },
   "llm_vote_cont_hw_full": {
    "cjk": 6095,
-   "chars": 16626,
-   "utf8_bytes": 29363,
+   "chars": 16630,
+   "utf8_bytes": 29367,
    "tier": "standard"
   },
   "gpt54nano_tone_hw_full": {
    "cjk": 6386,
-   "chars": 16452,
-   "utf8_bytes": 29613,
+   "chars": 16460,
+   "utf8_bytes": 29621,
    "tier": "standard"
   },
   "gemini31_tone_hw_full": {
    "cjk": 6396,
-   "chars": 16486,
-   "utf8_bytes": 29657,
+   "chars": 16494,
+   "utf8_bytes": 29665,
    "tier": "standard"
   },
   "deepseekv4_tone_hw_full": {
    "cjk": 6547,
-   "chars": 16709,
-   "utf8_bytes": 30192,
+   "chars": 16715,
+   "utf8_bytes": 30198,
    "tier": "standard"
   },
   "jiang_2021_tone_hw_full": {
@@ -10325,32 +10325,32 @@
   },
   "llm_vote_tone_hw_ctx": {
    "cjk": 6173,
-   "chars": 14296,
-   "utf8_bytes": 27092,
+   "chars": 14300,
+   "utf8_bytes": 27096,
    "tier": "standard"
   },
   "llm_vote_cont_hw_ctx": {
    "cjk": 6205,
-   "chars": 16795,
-   "utf8_bytes": 29757,
+   "chars": 16799,
+   "utf8_bytes": 29761,
    "tier": "standard"
   },
   "gpt54nano_tone_hw_ctx": {
    "cjk": 6409,
-   "chars": 16489,
-   "utf8_bytes": 29690,
+   "chars": 16497,
+   "utf8_bytes": 29698,
    "tier": "standard"
   },
   "gemini31_tone_hw_ctx": {
    "cjk": 6429,
-   "chars": 16489,
-   "utf8_bytes": 29732,
+   "chars": 16497,
+   "utf8_bytes": 29740,
    "tier": "standard"
   },
   "deepseekv4_tone_hw_ctx": {
    "cjk": 6570,
-   "chars": 16746,
-   "utf8_bytes": 30269,
+   "chars": 16752,
+   "utf8_bytes": 30275,
    "tier": "standard"
   },
   "jiang_2021_tone_hw_ctx": {
@@ -10469,32 +10469,32 @@
   },
   "llm_vote_tone_hw_ss": {
    "cjk": 6128,
-   "chars": 14162,
-   "utf8_bytes": 26866,
+   "chars": 14166,
+   "utf8_bytes": 26870,
    "tier": "standard"
   },
   "llm_vote_cont_hw_ss": {
    "cjk": 6194,
-   "chars": 16814,
-   "utf8_bytes": 29761,
+   "chars": 16818,
+   "utf8_bytes": 29765,
    "tier": "standard"
   },
   "gpt54nano_tone_hw_ss": {
    "cjk": 6403,
-   "chars": 16544,
-   "utf8_bytes": 29735,
+   "chars": 16552,
+   "utf8_bytes": 29743,
    "tier": "standard"
   },
   "gemini31_tone_hw_ss": {
    "cjk": 6423,
-   "chars": 16544,
-   "utf8_bytes": 29777,
+   "chars": 16552,
+   "utf8_bytes": 29785,
    "tier": "standard"
   },
   "deepseekv4_tone_hw_ss": {
    "cjk": 6564,
-   "chars": 16801,
-   "utf8_bytes": 30314,
+   "chars": 16807,
+   "utf8_bytes": 30320,
    "tier": "standard"
   },
   "jiang_2021_tone_hw_ss": {
@@ -10613,146 +10613,146 @@
   },
   "llm_vote_tone_hw_thr25_full": {
    "cjk": 6125,
-   "chars": 14168,
-   "utf8_bytes": 26866,
+   "chars": 14172,
+   "utf8_bytes": 26870,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_full": {
    "cjk": 6246,
-   "chars": 16927,
-   "utf8_bytes": 29975,
+   "chars": 16931,
+   "utf8_bytes": 29979,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_full": {
    "cjk": 6100,
-   "chars": 14130,
-   "utf8_bytes": 26778,
+   "chars": 14134,
+   "utf8_bytes": 26782,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_full": {
    "cjk": 6165,
-   "chars": 16795,
-   "utf8_bytes": 29676,
+   "chars": 16799,
+   "utf8_bytes": 29680,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_full": {
    "cjk": 6104,
-   "chars": 14130,
-   "utf8_bytes": 26784,
+   "chars": 14134,
+   "utf8_bytes": 26788,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_full": {
    "cjk": 6215,
-   "chars": 16814,
-   "utf8_bytes": 29802,
+   "chars": 16818,
+   "utf8_bytes": 29806,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_full": {
    "cjk": 6110,
-   "chars": 14134,
-   "utf8_bytes": 26800,
+   "chars": 14138,
+   "utf8_bytes": 26804,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_full": {
    "cjk": 6220,
-   "chars": 16810,
-   "utf8_bytes": 29800,
+   "chars": 16814,
+   "utf8_bytes": 29804,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_ctx": {
    "cjk": 6175,
-   "chars": 14268,
-   "utf8_bytes": 27070,
+   "chars": 14272,
+   "utf8_bytes": 27074,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_ctx": {
    "cjk": 6181,
-   "chars": 16761,
-   "utf8_bytes": 29680,
+   "chars": 16765,
+   "utf8_bytes": 29684,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_ctx": {
    "cjk": 6135,
-   "chars": 14207,
-   "utf8_bytes": 26927,
+   "chars": 14211,
+   "utf8_bytes": 26931,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_ctx": {
    "cjk": 6161,
-   "chars": 16749,
-   "utf8_bytes": 29626,
+   "chars": 16753,
+   "utf8_bytes": 29630,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_ctx": {
    "cjk": 6125,
-   "chars": 14187,
-   "utf8_bytes": 26885,
+   "chars": 14191,
+   "utf8_bytes": 26889,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_ctx": {
    "cjk": 6180,
-   "chars": 16762,
-   "utf8_bytes": 29679,
+   "chars": 16766,
+   "utf8_bytes": 29683,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_ctx": {
    "cjk": 6113,
-   "chars": 14153,
-   "utf8_bytes": 26829,
+   "chars": 14157,
+   "utf8_bytes": 26833,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_ctx": {
    "cjk": 6189,
-   "chars": 16762,
-   "utf8_bytes": 29697,
+   "chars": 16766,
+   "utf8_bytes": 29701,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_ss": {
    "cjk": 6127,
-   "chars": 14184,
-   "utf8_bytes": 26892,
+   "chars": 14188,
+   "utf8_bytes": 26896,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_ss": {
    "cjk": 6169,
-   "chars": 16718,
-   "utf8_bytes": 29615,
+   "chars": 16722,
+   "utf8_bytes": 29619,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_ss": {
    "cjk": 6105,
-   "chars": 14142,
-   "utf8_bytes": 26802,
+   "chars": 14146,
+   "utf8_bytes": 26806,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_ss": {
    "cjk": 6167,
-   "chars": 16726,
-   "utf8_bytes": 29618,
+   "chars": 16730,
+   "utf8_bytes": 29622,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_ss": {
    "cjk": 6103,
-   "chars": 14133,
-   "utf8_bytes": 26789,
+   "chars": 14137,
+   "utf8_bytes": 26793,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_ss": {
    "cjk": 6164,
-   "chars": 16701,
-   "utf8_bytes": 29585,
+   "chars": 16705,
+   "utf8_bytes": 29589,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_ss": {
    "cjk": 6115,
-   "chars": 14146,
-   "utf8_bytes": 26828,
+   "chars": 14150,
+   "utf8_bytes": 26832,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_ss": {
    "cjk": 6191,
-   "chars": 16756,
-   "utf8_bytes": 29698,
+   "chars": 16760,
+   "utf8_bytes": 29702,
    "tier": "standard"
   },
   "pos_substvalid_count_full": {
@@ -10769,14 +10769,14 @@
   },
   "gpt54nano_pos_substvalid_count_full": {
    "cjk": 1496,
-   "chars": 5413,
-   "utf8_bytes": 8539,
+   "chars": 5415,
+   "utf8_bytes": 8541,
    "tier": "standard"
   },
   "gemini31_pos_substvalid_count_full": {
    "cjk": 1495,
-   "chars": 5405,
-   "utf8_bytes": 8527,
+   "chars": 5407,
+   "utf8_bytes": 8529,
    "tier": "standard"
   },
   "deepseekv4_pos_substvalid_count_full": {
@@ -10871,20 +10871,20 @@
   },
   "gpt54nano_pos_substvalid_count_ctx": {
    "cjk": 1493,
-   "chars": 5481,
-   "utf8_bytes": 8600,
+   "chars": 5485,
+   "utf8_bytes": 8604,
    "tier": "standard"
   },
   "gemini31_pos_substvalid_count_ctx": {
    "cjk": 1499,
-   "chars": 5476,
-   "utf8_bytes": 8607,
+   "chars": 5480,
+   "utf8_bytes": 8611,
    "tier": "standard"
   },
   "deepseekv4_pos_substvalid_count_ctx": {
    "cjk": 1486,
-   "chars": 5432,
-   "utf8_bytes": 8529,
+   "chars": 5434,
+   "utf8_bytes": 8531,
    "tier": "standard"
   },
   "dict_pos_substvalid_count_ctx": {
@@ -10973,14 +10973,14 @@
   },
   "gpt54nano_pos_substvalid_count_ss": {
    "cjk": 1487,
-   "chars": 5442,
-   "utf8_bytes": 8553,
+   "chars": 5444,
+   "utf8_bytes": 8555,
    "tier": "standard"
   },
   "gemini31_pos_substvalid_count_ss": {
    "cjk": 1483,
-   "chars": 5432,
-   "utf8_bytes": 8533,
+   "chars": 5434,
+   "utf8_bytes": 8535,
    "tier": "standard"
   },
   "deepseekv4_pos_substvalid_count_ss": {
@@ -11471,8 +11471,8 @@
   },
   "tone_local_media_full": {
    "cjk": 2279,
-   "chars": 6426,
-   "utf8_bytes": 11173,
+   "chars": 6428,
+   "utf8_bytes": 11175,
    "tier": "standard"
   },
   "tone_gap_central_local_full": {
@@ -11489,8 +11489,8 @@
   },
   "tone_local_media_ctx": {
    "cjk": 2335,
-   "chars": 6448,
-   "utf8_bytes": 11313,
+   "chars": 6450,
+   "utf8_bytes": 11315,
    "tier": "standard"
   },
   "tone_gap_central_local_ctx": {
@@ -11507,8 +11507,8 @@
   },
   "tone_local_media_ss": {
    "cjk": 2392,
-   "chars": 6601,
-   "utf8_bytes": 11596,
+   "chars": 6603,
+   "utf8_bytes": 11598,
    "tier": "standard"
   },
   "tone_gap_central_local_ss": {
@@ -12959,50 +12959,50 @@
   },
   "exc_gpt54nano_score_full": {
    "cjk": 1764,
-   "chars": 5848,
-   "utf8_bytes": 9566,
+   "chars": 5854,
+   "utf8_bytes": 9572,
    "tier": "standard"
   },
   "exc_gemini31_score_full": {
    "cjk": 2035,
-   "chars": 6557,
-   "utf8_bytes": 10828,
+   "chars": 6561,
+   "utf8_bytes": 10832,
    "tier": "standard"
   },
   "exc_deepseekv4_score_full": {
    "cjk": 1684,
-   "chars": 5644,
-   "utf8_bytes": 9191,
+   "chars": 5646,
+   "utf8_bytes": 9193,
    "tier": "standard"
   },
   "exc_gpt54nano_score_ctx": {
    "cjk": 1796,
-   "chars": 5933,
-   "utf8_bytes": 9716,
+   "chars": 5939,
+   "utf8_bytes": 9722,
    "tier": "standard"
   },
   "exc_gemini31_score_ctx": {
    "cjk": 2039,
-   "chars": 6597,
-   "utf8_bytes": 10873,
+   "chars": 6603,
+   "utf8_bytes": 10879,
    "tier": "standard"
   },
   "exc_deepseekv4_score_ctx": {
    "cjk": 1670,
-   "chars": 5719,
-   "utf8_bytes": 9235,
+   "chars": 5721,
+   "utf8_bytes": 9237,
    "tier": "standard"
   },
   "exc_gpt54nano_score_ss": {
    "cjk": 1846,
-   "chars": 5971,
-   "utf8_bytes": 9860,
+   "chars": 5977,
+   "utf8_bytes": 9866,
    "tier": "standard"
   },
   "exc_gemini31_score_ss": {
    "cjk": 2119,
-   "chars": 6660,
-   "utf8_bytes": 11106,
+   "chars": 6664,
+   "utf8_bytes": 11110,
    "tier": "standard"
   },
   "exc_deepseekv4_score_ss": {
@@ -13013,14 +13013,14 @@
   },
   "exc_gpt54nano_score_w_full": {
    "cjk": 1775,
-   "chars": 5827,
-   "utf8_bytes": 9557,
+   "chars": 5833,
+   "utf8_bytes": 9563,
    "tier": "standard"
   },
   "exc_gemini31_score_w_full": {
    "cjk": 2047,
-   "chars": 6526,
-   "utf8_bytes": 10813,
+   "chars": 6530,
+   "utf8_bytes": 10817,
    "tier": "standard"
   },
   "exc_deepseekv4_score_w_full": {
@@ -13085,14 +13085,14 @@
   },
   "exc_gpt54nano_score_w_ctx": {
    "cjk": 1760,
-   "chars": 5771,
-   "utf8_bytes": 9482,
+   "chars": 5777,
+   "utf8_bytes": 9488,
    "tier": "standard"
   },
   "exc_gemini31_score_w_ctx": {
    "cjk": 2032,
-   "chars": 6469,
-   "utf8_bytes": 10737,
+   "chars": 6473,
+   "utf8_bytes": 10741,
    "tier": "standard"
   },
   "exc_deepseekv4_score_w_ctx": {
@@ -13157,14 +13157,14 @@
   },
   "exc_gpt54nano_score_w_ss": {
    "cjk": 1765,
-   "chars": 5866,
-   "utf8_bytes": 9588,
+   "chars": 5872,
+   "utf8_bytes": 9594,
    "tier": "standard"
   },
   "exc_gemini31_score_w_ss": {
    "cjk": 2035,
-   "chars": 6551,
-   "utf8_bytes": 10824,
+   "chars": 6555,
+   "utf8_bytes": 10828,
    "tier": "standard"
   },
   "exc_deepseekv4_score_w_ss": {
@@ -13229,14 +13229,14 @@
   },
   "exc_gpt54nano_score_hw_full": {
    "cjk": 1744,
-   "chars": 5794,
-   "utf8_bytes": 9464,
+   "chars": 5800,
+   "utf8_bytes": 9470,
    "tier": "standard"
   },
   "exc_gemini31_score_hw_full": {
    "cjk": 2016,
-   "chars": 6493,
-   "utf8_bytes": 10720,
+   "chars": 6497,
+   "utf8_bytes": 10724,
    "tier": "standard"
   },
   "exc_deepseekv4_score_hw_full": {
@@ -13301,14 +13301,14 @@
   },
   "exc_gpt54nano_score_hw_ctx": {
    "cjk": 1762,
-   "chars": 5782,
-   "utf8_bytes": 9497,
+   "chars": 5788,
+   "utf8_bytes": 9503,
    "tier": "standard"
   },
   "exc_gemini31_score_hw_ctx": {
    "cjk": 2034,
-   "chars": 6480,
-   "utf8_bytes": 10752,
+   "chars": 6484,
+   "utf8_bytes": 10756,
    "tier": "standard"
   },
   "exc_deepseekv4_score_hw_ctx": {
@@ -13373,14 +13373,14 @@
   },
   "exc_gpt54nano_score_hw_ss": {
    "cjk": 1840,
-   "chars": 5994,
-   "utf8_bytes": 9868,
+   "chars": 6000,
+   "utf8_bytes": 9874,
    "tier": "standard"
   },
   "exc_gemini31_score_hw_ss": {
    "cjk": 2044,
-   "chars": 6531,
-   "utf8_bytes": 10826,
+   "chars": 6535,
+   "utf8_bytes": 10830,
    "tier": "standard"
   },
   "exc_deepseekv4_score_hw_ss": {
@@ -17891,32 +17891,32 @@
   },
   "llm_models_avg_tone_full": {
    "cjk": 6336,
-   "chars": 17716,
-   "utf8_bytes": 31096,
+   "chars": 17724,
+   "utf8_bytes": 31104,
    "tier": "core"
   },
   "llm_models_avg_tone_sum_full": {
    "cjk": 2978,
-   "chars": 8146,
-   "utf8_bytes": 14332,
+   "chars": 8150,
+   "utf8_bytes": 14336,
    "tier": "standard"
   },
   "llm_models_avg_cont_full": {
    "cjk": 6451,
-   "chars": 14677,
-   "utf8_bytes": 28250,
+   "chars": 14679,
+   "utf8_bytes": 28252,
    "tier": "core"
   },
   "llm_models_avg_cont_sum_full": {
    "cjk": 2398,
-   "chars": 6331,
-   "utf8_bytes": 11326,
+   "chars": 6333,
+   "utf8_bytes": 11328,
    "tier": "standard"
   },
   "llm_models_avg_tone_std_full": {
    "cjk": 5795,
-   "chars": 16326,
-   "utf8_bytes": 28569,
+   "chars": 16334,
+   "utf8_bytes": 28577,
    "tier": "standard"
   },
   "dict_avg_tone_full": {
@@ -18035,8 +18035,8 @@
   },
   "llm_models_avg_tone_vw_full": {
    "cjk": 5773,
-   "chars": 16343,
-   "utf8_bytes": 28555,
+   "chars": 16351,
+   "utf8_bytes": 28563,
    "tier": "standard"
   },
   "dict_avg_tone_vw_full": {
@@ -18065,8 +18065,8 @@
   },
   "llm_models_avg_tone_mw_full": {
    "cjk": 5775,
-   "chars": 16430,
-   "utf8_bytes": 28642,
+   "chars": 16438,
+   "utf8_bytes": 28650,
    "tier": "standard"
   },
   "dict_avg_tone_mw_full": {
@@ -18095,8 +18095,8 @@
   },
   "llm_models_avg_tone_hw_full": {
    "cjk": 5766,
-   "chars": 16362,
-   "utf8_bytes": 28550,
+   "chars": 16370,
+   "utf8_bytes": 28558,
    "tier": "standard"
   },
   "dict_avg_tone_hw_full": {
@@ -18125,32 +18125,32 @@
   },
   "llm_models_avg_tone_ctx": {
    "cjk": 5780,
-   "chars": 16398,
-   "utf8_bytes": 28617,
+   "chars": 16406,
+   "utf8_bytes": 28625,
    "tier": "standard"
   },
   "llm_models_avg_tone_sum_ctx": {
    "cjk": 3016,
-   "chars": 8150,
-   "utf8_bytes": 14402,
+   "chars": 8154,
+   "utf8_bytes": 14406,
    "tier": "standard"
   },
   "llm_models_avg_cont_ctx": {
    "cjk": 5429,
-   "chars": 12868,
-   "utf8_bytes": 24293,
+   "chars": 12870,
+   "utf8_bytes": 24295,
    "tier": "standard"
   },
   "llm_models_avg_cont_sum_ctx": {
    "cjk": 2437,
-   "chars": 6393,
-   "utf8_bytes": 11468,
+   "chars": 6395,
+   "utf8_bytes": 11470,
    "tier": "standard"
   },
   "llm_models_avg_tone_std_ctx": {
    "cjk": 5809,
-   "chars": 16337,
-   "utf8_bytes": 28623,
+   "chars": 16345,
+   "utf8_bytes": 28631,
    "tier": "standard"
   },
   "dict_avg_tone_ctx": {
@@ -18269,8 +18269,8 @@
   },
   "llm_models_avg_tone_vw_ctx": {
    "cjk": 5789,
-   "chars": 16429,
-   "utf8_bytes": 28687,
+   "chars": 16437,
+   "utf8_bytes": 28695,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ctx": {
@@ -18299,8 +18299,8 @@
   },
   "llm_models_avg_tone_mw_ctx": {
    "cjk": 5768,
-   "chars": 16405,
-   "utf8_bytes": 28593,
+   "chars": 16413,
+   "utf8_bytes": 28601,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ctx": {
@@ -18329,8 +18329,8 @@
   },
   "llm_models_avg_tone_hw_ctx": {
    "cjk": 5771,
-   "chars": 16404,
-   "utf8_bytes": 28618,
+   "chars": 16412,
+   "utf8_bytes": 28626,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ctx": {
@@ -18359,32 +18359,32 @@
   },
   "llm_models_avg_tone_ss": {
    "cjk": 5771,
-   "chars": 16446,
-   "utf8_bytes": 28653,
+   "chars": 16454,
+   "utf8_bytes": 28661,
    "tier": "standard"
   },
   "llm_models_avg_tone_sum_ss": {
    "cjk": 2740,
-   "chars": 7766,
-   "utf8_bytes": 13461,
+   "chars": 7770,
+   "utf8_bytes": 13465,
    "tier": "standard"
   },
   "llm_models_avg_cont_ss": {
    "cjk": 5474,
-   "chars": 12855,
-   "utf8_bytes": 24376,
+   "chars": 12857,
+   "utf8_bytes": 24378,
    "tier": "standard"
   },
   "llm_models_avg_cont_sum_ss": {
    "cjk": 2402,
-   "chars": 6512,
-   "utf8_bytes": 11522,
+   "chars": 6514,
+   "utf8_bytes": 11524,
    "tier": "standard"
   },
   "llm_models_avg_tone_std_ss": {
    "cjk": 5773,
-   "chars": 16305,
-   "utf8_bytes": 28512,
+   "chars": 16313,
+   "utf8_bytes": 28520,
    "tier": "standard"
   },
   "dict_avg_tone_ss": {
@@ -18503,8 +18503,8 @@
   },
   "llm_models_avg_tone_vw_ss": {
    "cjk": 5784,
-   "chars": 16366,
-   "utf8_bytes": 28611,
+   "chars": 16374,
+   "utf8_bytes": 28619,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ss": {
@@ -18533,8 +18533,8 @@
   },
   "llm_models_avg_tone_mw_ss": {
    "cjk": 5790,
-   "chars": 16411,
-   "utf8_bytes": 28663,
+   "chars": 16419,
+   "utf8_bytes": 28671,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ss": {
@@ -18563,8 +18563,8 @@
   },
   "llm_models_avg_tone_hw_ss": {
    "cjk": 5763,
-   "chars": 16331,
-   "utf8_bytes": 28522,
+   "chars": 16339,
+   "utf8_bytes": 28530,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ss": {
@@ -18635,14 +18635,14 @@
   },
   "llm_models_avg_tone_tech_full": {
    "cjk": 5781,
-   "chars": 16260,
-   "utf8_bytes": 28477,
+   "chars": 16268,
+   "utf8_bytes": 28485,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_full": {
    "cjk": 5444,
-   "chars": 12908,
-   "utf8_bytes": 24375,
+   "chars": 12910,
+   "utf8_bytes": 24377,
    "tier": "standard"
   },
   "dict_avg_tone_tech_full": {
@@ -18677,14 +18677,14 @@
   },
   "llm_models_avg_tone_tech_ctx": {
    "cjk": 5771,
-   "chars": 16332,
-   "utf8_bytes": 28531,
+   "chars": 16340,
+   "utf8_bytes": 28539,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_ctx": {
    "cjk": 5451,
-   "chars": 12887,
-   "utf8_bytes": 24360,
+   "chars": 12889,
+   "utf8_bytes": 24362,
    "tier": "standard"
   },
   "dict_avg_tone_tech_ctx": {
@@ -18719,14 +18719,14 @@
   },
   "llm_models_avg_tone_tech_ss": {
    "cjk": 5771,
-   "chars": 16324,
-   "utf8_bytes": 28523,
+   "chars": 16332,
+   "utf8_bytes": 28531,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_ss": {
    "cjk": 5491,
-   "chars": 12869,
-   "utf8_bytes": 24434,
+   "chars": 12871,
+   "utf8_bytes": 24436,
    "tier": "standard"
   },
   "dict_avg_tone_tech_ss": {
@@ -18761,14 +18761,14 @@
   },
   "llm_models_avg_tone_app_full": {
    "cjk": 5801,
-   "chars": 16349,
-   "utf8_bytes": 28604,
+   "chars": 16357,
+   "utf8_bytes": 28612,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_full": {
    "cjk": 5425,
-   "chars": 12877,
-   "utf8_bytes": 24308,
+   "chars": 12879,
+   "utf8_bytes": 24310,
    "tier": "standard"
   },
   "dict_avg_tone_app_full": {
@@ -18803,14 +18803,14 @@
   },
   "llm_models_avg_tone_app_ctx": {
    "cjk": 5803,
-   "chars": 16401,
-   "utf8_bytes": 28663,
+   "chars": 16409,
+   "utf8_bytes": 28671,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_ctx": {
    "cjk": 5478,
-   "chars": 12930,
-   "utf8_bytes": 24459,
+   "chars": 12932,
+   "utf8_bytes": 24461,
    "tier": "standard"
   },
   "dict_avg_tone_app_ctx": {
@@ -18845,14 +18845,14 @@
   },
   "llm_models_avg_tone_app_ss": {
    "cjk": 5761,
-   "chars": 16307,
-   "utf8_bytes": 28489,
+   "chars": 16315,
+   "utf8_bytes": 28497,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_ss": {
    "cjk": 5436,
-   "chars": 12816,
-   "utf8_bytes": 24261,
+   "chars": 12818,
+   "utf8_bytes": 24263,
    "tier": "standard"
   },
   "dict_avg_tone_app_ss": {
@@ -18887,92 +18887,92 @@
   },
   "fintech_exposure_full": {
    "cjk": 5498,
-   "chars": 12999,
-   "utf8_bytes": 24288,
+   "chars": 13001,
+   "utf8_bytes": 24290,
    "tier": "core"
   },
   "fintech_exposure_ctx": {
    "cjk": 4833,
-   "chars": 12109,
-   "utf8_bytes": 22040,
+   "chars": 12111,
+   "utf8_bytes": 22042,
    "tier": "standard"
   },
   "fintech_exposure_ss": {
    "cjk": 4862,
-   "chars": 12189,
-   "utf8_bytes": 22178,
+   "chars": 12191,
+   "utf8_bytes": 22180,
    "tier": "standard"
   },
   "llm_vote_tone_full_z": {
    "cjk": 6172,
-   "chars": 14195,
-   "utf8_bytes": 26987,
+   "chars": 14199,
+   "utf8_bytes": 26991,
    "tier": "standard"
   },
   "llm_vote_tone_ctx_z": {
    "cjk": 6204,
-   "chars": 14239,
-   "utf8_bytes": 27097,
+   "chars": 14243,
+   "utf8_bytes": 27101,
    "tier": "standard"
   },
   "llm_vote_tone_ss_z": {
    "cjk": 6096,
-   "chars": 14131,
-   "utf8_bytes": 26771,
+   "chars": 14135,
+   "utf8_bytes": 26775,
    "tier": "standard"
   },
   "llm_vote_cont_full_z": {
    "cjk": 6235,
-   "chars": 16727,
-   "utf8_bytes": 29752,
+   "chars": 16731,
+   "utf8_bytes": 29756,
    "tier": "standard"
   },
   "llm_vote_cont_ctx_z": {
    "cjk": 6366,
-   "chars": 17055,
-   "utf8_bytes": 30351,
+   "chars": 17059,
+   "utf8_bytes": 30355,
    "tier": "standard"
   },
   "llm_vote_cont_ss_z": {
    "cjk": 6338,
-   "chars": 16988,
-   "utf8_bytes": 30236,
+   "chars": 16992,
+   "utf8_bytes": 30240,
    "tier": "standard"
   },
   "llm_models_avg_tone_full_z": {
    "cjk": 5954,
-   "chars": 16474,
-   "utf8_bytes": 29042,
+   "chars": 16482,
+   "utf8_bytes": 29050,
    "tier": "standard"
   },
   "llm_models_avg_tone_ctx_z": {
    "cjk": 6001,
-   "chars": 16545,
-   "utf8_bytes": 29201,
+   "chars": 16553,
+   "utf8_bytes": 29209,
    "tier": "standard"
   },
   "llm_models_avg_tone_ss_z": {
    "cjk": 5945,
-   "chars": 16445,
-   "utf8_bytes": 28991,
+   "chars": 16453,
+   "utf8_bytes": 28999,
    "tier": "standard"
   },
   "llm_models_avg_cont_full_z": {
    "cjk": 5403,
-   "chars": 12745,
-   "utf8_bytes": 24122,
+   "chars": 12747,
+   "utf8_bytes": 24124,
    "tier": "standard"
   },
   "llm_models_avg_cont_ctx_z": {
    "cjk": 5411,
-   "chars": 12752,
-   "utf8_bytes": 24153,
+   "chars": 12754,
+   "utf8_bytes": 24155,
    "tier": "standard"
   },
   "llm_models_avg_cont_ss_z": {
    "cjk": 5452,
-   "chars": 12811,
-   "utf8_bytes": 24284,
+   "chars": 12813,
+   "utf8_bytes": 24286,
    "tier": "standard"
   },
   "dict_avg_tone_full_z": {
@@ -19049,20 +19049,20 @@
   },
   "llm_vote_tone_vw_full_z": {
    "cjk": 6095,
-   "chars": 14100,
-   "utf8_bytes": 26734,
+   "chars": 14104,
+   "utf8_bytes": 26738,
    "tier": "standard"
   },
   "llm_vote_tone_vw_ctx_z": {
    "cjk": 6112,
-   "chars": 14143,
-   "utf8_bytes": 26815,
+   "chars": 14147,
+   "utf8_bytes": 26819,
    "tier": "standard"
   },
   "llm_vote_tone_vw_ss_z": {
    "cjk": 6092,
-   "chars": 14125,
-   "utf8_bytes": 26761,
+   "chars": 14129,
+   "utf8_bytes": 26765,
    "tier": "standard"
   },
   "dict_avg_tone_vw_full_z": {
@@ -19085,20 +19085,20 @@
   },
   "llm_vote_tone_mw_full_z": {
    "cjk": 6091,
-   "chars": 14119,
-   "utf8_bytes": 26745,
+   "chars": 14123,
+   "utf8_bytes": 26749,
    "tier": "standard"
   },
   "llm_vote_tone_mw_ctx_z": {
    "cjk": 6109,
-   "chars": 14164,
-   "utf8_bytes": 26830,
+   "chars": 14168,
+   "utf8_bytes": 26834,
    "tier": "standard"
   },
   "llm_vote_tone_mw_ss_z": {
    "cjk": 6087,
-   "chars": 14142,
-   "utf8_bytes": 26768,
+   "chars": 14146,
+   "utf8_bytes": 26772,
    "tier": "standard"
   },
   "dict_avg_tone_mw_full_z": {
@@ -19121,20 +19121,20 @@
   },
   "llm_vote_tone_hw_full_z": {
    "cjk": 6112,
-   "chars": 14125,
-   "utf8_bytes": 26793,
+   "chars": 14129,
+   "utf8_bytes": 26797,
    "tier": "standard"
   },
   "llm_vote_tone_hw_ctx_z": {
    "cjk": 6125,
-   "chars": 14165,
-   "utf8_bytes": 26863,
+   "chars": 14169,
+   "utf8_bytes": 26867,
    "tier": "standard"
   },
   "llm_vote_tone_hw_ss_z": {
    "cjk": 6086,
-   "chars": 14118,
-   "utf8_bytes": 26742,
+   "chars": 14122,
+   "utf8_bytes": 26746,
    "tier": "standard"
   },
   "dict_avg_tone_hw_full_z": {
@@ -19175,38 +19175,38 @@
   },
   "fintech_exposure_full_z": {
    "cjk": 4844,
-   "chars": 12079,
-   "utf8_bytes": 22036,
+   "chars": 12081,
+   "utf8_bytes": 22038,
    "tier": "standard"
   },
   "fintech_exposure_ctx_z": {
    "cjk": 4874,
-   "chars": 12077,
-   "utf8_bytes": 22095,
+   "chars": 12079,
+   "utf8_bytes": 22097,
    "tier": "standard"
   },
   "fintech_exposure_ss_z": {
    "cjk": 4854,
-   "chars": 12087,
-   "utf8_bytes": 22068,
+   "chars": 12089,
+   "utf8_bytes": 22070,
    "tier": "standard"
   },
   "avg_llm_conf_full_z": {
    "cjk": 2371,
-   "chars": 7232,
-   "utf8_bytes": 12133,
+   "chars": 7234,
+   "utf8_bytes": 12135,
    "tier": "standard"
   },
   "avg_llm_conf_ctx_z": {
    "cjk": 2361,
-   "chars": 7349,
-   "utf8_bytes": 12231,
+   "chars": 7351,
+   "utf8_bytes": 12233,
    "tier": "standard"
   },
   "avg_llm_conf_ss_z": {
    "cjk": 2379,
-   "chars": 7298,
-   "utf8_bytes": 12218,
+   "chars": 7300,
+   "utf8_bytes": 12220,
    "tier": "standard"
   },
   "ln_news_coverage_z": {
@@ -20219,8 +20219,8 @@
   },
   "tone_x_scale_full": {
    "cjk": 2838,
-   "chars": 7453,
-   "utf8_bytes": 13390,
+   "chars": 7455,
+   "utf8_bytes": 13392,
    "tier": "standard"
   },
   "tone_x_highcov_full": {
@@ -20237,8 +20237,8 @@
   },
   "tone_x_scale_ctx": {
    "cjk": 2940,
-   "chars": 7537,
-   "utf8_bytes": 13689,
+   "chars": 7539,
+   "utf8_bytes": 13691,
    "tier": "standard"
   },
   "tone_x_highcov_ctx": {
@@ -20255,8 +20255,8 @@
   },
   "tone_x_scale_ss": {
    "cjk": 3071,
-   "chars": 8051,
-   "utf8_bytes": 14470,
+   "chars": 8053,
+   "utf8_bytes": 14472,
    "tier": "standard"
   },
   "tone_x_highcov_ss": {
@@ -20309,20 +20309,20 @@
   },
   "tone_x_depins_full": {
    "cjk": 2361,
-   "chars": 6353,
-   "utf8_bytes": 11273,
+   "chars": 6355,
+   "utf8_bytes": 11275,
    "tier": "standard"
   },
   "tone_x_depins_ctx": {
    "cjk": 2392,
-   "chars": 6257,
-   "utf8_bytes": 11237,
+   "chars": 6259,
+   "utf8_bytes": 11239,
    "tier": "standard"
   },
   "tone_x_depins_ss": {
    "cjk": 2456,
-   "chars": 6513,
-   "utf8_bytes": 11621,
+   "chars": 6515,
+   "utf8_bytes": 11623,
    "tier": "standard"
   },
   "concern_score_full": {
@@ -20345,8 +20345,8 @@
   },
   "llm_vote_tone_full_lag1": {
    "cjk": 6159,
-   "chars": 14193,
-   "utf8_bytes": 26965,
+   "chars": 14197,
+   "utf8_bytes": 26969,
    "tier": "standard"
   },
   "tone_reversal_full": {
@@ -20357,8 +20357,8 @@
   },
   "llm_vote_tone_ctx_lag1": {
    "cjk": 6211,
-   "chars": 14262,
-   "utf8_bytes": 27140,
+   "chars": 14266,
+   "utf8_bytes": 27144,
    "tier": "standard"
   },
   "tone_reversal_ctx": {
@@ -20369,8 +20369,8 @@
   },
   "llm_vote_tone_ss_lag1": {
    "cjk": 6106,
-   "chars": 14135,
-   "utf8_bytes": 26795,
+   "chars": 14139,
+   "utf8_bytes": 26799,
    "tier": "standard"
   },
   "tone_reversal_ss": {
@@ -21335,8 +21335,8 @@
   },
   "strat_diff_n5_emb": {
    "cjk": 5564,
-   "chars": 13240,
-   "utf8_bytes": 24752,
+   "chars": 13242,
+   "utf8_bytes": 24754,
    "tier": "core"
   },
   "strat_diff_n10_emb": {
@@ -21347,74 +21347,74 @@
   },
   "strat_diff_n20_emb": {
    "cjk": 2481,
-   "chars": 6236,
-   "utf8_bytes": 11374,
+   "chars": 6238,
+   "utf8_bytes": 11376,
    "tier": "standard"
   },
   "strat_diff_n30_emb": {
    "cjk": 3451,
-   "chars": 8908,
-   "utf8_bytes": 16041,
+   "chars": 8912,
+   "utf8_bytes": 16045,
    "tier": "standard"
   },
   "strat_diff_n40_emb": {
    "cjk": 3342,
-   "chars": 7031,
-   "utf8_bytes": 13906,
+   "chars": 7033,
+   "utf8_bytes": 13908,
    "tier": "standard"
   },
   "strat_diff_n50_emb": {
    "cjk": 3243,
-   "chars": 7796,
-   "utf8_bytes": 14536,
+   "chars": 7798,
+   "utf8_bytes": 14538,
    "tier": "standard"
   },
   "strat_sim_max_emb": {
    "cjk": 2446,
-   "chars": 5999,
-   "utf8_bytes": 11050,
+   "chars": 6001,
+   "utf8_bytes": 11052,
    "tier": "standard"
   },
   "strat_diff_n5_emb_lg": {
    "cjk": 5459,
-   "chars": 13247,
-   "utf8_bytes": 24539,
+   "chars": 13251,
+   "utf8_bytes": 24543,
    "tier": "core"
   },
   "strat_diff_n10_emb_lg": {
    "cjk": 2125,
-   "chars": 5394,
-   "utf8_bytes": 9776,
+   "chars": 5396,
+   "utf8_bytes": 9778,
    "tier": "standard"
   },
   "strat_diff_n20_emb_lg": {
    "cjk": 2400,
-   "chars": 6235,
-   "utf8_bytes": 11220,
+   "chars": 6239,
+   "utf8_bytes": 11224,
    "tier": "standard"
   },
   "strat_diff_n30_emb_lg": {
    "cjk": 3552,
-   "chars": 9106,
-   "utf8_bytes": 16445,
+   "chars": 9112,
+   "utf8_bytes": 16451,
    "tier": "standard"
   },
   "strat_diff_n40_emb_lg": {
    "cjk": 3069,
-   "chars": 6910,
-   "utf8_bytes": 13245,
+   "chars": 6914,
+   "utf8_bytes": 13249,
    "tier": "standard"
   },
   "strat_diff_n50_emb_lg": {
    "cjk": 3117,
-   "chars": 7746,
-   "utf8_bytes": 14235,
+   "chars": 7750,
+   "utf8_bytes": 14239,
    "tier": "standard"
   },
   "strat_sim_max_emb_lg": {
    "cjk": 2400,
-   "chars": 5958,
-   "utf8_bytes": 10913,
+   "chars": 5964,
+   "utf8_bytes": 10919,
    "tier": "standard"
   },
   "centroid_diff_tfidf_c": {
@@ -21455,8 +21455,8 @@
   },
   "strat_diff_lg_full": {
    "cjk": 4907,
-   "chars": 11955,
-   "utf8_bytes": 22158,
+   "chars": 11957,
+   "utf8_bytes": 22160,
    "tier": "standard"
   },
   "strat_fluidity": {
@@ -21497,8 +21497,8 @@
   },
   "coh_emb_lg_full": {
    "cjk": 2077,
-   "chars": 7555,
-   "utf8_bytes": 11871,
+   "chars": 7559,
+   "utf8_bytes": 11875,
    "tier": "standard"
   },
   "lazy_jaccard_full": {
@@ -21743,8 +21743,8 @@
   },
   "strat_diff_n5_emb_ctx": {
    "cjk": 4898,
-   "chars": 12239,
-   "utf8_bytes": 22367,
+   "chars": 12241,
+   "utf8_bytes": 22369,
    "tier": "standard"
   },
   "strat_diff_n10_emb_ctx": {
@@ -21755,38 +21755,38 @@
   },
   "strat_diff_n20_emb_ctx": {
    "cjk": 2403,
-   "chars": 6086,
-   "utf8_bytes": 11071,
+   "chars": 6088,
+   "utf8_bytes": 11073,
    "tier": "standard"
   },
   "strat_diff_n30_emb_ctx": {
    "cjk": 3449,
-   "chars": 8903,
-   "utf8_bytes": 16032,
+   "chars": 8907,
+   "utf8_bytes": 16036,
    "tier": "standard"
   },
   "strat_diff_n40_emb_ctx": {
    "cjk": 3149,
-   "chars": 6858,
-   "utf8_bytes": 13351,
+   "chars": 6860,
+   "utf8_bytes": 13353,
    "tier": "standard"
   },
   "strat_diff_n50_emb_ctx": {
    "cjk": 3146,
-   "chars": 7704,
-   "utf8_bytes": 14249,
+   "chars": 7706,
+   "utf8_bytes": 14251,
    "tier": "standard"
   },
   "strat_sim_max_emb_ctx": {
    "cjk": 2462,
-   "chars": 5904,
-   "utf8_bytes": 10975,
+   "chars": 5906,
+   "utf8_bytes": 10977,
    "tier": "standard"
   },
   "strat_diff_n5_emb_lg_ctx": {
    "cjk": 4824,
-   "chars": 12285,
-   "utf8_bytes": 22286,
+   "chars": 12287,
+   "utf8_bytes": 22288,
    "tier": "standard"
   },
   "strat_diff_n10_emb_lg_ctx": {
@@ -21797,32 +21797,32 @@
   },
   "strat_diff_n20_emb_lg_ctx": {
    "cjk": 2438,
-   "chars": 6509,
-   "utf8_bytes": 11581,
+   "chars": 6511,
+   "utf8_bytes": 11583,
    "tier": "standard"
   },
   "strat_diff_n30_emb_lg_ctx": {
    "cjk": 3458,
-   "chars": 8950,
-   "utf8_bytes": 16097,
+   "chars": 8954,
+   "utf8_bytes": 16101,
    "tier": "standard"
   },
   "strat_diff_n40_emb_lg_ctx": {
    "cjk": 3097,
-   "chars": 6843,
-   "utf8_bytes": 13229,
+   "chars": 6847,
+   "utf8_bytes": 13233,
    "tier": "standard"
   },
   "strat_diff_n50_emb_lg_ctx": {
    "cjk": 3006,
-   "chars": 7476,
-   "utf8_bytes": 13733,
+   "chars": 7478,
+   "utf8_bytes": 13735,
    "tier": "standard"
   },
   "strat_sim_max_emb_lg_ctx": {
    "cjk": 2381,
-   "chars": 5780,
-   "utf8_bytes": 10691,
+   "chars": 5782,
+   "utf8_bytes": 10693,
    "tier": "standard"
   },
   "centroid_diff_tfidf_c_ctx": {
@@ -21863,8 +21863,8 @@
   },
   "strat_diff_lg_ctx": {
    "cjk": 4977,
-   "chars": 12082,
-   "utf8_bytes": 22429,
+   "chars": 12084,
+   "utf8_bytes": 22431,
    "tier": "standard"
   },
   "strat_fluidity_ctx": {
@@ -22007,8 +22007,8 @@
   },
   "strat_diff_n5_emb_ss": {
    "cjk": 4828,
-   "chars": 12254,
-   "utf8_bytes": 22253,
+   "chars": 12256,
+   "utf8_bytes": 22255,
    "tier": "standard"
   },
   "strat_diff_n10_emb_ss": {
@@ -22019,38 +22019,38 @@
   },
   "strat_diff_n20_emb_ss": {
    "cjk": 2534,
-   "chars": 6488,
-   "utf8_bytes": 11751,
+   "chars": 6490,
+   "utf8_bytes": 11753,
    "tier": "standard"
   },
   "strat_diff_n30_emb_ss": {
    "cjk": 3475,
-   "chars": 8976,
-   "utf8_bytes": 16152,
+   "chars": 8980,
+   "utf8_bytes": 16156,
    "tier": "standard"
   },
   "strat_diff_n40_emb_ss": {
    "cjk": 3068,
-   "chars": 6842,
-   "utf8_bytes": 13178,
+   "chars": 6844,
+   "utf8_bytes": 13180,
    "tier": "standard"
   },
   "strat_diff_n50_emb_ss": {
    "cjk": 3032,
-   "chars": 7431,
-   "utf8_bytes": 13738,
+   "chars": 7433,
+   "utf8_bytes": 13740,
    "tier": "standard"
   },
   "strat_sim_max_emb_ss": {
    "cjk": 2446,
-   "chars": 6027,
-   "utf8_bytes": 11076,
+   "chars": 6029,
+   "utf8_bytes": 11078,
    "tier": "standard"
   },
   "strat_diff_n5_emb_lg_ss": {
    "cjk": 4855,
-   "chars": 12253,
-   "utf8_bytes": 22305,
+   "chars": 12255,
+   "utf8_bytes": 22307,
    "tier": "standard"
   },
   "strat_diff_n10_emb_lg_ss": {
@@ -22061,32 +22061,32 @@
   },
   "strat_diff_n20_emb_lg_ss": {
    "cjk": 2522,
-   "chars": 6609,
-   "utf8_bytes": 11847,
+   "chars": 6611,
+   "utf8_bytes": 11849,
    "tier": "standard"
   },
   "strat_diff_n30_emb_lg_ss": {
    "cjk": 3513,
-   "chars": 9052,
-   "utf8_bytes": 16311,
+   "chars": 9056,
+   "utf8_bytes": 16315,
    "tier": "standard"
   },
   "strat_diff_n40_emb_lg_ss": {
    "cjk": 3036,
-   "chars": 6854,
-   "utf8_bytes": 13117,
+   "chars": 6858,
+   "utf8_bytes": 13121,
    "tier": "standard"
   },
   "strat_diff_n50_emb_lg_ss": {
    "cjk": 3032,
-   "chars": 7602,
-   "utf8_bytes": 13912,
+   "chars": 7604,
+   "utf8_bytes": 13914,
    "tier": "standard"
   },
   "strat_sim_max_emb_lg_ss": {
    "cjk": 2403,
-   "chars": 5953,
-   "utf8_bytes": 10911,
+   "chars": 5955,
+   "utf8_bytes": 10913,
    "tier": "standard"
   },
   "centroid_diff_tfidf_c_ss": {
@@ -22127,8 +22127,8 @@
   },
   "strat_diff_lg_ss": {
    "cjk": 5020,
-   "chars": 12210,
-   "utf8_bytes": 22646,
+   "chars": 12212,
+   "utf8_bytes": 22648,
    "tier": "standard"
   },
   "strat_fluidity_ss": {
@@ -22259,8 +22259,8 @@
   },
   "auth_sim_emb_lg_allv_ctx": {
    "cjk": 1608,
-   "chars": 5484,
-   "utf8_bytes": 8824,
+   "chars": 5486,
+   "utf8_bytes": 8826,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_ss": {
@@ -22397,8 +22397,8 @@
   },
   "benefit_mean_lg_full": {
    "cjk": 6293,
-   "chars": 17239,
-   "utf8_bytes": 30107,
+   "chars": 17241,
+   "utf8_bytes": 30109,
    "tier": "core"
   },
   "benefit_std_lg_full": {
@@ -22439,8 +22439,8 @@
   },
   "benefit_neg_frac_lg_ctx": {
    "cjk": 5791,
-   "chars": 14593,
-   "utf8_bytes": 26417,
+   "chars": 14595,
+   "utf8_bytes": 26419,
    "tier": "standard"
   },
   "benefit_mean_lg_ss": {
@@ -22547,8 +22547,8 @@
   },
   "article_sim_mean_lg": {
    "cjk": 1549,
-   "chars": 5460,
-   "utf8_bytes": 8686,
+   "chars": 5462,
+   "utf8_bytes": 8688,
    "tier": "standard"
   },
   "article_sim_std_lg": {
@@ -22583,8 +22583,8 @@
   },
   "article_sim_mean_lg_allv": {
    "cjk": 1703,
-   "chars": 5406,
-   "utf8_bytes": 8971,
+   "chars": 5408,
+   "utf8_bytes": 8973,
    "tier": "standard"
   },
   "article_sim_std_lg_allv": {
@@ -23345,98 +23345,98 @@
   },
   "bank_emb_sim_mean_lag1": {
    "cjk": 7317,
-   "chars": 18321,
-   "utf8_bytes": 33416,
+   "chars": 18327,
+   "utf8_bytes": 33422,
    "tier": "core"
   },
   "emb_peer_tone_lag1_full": {
    "cjk": 5563,
-   "chars": 16530,
-   "utf8_bytes": 27974,
+   "chars": 16532,
+   "utf8_bytes": 27976,
    "tier": "core"
   },
   "emb_peer_tone_lag1_ctx": {
    "cjk": 5034,
-   "chars": 15573,
-   "utf8_bytes": 25943,
+   "chars": 15575,
+   "utf8_bytes": 25945,
    "tier": "standard"
   },
   "emb_peer_tone_lag1_ss": {
    "cjk": 5006,
-   "chars": 15511,
-   "utf8_bytes": 25823,
+   "chars": 15513,
+   "utf8_bytes": 25825,
    "tier": "standard"
   },
   "bank_emb_sim_mean_lag1_lg": {
    "cjk": 7265,
-   "chars": 18295,
-   "utf8_bytes": 33296,
+   "chars": 18305,
+   "utf8_bytes": 33306,
    "tier": "core"
   },
   "emb_peer_tone_lag1_lg_full": {
    "cjk": 5551,
-   "chars": 16492,
-   "utf8_bytes": 27938,
+   "chars": 16496,
+   "utf8_bytes": 27942,
    "tier": "core"
   },
   "emb_peer_tone_lag1_lg_ctx": {
    "cjk": 5008,
-   "chars": 15605,
-   "utf8_bytes": 25921,
+   "chars": 15609,
+   "utf8_bytes": 25925,
    "tier": "standard"
   },
   "emb_peer_tone_lag1_lg_ss": {
    "cjk": 5015,
-   "chars": 15623,
-   "utf8_bytes": 25949,
+   "chars": 15625,
+   "utf8_bytes": 25951,
    "tier": "standard"
   },
   "bank_emb_sim_mean_lag1_ctx": {
    "cjk": 6539,
-   "chars": 16867,
-   "utf8_bytes": 30373,
+   "chars": 16873,
+   "utf8_bytes": 30379,
    "tier": "standard"
   },
   "emb_peer_tone_diag_lag1_ctx": {
    "cjk": 1930,
-   "chars": 6097,
-   "utf8_bytes": 10099,
+   "chars": 6099,
+   "utf8_bytes": 10101,
    "tier": "standard"
   },
   "bank_emb_sim_mean_lag1_lg_ctx": {
    "cjk": 6458,
-   "chars": 16909,
-   "utf8_bytes": 30256,
+   "chars": 16917,
+   "utf8_bytes": 30264,
    "tier": "standard"
   },
   "emb_peer_tone_diag_lag1_lg_ctx": {
    "cjk": 1862,
-   "chars": 6131,
-   "utf8_bytes": 10003,
+   "chars": 6135,
+   "utf8_bytes": 10007,
    "tier": "standard"
   },
   "bank_emb_sim_mean_lag1_ss": {
    "cjk": 6601,
-   "chars": 16984,
-   "utf8_bytes": 30622,
+   "chars": 16990,
+   "utf8_bytes": 30628,
    "tier": "standard"
   },
   "emb_peer_tone_diag_lag1_ss": {
    "cjk": 1873,
-   "chars": 6046,
-   "utf8_bytes": 9938,
+   "chars": 6048,
+   "utf8_bytes": 9940,
    "tier": "standard"
   },
   "bank_emb_sim_mean_lag1_lg_ss": {
    "cjk": 6559,
-   "chars": 16950,
-   "utf8_bytes": 30501,
+   "chars": 16958,
+   "utf8_bytes": 30509,
    "tier": "standard"
   },
   "emb_peer_tone_diag_lag1_lg_ss": {
    "cjk": 1845,
-   "chars": 6106,
-   "utf8_bytes": 9943,
+   "chars": 6108,
+   "utf8_bytes": 9945,
    "tier": "standard"
   },
   "llm_peer_count_70": {
@@ -23681,8 +23681,8 @@
   },
   "washing_ratio_gemini31": {
    "cjk": 2830,
-   "chars": 7926,
-   "utf8_bytes": 13752,
+   "chars": 7930,
+   "utf8_bytes": 13756,
    "tier": "standard"
   },
   "washing_ratio_deepseekv4": {
@@ -23801,8 +23801,8 @@
   },
   "washing_ratio_gemini31_ctx": {
    "cjk": 2824,
-   "chars": 7942,
-   "utf8_bytes": 13760,
+   "chars": 7946,
+   "utf8_bytes": 13764,
    "tier": "standard"
   },
   "washing_ratio_deepseekv4_ctx": {
@@ -23921,8 +23921,8 @@
   },
   "washing_ratio_gemini31_ss": {
    "cjk": 2795,
-   "chars": 7900,
-   "utf8_bytes": 13661,
+   "chars": 7904,
+   "utf8_bytes": 13665,
    "tier": "standard"
   },
   "washing_ratio_deepseekv4_ss": {
@@ -24107,14 +24107,14 @@
   },
   "disag_gemini31_full": {
    "cjk": 2163,
-   "chars": 5563,
-   "utf8_bytes": 10058,
+   "chars": 5565,
+   "utf8_bytes": 10060,
    "tier": "standard"
   },
   "disag_deepseekv4_full": {
    "cjk": 2076,
-   "chars": 5688,
-   "utf8_bytes": 10040,
+   "chars": 5690,
+   "utf8_bytes": 10042,
    "tier": "standard"
   },
   "disag_bert_full": {
@@ -24197,14 +24197,14 @@
   },
   "disag_gemini31_ctx": {
    "cjk": 2158,
-   "chars": 5494,
-   "utf8_bytes": 9979,
+   "chars": 5496,
+   "utf8_bytes": 9981,
    "tier": "standard"
   },
   "disag_deepseekv4_ctx": {
    "cjk": 1929,
-   "chars": 5372,
-   "utf8_bytes": 9418,
+   "chars": 5374,
+   "utf8_bytes": 9420,
    "tier": "standard"
   },
   "disag_bert_ctx": {
@@ -24287,8 +24287,8 @@
   },
   "disag_gemini31_ss": {
    "cjk": 2200,
-   "chars": 5625,
-   "utf8_bytes": 10210,
+   "chars": 5627,
+   "utf8_bytes": 10212,
    "tier": "standard"
   },
   "disag_deepseekv4_ss": {
@@ -24431,8 +24431,8 @@
   },
   "cater_gemini31_full": {
    "cjk": 2631,
-   "chars": 6439,
-   "utf8_bytes": 11913,
+   "chars": 6441,
+   "utf8_bytes": 11915,
    "tier": "standard"
   },
   "cater_deepseekv4_full": {
@@ -24551,8 +24551,8 @@
   },
   "cater_gemini31_ctx": {
    "cjk": 2557,
-   "chars": 6069,
-   "utf8_bytes": 11403,
+   "chars": 6071,
+   "utf8_bytes": 11405,
    "tier": "standard"
   },
   "cater_deepseekv4_ctx": {
@@ -24671,8 +24671,8 @@
   },
   "cater_gemini31_ss": {
    "cjk": 2633,
-   "chars": 6328,
-   "utf8_bytes": 11811,
+   "chars": 6330,
+   "utf8_bytes": 11813,
    "tier": "standard"
   },
   "cater_deepseekv4_ss": {
@@ -24773,14 +24773,14 @@
   },
   "semantic_staleness_full_lg": {
    "cjk": 5931,
-   "chars": 13940,
-   "utf8_bytes": 26173,
+   "chars": 13942,
+   "utf8_bytes": 26175,
    "tier": "core"
   },
   "semantic_highstale_full_lg": {
    "cjk": 6918,
-   "chars": 15472,
-   "utf8_bytes": 29759,
+   "chars": 15474,
+   "utf8_bytes": 29761,
    "tier": "core"
   },
   "semantic_staleness_ctx_lg": {

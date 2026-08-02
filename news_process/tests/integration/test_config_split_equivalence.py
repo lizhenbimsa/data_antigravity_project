@@ -277,8 +277,8 @@ class TestEnvExampleCoversYamlPlaceholders:
 
     历史背景: round 2 sidecar 化前, .env.example 声明了 GPT5NANO/
     GEMINI3/CLAUDE4H 三个 LLM key, 但 sentiment.yaml 实际引用的是
-    ${YUNWU_API_KEY} (v6/N7 后统一); .env.example 反而漏了它. 新机器复制
-    .env.example -> .env 后启动会因 YUNWU_API_KEY 未声明导致 LLM 401.
+    ${OPENLUX_API_KEY} (v6/N7 后统一); .env.example 反而漏了它. 新机器复制
+    .env.example -> .env 后启动会因 OPENLUX_API_KEY 未声明导致 LLM 401.
     """
 
     def _yaml_placeholders(self) -> set[str]:
@@ -318,7 +318,7 @@ class TestEnvExampleIndirectReferenceValidation:
     """Plan-r3 round-3 review M2 / R5: .env.example 中 ``KEY=${OTHER}`` 间接引用
     若 ``OTHER`` 既未声明又不在 os.environ 中, 应触发 warning.
 
-    新机器复制 .env.example -> .env 后, 只填 YUNWU_API_KEY 一个 var 是预期
+    新机器复制 .env.example -> .env 后, 只填 OPENLUX_API_KEY 一个 var 是预期
     工作流; 但若忘记填 (如 CI 环境无 .env), 间接引用会 silent 展开为空字符串
     导致 LLM 调用 401. 本 invariant 守护 _validate_env_placeholders 第二阶段
     (round-3 review R5 引入) 真的会 warning.

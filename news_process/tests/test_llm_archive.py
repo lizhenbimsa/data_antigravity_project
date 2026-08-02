@@ -38,7 +38,7 @@ def _valid_record() -> dict:
         'temperature': 0.0,
         'prompt': '这家银行的金融科技投入如何?',
         'response_raw': '{"choices":[{"message":{"content":"正面"}}]}',
-        'api_endpoint': 'https://api.yunwu.ai/v1/chat/completions',
+        'api_endpoint': 'https://api.openlux.ai/v1/chat/completions',
         'http_status': 200,
     }
 

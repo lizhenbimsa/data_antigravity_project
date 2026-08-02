@@ -53,7 +53,7 @@ def test_embed_peer_texts_lg_spec_routes_to_large(monkeypatch):
 
     monkeypatch.setattr(ns._eng, "embed_texts", _embed)
     lg_spec = {
-        "base_url": "https://yunwu.ai/v1",
+        "base_url": "https://api.openlux.ai/v1",
         "api_key": "fake-key",
         "model": "text-embedding-3-large",
         "text_pipeline_version": "v1-2026-06-27-emb3large",

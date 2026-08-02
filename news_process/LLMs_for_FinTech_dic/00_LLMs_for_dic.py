@@ -339,7 +339,7 @@ def _log_run_header(logger: logging.Logger) -> None:
     if _t0_filtered:
         logger.info(f"     ⚠ 零温例外披露：{' / '.join(_t0_filtered)}（属 claude-opus-4.7+）官方 API 不支持自定义")
         logger.info("       temperature/top_p/top_k——该限制非单独「废弃政策」公告，而是新模型技术规格随模型发布")
-        logger.info("       同步生效；yunwu 中转自 2026-07-10 00:00 起对其静默过滤（不报错、照常返回）→ 零温 T=0")
+        logger.info("       同步生效；中转平台自 2026-07-10 00:00 起对其静默过滤（不报错、照常返回；观测于迁移前平台）→ 零温 T=0")
         logger.info(f"       对该 {len(_t0_filtered)} 家不生效（实际按模型默认温度采样），其判别票可复现性由冻结 LLM 缓存")
         logger.info('       保证（缓存键仍含 temperature="0"），属缓存冻结级而非 API 级确定性')
     logger.info("  ◇ 验证（Validation，非流水线阶段）：Fleiss' Kappa 评分者间一致性，Landis-Koch 与 McHugh 双口径分级披露；"
@@ -591,7 +591,7 @@ def _call_llm_with_retry(
     # ⚠ 零温例外披露（每模型每次运行仅记一次 WARNING；缓存命中路径亦记录——披露同样
     # 适用于既有缓存响应的来源口径）：SAMPLING_PARAM_FILTERED_MODELS（claude-opus-4.7+）
     # 的 temperature/top_p/top_k 官方 API 不支持（技术规格随模型发布同步生效，非单独
-    # 废弃公告），yunwu 自 2026-07-10 00:00 起静默过滤 → 注入的 temperature 不生效
+    # 废弃公告），中转平台自 2026-07-10 00:00 起静默过滤 → 注入的 temperature 不生效
     # （实际默认温度采样），确定性由冻结缓存保证（缓存键仍含 temperature="0"，刻意不改）。
     if (
         force_temperature is not None
@@ -602,7 +602,7 @@ def _call_llm_with_retry(
         logger.warning(
             f"  [{task_id}] ⚠ 采样参数披露: {model_name} 属 claude-opus-4.7+，官方 API 不支持"
             f"自定义 temperature/top_p/top_k（技术规格随模型发布同步生效，非单独废弃公告；"
-            f"yunwu 2026-07-10 起静默过滤）→ 注入的 temperature="
+            f"中转平台 2026-07-10 起静默过滤）→ 注入的 temperature="
             f"{format(float(force_temperature), 'g')} 不生效（实际按模型默认温度采样），"
             '其判别票可复现性由冻结 LLM 缓存保证（缓存键仍含 temperature="0"）'
         )
@@ -626,7 +626,7 @@ def _call_llm_with_retry(
             )
 
     consecutive_timeouts = 0
-    # max_tokens 显式上限：抬高防止个别模型（如 kimi-k2.6 在 yunwu 默认上限偏低）把
+    # max_tokens 显式上限：抬高防止个别模型（如 kimi-k2.6 在中转平台下默认上限偏低）把
     # 200 词对象数组截断成非法 JSON。极少数模型/端点若拒绝该参数，下方 except 会侦测
     # 到「max_tokens/max_completion_tokens」错误签名并**移除后重试**（graceful，绝不
     # 因新增参数把原本可用的模型打成失败）。
@@ -1162,7 +1162,7 @@ def judge_batch(args: Tuple) -> Tuple[str, Optional[int], List[Tuple[str, int, s
         # try 序号防止缓存里的坏响应把解析重试锁死在同一条上。
         # ⚠ 零温例外（2026-07-21 披露）：SAMPLING_PARAM_FILTERED_MODELS（claude-opus-4.7+，
         # 现即 claude-fable-5 / claude-opus-4-8）的 temperature/top_p/top_k 官方 API 不支持
-        # （技术规格随模型发布同步生效，非单独废弃公告），yunwu 自 2026-07-10 起静默过滤
+        # （技术规格随模型发布同步生效，非单独废弃公告），中转平台自 2026-07-10 起静默过滤
         # → 对这两家 temperature=0 不生效（实际默认温度采样），确定性降级为缓存冻结级
         # （缓存键仍含 temperature="0"，刻意不改）。完整披露见 config.py 该常量处。
         # ⚠ 键=整批 prompt：上游词表哪怕漂移一个词，批次切片整体移位 → 判别缓存
@@ -1585,7 +1585,7 @@ def main(dry_run: bool = False) -> None:
         dry_run: 仅显示任务规模和成本预估，不实际执行
     """
     if not API_KEY:
-        print("❌ 错误: API Key 未配置。请设置环境变量 YUNWU_FULL_KEY")
+        print("❌ 错误: API Key 未配置。请设置环境变量 OPENLUX_FULL_KEY")
         return
 
     # 输入验证
@@ -1808,7 +1808,7 @@ def main(dry_run: bool = False) -> None:
             logger.info(
                 f"    ⚠ 零温例外：{' / '.join(_t0_filtered)}（claude-opus-4.7+）的 "
                 "temperature/top_p/top_k 官方 API 不支持（技术规格随模型发布同步生效，"
-                "非单独废弃公告；yunwu 2026-07-10 00:00 起静默过滤）→ "
+                "非单独废弃公告；中转平台 2026-07-10 00:00 起静默过滤）→ "
                 f"该 {len(_t0_filtered)} 家实际按模型默认温度采样，其判别票可复现性由"
                 '冻结 LLM 缓存保证（缓存键仍含 temperature="0"，缓存 miss 重取时同词判别票可能翻转）'
             )

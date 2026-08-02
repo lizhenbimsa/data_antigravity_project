@@ -202,7 +202,7 @@ def _log_network_env_and_config() -> None:
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
         logger.info("     · 确定性/成本: 溢出/中心度/认知邻近 = 纯 CPU 确定性 ($0); "
-                    "嵌入同业网 = 命中缓存 $0 / 在线 miss 付费嵌入 API (MAIN/Qwen→硅基流动, _lg→yunwu), "
+                    "嵌入同业网 = 命中缓存 $0 / 在线 miss 付费嵌入 API (MAIN/Qwen→硅基流动, _lg→OpenLux), "
                     "离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss→raise 零网络")
         logger.info("     · ⚠ 非确定列 (memory panel-3-network-cols): bank_clustering / "
                     "bank_cfbetween_cent / bank_harmonic_cent 受 BLAS 浮点漂移, 跨次非逐位可复现")
@@ -1700,7 +1700,7 @@ def compute_cognitive_proximity(
 #   2. 超长超级文档由 embedding_engine 分块 + token 加权 mean pooling
 #      (fix omni-g-net-spill-02: 旧 8000 字符前缀截断已移除 — 截断只保留
 #      行序最先若干篇文章前缀, 非代表性样本)
-#   3. 调用统一引擎 _eng.embed_texts (MAIN=Qwen3-Embedding-8B/硅基流动, _lg=text-embedding-3-large/yunwu; v3.14.0 起零本地降级)
+#   3. 调用统一引擎 _eng.embed_texts (MAIN=Qwen3-Embedding-8B/硅基流动, _lg=text-embedding-3-large/OpenLux; v3.14.0 起零本地降级)
 #   4. cosine_similarity → 对角线置零 → 负值 clip → row_stochastic_normalize
 #   5. emb_peer_tone = W_emb(t-1) × tone(t-1) (滞后一期)
 #
@@ -2111,7 +2111,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     logger.info("  · 方法: Hoberg, G., & Phillips, G. (2016). Journal of Political "
                 "Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176 — 文本相似度"
                 "构建动态同行网; Manski (1993) Lag(Y-1) 规避反射问题")
-    logger.info("  · ⚠ 成本: 在线 miss 付费嵌入 API (MAIN/Qwen→硅基流动, _lg→yunwu), 离线 NEWS_PROCESS_LLM_OFFLINE=1 "
+    logger.info("  · ⚠ 成本: 在线 miss 付费嵌入 API (MAIN/Qwen→硅基流动, _lg→OpenLux), 离线 NEWS_PROCESS_LLM_OFFLINE=1 "
                 "时 miss→raise 零网络; 命中 _llm_cache.db 即 $0")
     logger.info("=" * 60)
 

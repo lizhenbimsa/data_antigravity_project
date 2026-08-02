@@ -135,7 +135,7 @@ python -m venv .venv
 
 # 复制 .env 模板, 填入 LLM API 密钥
 cp news_process/.env.example news_process/.env
-# 编辑 .env: 必填 YUNWU_API_KEY；可选覆盖 EMBEDDING_API_KEY / FINBERT2_MODEL_DIR
+# 编辑 .env: 必填 OPENLUX_API_KEY；可选覆盖 EMBEDDING_API_KEY / FINBERT2_MODEL_DIR
 # GPT5NANO_API_KEY / GEMINI3_API_KEY / CLAUDE4H_API_KEY 仅为 legacy 探针脚本兼容项，主流程不读取。
 ```
 

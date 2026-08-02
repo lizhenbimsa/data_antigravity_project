@@ -53,7 +53,7 @@ def test_get_embeddings_lg_spec_routes_to_large(monkeypatch):
 
     monkeypatch.setattr(bs._eng, "embed_texts", _embed)
     lg_spec = {
-        "base_url": "https://yunwu.ai/v1",
+        "base_url": "https://api.openlux.ai/v1",
         "api_key": "fake-key",
         "model": "text-embedding-3-large",
         "text_pipeline_version": "v1-2026-06-27-emb3large",
@@ -74,7 +74,7 @@ def test_get_embeddings_lg_spec_soft_degrades_on_failure(monkeypatch):
 
     monkeypatch.setattr(bs._eng, "embed_texts", _boom)
     lg_spec = {
-        "base_url": "https://yunwu.ai/v1",
+        "base_url": "https://api.openlux.ai/v1",
         "api_key": "fake-key",
         "model": "text-embedding-3-large",
         "text_pipeline_version": "v1-2026-06-27-emb3large",

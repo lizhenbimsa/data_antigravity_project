@@ -199,7 +199,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if not API_KEY:
-        print("❌ API_KEY 未配置。请设置环境变量 YUNWU_API_KEY")
+        print("❌ API_KEY 未配置。请设置环境变量 OPENLUX_API_KEY")
         return
 
     all_results: List[Tuple[str, str, str, float]] = []

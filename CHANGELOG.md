@@ -1,5 +1,18 @@
 # CHANGELOG — news_process 架构重整记录
 
+> ⚠ **2026-08-02 状态订正 (聚合中转平台迁移 yunwu.ai → OpenLux)**: 本文成文时,
+> 本项目的 OpenAI / Google 两家 LLM 与 `_lg` 嵌入孪生轨经 **yunwu.ai 聚合代理**
+> (`https://yunwu.ai/v1`; 环境变量 `YUNWU_API_KEY` / `YUNWU_FULL_KEY`) 路由。
+> **2026-08-02 起全项目已迁移至 OpenLux 聚合代理** (`https://api.openlux.ai/v1`;
+> 变量更名为 `OPENLUX_API_KEY` / `OPENLUX_FULL_KEY`)。DeepSeek 直连
+> (`api.deepseek.com`) 与硅基流动嵌入主轨 (`api.siliconflow.cn`) **不受影响**。
+> 下文一切 `yunwu` / `YUNWU_*` 表述均为**成文当时**的事实记录 (含当时对该端点的
+> 实测探针结果与授权清单), **不代表当前状态**; 保留原文以维持取证链完整。
+> ⚠ 迁移**不改变任何既有数值**: LLM/嵌入缓存键 = (模型名, prompt 文本,
+> prompt 版本, temperature), **不含端点地址** (`core/caching.py::_make_key`),
+> 故 `_llm_cache.db` 既有条目在迁移后仍逐位命中, 离线 `$0` 复现不受影响。
+
+
 按 Phase 演进记录全部架构改动。每个 phase 末打 git tag，单点 `git revert <hash>` 可回滚任意子任务。
 
 格式: 每个 phase 标 (a/b/c/...) 子任务，含 commit hash、LOC 净改动、关键决策。

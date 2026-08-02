@@ -76,7 +76,7 @@ always-on 执行); 也可单独手动触发:
 3. 每轨 (full/ctx/ss) 用 MAIN + _lg 两 spec 各嵌一遍 (`_embed_track_dual`); both-or-neither: 任一 None 则该轨两列同缺。emb_full 读 content_full(缺则裸 内容+标题), emb_ctx 读 content_ctx(缺列则不产), emb_ss 读 content_ss(缺列则不产)。
 4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 26 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_{full,ctx,ss}(Qwen) + emb_{full,ctx,ss}_lg(large)(parquet 兼容的 list-of-1D-array; 缺轨不写)+ 双套 provenance(MAIN model_id/model_revision/text_pipeline_version + _lg 镜像三元组)。
 
-**外部依赖/确定性**: 统一引擎 `embed_texts` 两 API spec (Qwen 经硅基流动 + text-embedding-3-large 经 yunwu)。需 EMBEDDING_API_KEY; 经 _llm_cache.db 穿透缓存命中即 $0 逐位复现 (NEWS_PROCESS_LLM_OFFLINE=1 强制离线, 须 0-miss)。无本地模型加载。timeout=21600。
+**外部依赖/确定性**: 统一引擎 `embed_texts` 两 API spec (Qwen 经硅基流动 + text-embedding-3-large 经 OpenLux)。需 EMBEDDING_API_KEY; 经 _llm_cache.db 穿透缓存命中即 $0 逐位复现 (NEWS_PROCESS_LLM_OFFLINE=1 强制离线, 须 0-miss)。无本地模型加载。timeout=21600。
 
 ■ 白话说明
 

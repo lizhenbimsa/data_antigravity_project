@@ -108,7 +108,7 @@ new_dois: []
 ## CORE
 
 【构念与来源】
-本家族刻画的是每一家大语言模型 (LLM) 各自输出的连续情感分在 bank-year 层面的均值, 属于情感三法中 LLM 一支的「逐模型连续测度」轨。与离散多数投票语调 (llm_vote_tone) 不同, 本家族不把三家模型的判定合并为共识, 而是让每一家模型的连续得分独立成列, 从而把「同一构念、三家独立测量」的三角验证结构完整暴露在面板上。所谓连续情感分, 指对某一模型给出的「正面/中性/负面」三分类标签, 结合该模型自报的语气置信度 (verbalized confidence), 经 Logit-to-Score 概率映射折算成一个位于闭区间负一到正一之间的实数: 分数越接近正一表示语气越正面, 越接近负一越负面, 零表示中性或高度不确定。这一构造让原本离散的分类输出获得强度信息, 使得同一篇报道「偏正面且很有把握」与「偏正面但不确定」得以区分, 契合金融计量对连续因变量的需要。三家模型分别为 DeepSeek-V4 Flash (直连 api.deepseek.com)、Gemini-3.1-flash-lite (经 yunwu 路由) 与 GPT-5.4-nano (经 yunwu 路由); 它们是情感 LLM 投票的三名成员, 与嵌入模型、词典法、BERT 三法在测度上彼此无关。文章级连续分列名为 短名加 cont 加轨道后缀, 由阶段 21 tone_llms 产出; bank-year 聚合则在 encode 的聚合字典里以 mean 归并, 得到本家族的 cont_mean 列。
+本家族刻画的是每一家大语言模型 (LLM) 各自输出的连续情感分在 bank-year 层面的均值, 属于情感三法中 LLM 一支的「逐模型连续测度」轨。与离散多数投票语调 (llm_vote_tone) 不同, 本家族不把三家模型的判定合并为共识, 而是让每一家模型的连续得分独立成列, 从而把「同一构念、三家独立测量」的三角验证结构完整暴露在面板上。所谓连续情感分, 指对某一模型给出的「正面/中性/负面」三分类标签, 结合该模型自报的语气置信度 (verbalized confidence), 经 Logit-to-Score 概率映射折算成一个位于闭区间负一到正一之间的实数: 分数越接近正一表示语气越正面, 越接近负一越负面, 零表示中性或高度不确定。这一构造让原本离散的分类输出获得强度信息, 使得同一篇报道「偏正面且很有把握」与「偏正面但不确定」得以区分, 契合金融计量对连续因变量的需要。三家模型分别为 DeepSeek-V4 Flash (直连 api.deepseek.com)、Gemini-3.1-flash-lite (经 OpenLux 路由) 与 GPT-5.4-nano (经 OpenLux 路由); 它们是情感 LLM 投票的三名成员, 与嵌入模型、词典法、BERT 三法在测度上彼此无关。文章级连续分列名为 短名加 cont 加轨道后缀, 由阶段 21 tone_llms 产出; bank-year 聚合则在 encode 的聚合字典里以 mean 归并, 得到本家族的 cont_mean 列。
 
 【方法学与计算】
 面板聚合遵循 Tetlock (2007) 以来的媒体情感均值化范式: 对某一 bank-year 内被保留的全部报道, 取该模型文章级连续分的算术平均。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否算作「银行金科报道」只看 full 轨的 LLM 语义精筛结果, 因此三轨行宇宙同为 full 留篇集, ctx 与 ss 轨是 conditional-on-full 的稳健性测度, 各轨的 cont 列仍逐轨独立计算。三轨输入的语义为: full 轨取标题拼接全文正文; ctx 轨取标题加含目标银行句的上下文窗口 (Hassan 2019 邻近性); ss 轨取标题加银行与金科词同句共现的窗口, 若某篇无此共现则镜像 ctx 回退为全文正文并置 ss_is_fallback 为真, 与 full 共享篇数分母。本家族除无后缀的全样本变体外, 另设两个按创新落点 (innovation locus) 划分的条件子样变体: app 变体只在 innovation_locus_full 等于「应用场景」的报道内取均值, tech 变体只在等于「底层技术」的报道内取均值。关键口径: 落点判据取自 innovation_locus_full 单一事实源, 属 full-only 分类, 即使 app/tech 变体挂接的是 ctx 或 ss 轨的连续分, 划分子样所用的落点仍由 full 轨判定, 不随情感轨切换。连续分本身由 compute_prob_score 依「主类概率等于自报置信度、其余两类均分剩余概率」的最大熵映射折算 (Jaynes 原理), 数值区间恒在负一到正一之间。逐模型独立降级: 某一模型在某篇缺席时仅使该模型自身族列受影响, 不牵连其余两家, 这与 co-primary 嵌入的 both-or-neither 强绑定截然不同。
@@ -176,10 +176,10 @@ new_dois: []
 ## VAR: gemini31_cont_mean_app_ctx
 
 【变体差分】
-本列取 Gemini-3.1-flash-lite (经 yunwu 路由) 一家模型的连续情感分, 在 ctx 轨 (标题加目标银行句上下文窗口, Hassan 2019 邻近性) 上算文章级连续分, 再在 innovation_locus_full 等于「应用场景」的 app 子样内取 bank-year 均值。本列与无后缀及 tech 变体共用文章级源列 gemini31_cont_ctx, 区别仅在样本子集: 先按 innovation_locus_full 等于应用场景过滤出 df_cat 再取 mean。与同模型离散列 gemini31_tone_app_ctx co-equal, 后者是三分类标签计数口径均值, 本列承载 Gemini 自报置信度的强度信息, 二者互为稳健、不分主次。它与 DeepSeek 的同格列构成跨模型三角验证的第二支: 同一构念、同一 ctx 轨、同一 app 落点子样, 换用不同厂商的独立测量。落点判据 innovation_locus_full 属 full-only 单源, 即便本列挂接 ctx 轨情感, 划分应用场景子样所用落点仍由 full 轨判定, 不随情感轨切换。连续分为 Gemini 三分类标签乘其自报语气置信度经 Logit-to-Score 概率映射折算至负一到正一。本列与同模型 tech/无后缀变体、与 DeepSeek 及 GPT 两家的 app_ctx 列, 均同构念独立测量, 各自 just-identified 并排、互为稳健不分主次, 严禁混入同一 over-identified Hansen J。Gemini 缺席仅掉自身族列, 逐模型独立降级不连坐。
+本列取 Gemini-3.1-flash-lite (经 OpenLux 路由) 一家模型的连续情感分, 在 ctx 轨 (标题加目标银行句上下文窗口, Hassan 2019 邻近性) 上算文章级连续分, 再在 innovation_locus_full 等于「应用场景」的 app 子样内取 bank-year 均值。本列与无后缀及 tech 变体共用文章级源列 gemini31_cont_ctx, 区别仅在样本子集: 先按 innovation_locus_full 等于应用场景过滤出 df_cat 再取 mean。与同模型离散列 gemini31_tone_app_ctx co-equal, 后者是三分类标签计数口径均值, 本列承载 Gemini 自报置信度的强度信息, 二者互为稳健、不分主次。它与 DeepSeek 的同格列构成跨模型三角验证的第二支: 同一构念、同一 ctx 轨、同一 app 落点子样, 换用不同厂商的独立测量。落点判据 innovation_locus_full 属 full-only 单源, 即便本列挂接 ctx 轨情感, 划分应用场景子样所用落点仍由 full 轨判定, 不随情感轨切换。连续分为 Gemini 三分类标签乘其自报语气置信度经 Logit-to-Score 概率映射折算至负一到正一。本列与同模型 tech/无后缀变体、与 DeepSeek 及 GPT 两家的 app_ctx 列, 均同构念独立测量, 各自 just-identified 并排、互为稳健不分主次, 严禁混入同一 over-identified Hansen J。Gemini 缺席仅掉自身族列, 逐模型独立降级不连坐。
 
 
-补充计算细节: 本列以 gemini31_cont_ctx 为源列, 聚合前先按 innovation_locus_full 等于应用场景过滤出 df_cat 再取 mean, 分母为该子样内有效连续分篇数, 子样为空则优雅置空。Gemini 经 yunwu 路由请求, 缓存命中键为 prompt 版本 v8 与温度 0.0, ctx 轨全命中时可离线零成本字节级复现。本列供 bank_fintech_tone (P1) 语调分析与创新落点 (P4, Gomber 2018) 异质性作跨模型稳健性输入; Gemini 缺席仅掉自身族列, 逐模型独立降级不连坐其余两家。本列仅作 just-identified 单列, 不进入任何 over-identified Hansen J 过度识别检验。
+补充计算细节: 本列以 gemini31_cont_ctx 为源列, 聚合前先按 innovation_locus_full 等于应用场景过滤出 df_cat 再取 mean, 分母为该子样内有效连续分篇数, 子样为空则优雅置空。Gemini 经 OpenLux 路由请求, 缓存命中键为 prompt 版本 v8 与温度 0.0, ctx 轨全命中时可离线零成本字节级复现。本列供 bank_fintech_tone (P1) 语调分析与创新落点 (P4, Gomber 2018) 异质性作跨模型稳健性输入; Gemini 缺席仅掉自身族列, 逐模型独立降级不连坐其余两家。本列仅作 just-identified 单列, 不进入任何 over-identified Hansen J 过度识别检验。
 
 ## VAR: gemini31_cont_mean_app_full
 
@@ -245,10 +245,10 @@ new_dois: []
 ## VAR: gpt54nano_cont_mean_app_ctx
 
 【变体差分】
-本列取 GPT-5.4-nano (经 yunwu 路由) 一家模型的连续情感分, 在 ctx 轨 (标题加目标银行句上下文窗口, Hassan 2019 邻近性) 上算文章级连续分, 再在 innovation_locus_full 等于「应用场景」的 app 子样内取 bank-year 均值。它与 DeepSeek、Gemini 的同格列构成跨模型三角验证的第三支: 同一构念、同一 ctx 轨、同一 app 落点子样, 换用第三家厂商的独立测量。落点判据 innovation_locus_full 属 full-only 单源, 即便本列挂接 ctx 轨情感, 划分应用场景子样所用落点仍由 full 轨判定, 不随情感轨切换。连续分为 GPT 三分类标签乘其自报语气置信度经 Logit-to-Score 概率映射折算至负一到正一。本列与同模型 tech/无后缀变体、与 DeepSeek/Gemini 两家的 app_ctx 列, 均同构念独立测量, 各自 just-identified 并排、互为稳健不分主次, 严禁混入同一 over-identified Hansen J。GPT 缺席仅掉自身族列, 逐模型独立降级不连坐。
+本列取 GPT-5.4-nano (经 OpenLux 路由) 一家模型的连续情感分, 在 ctx 轨 (标题加目标银行句上下文窗口, Hassan 2019 邻近性) 上算文章级连续分, 再在 innovation_locus_full 等于「应用场景」的 app 子样内取 bank-year 均值。它与 DeepSeek、Gemini 的同格列构成跨模型三角验证的第三支: 同一构念、同一 ctx 轨、同一 app 落点子样, 换用第三家厂商的独立测量。落点判据 innovation_locus_full 属 full-only 单源, 即便本列挂接 ctx 轨情感, 划分应用场景子样所用落点仍由 full 轨判定, 不随情感轨切换。连续分为 GPT 三分类标签乘其自报语气置信度经 Logit-to-Score 概率映射折算至负一到正一。本列与同模型 tech/无后缀变体、与 DeepSeek/Gemini 两家的 app_ctx 列, 均同构念独立测量, 各自 just-identified 并排、互为稳健不分主次, 严禁混入同一 over-identified Hansen J。GPT 缺席仅掉自身族列, 逐模型独立降级不连坐。
 
 
-补充计算细节: 本列以 gpt54nano_cont_ctx 为源列, 聚合前先按 innovation_locus_full 等于应用场景过滤出 df_cat 再取 mean, 分母为该子样内有效连续分篇数, 子样为空则优雅置空, 与无后缀及 tech 变体共用同一源列而仅样本子集不同。与同模型离散列 gpt54nano_tone_app_ctx co-equal, 后者是三分类标签计数口径均值, 本列承载 GPT 自报置信度的强度信息, 二者互为稳健、不分主次。GPT 经 yunwu 路由请求, 缓存命中键为 prompt 版本 v8 与温度 0.0, ctx 轨全命中可离线零成本字节级复现。ctx 轨属 conditional-on-full 稳健轨, 行宇宙为 full 留篇集之子集; 本列仅作 just-identified 单列, 严禁混入同一 over-identified Hansen J。
+补充计算细节: 本列以 gpt54nano_cont_ctx 为源列, 聚合前先按 innovation_locus_full 等于应用场景过滤出 df_cat 再取 mean, 分母为该子样内有效连续分篇数, 子样为空则优雅置空, 与无后缀及 tech 变体共用同一源列而仅样本子集不同。与同模型离散列 gpt54nano_tone_app_ctx co-equal, 后者是三分类标签计数口径均值, 本列承载 GPT 自报置信度的强度信息, 二者互为稳健、不分主次。GPT 经 OpenLux 路由请求, 缓存命中键为 prompt 版本 v8 与温度 0.0, ctx 轨全命中可离线零成本字节级复现。ctx 轨属 conditional-on-full 稳健轨, 行宇宙为 full 留篇集之子集; 本列仅作 just-identified 单列, 严禁混入同一 over-identified Hansen J。
 
 ## VAR: gpt54nano_cont_mean_app_full
 

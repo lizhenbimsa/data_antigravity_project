@@ -33,7 +33,7 @@ entity_masking_test:
   enabled: true                                     # [已 always-on] stage 36 移除 enabled 早退 (2026-06-13); 仅作记录, 启停由 always_enabled 谓词决定
   sample_size: 1000                                 # 随机抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
-  max_concurrency: 250                              # 2026-07-21 用户决策: 项目统一 250 并发 (2026-05-14 曾统一 100, 原阶段36=8); 监控 yunwu 网关 429, 若批量掩码复判抖动回退至 8
+  max_concurrency: 250                              # 2026-07-21 用户决策: 项目统一 250 并发 (2026-05-14 曾统一 100, 原阶段36=8); 监控 OpenLux 网关 429, 若批量掩码复判抖动回退至 8。⚠ 250 系基于迁移前 yunwu 网关校准, OpenLux 限流特性未实测 — 首次生产跑须盯 429
   request_spacing_seconds: 0.75                     # 每个模型相邻真实请求的最小间隔，避免 429 限流
   request_timeout_seconds: 60                       # 验证复判短超时；缓存优先，外部接口卡住时快速熔断
   max_retries: 80                                   # 2026-06-23 统一决策: 与生产 stage 21 一致 (原 1)。⚠ 掩码复判多为冷缓存, 80 次重试在 API 抖动期可能变慢; 失败行仍由 call_failure 掩码剔除, 不偏置 κ
@@ -55,7 +55,7 @@ prompt_sensitivity_test:
   enabled: true                                     # [已 always-on] stage 39 移除 enabled 早退 (2026-06-13); 仅作记录, 启停由 always_enabled 谓词决定
   sample_size: 1000                                 # 随机抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
-  max_concurrency: 250                              # 2026-07-21 用户决策: 项目统一 250 并发 (2026-05-14 曾统一 100, 原阶段39=8); ⚠️ 注意: 24k 请求 + 250 并发可能触发 yunwu 网关 429 雪崩, 重跑前需监控; 若雪崩回退至 8
+  max_concurrency: 250                              # 2026-07-21 用户决策: 项目统一 250 并发 (2026-05-14 曾统一 100, 原阶段39=8); ⚠️ 注意: 24k 请求 + 250 并发可能触发 OpenLux 网关 429 雪崩, 重跑前需监控; 若雪崩回退至 8。⚠ 250 系基于迁移前 yunwu 网关校准, OpenLux 限流特性未实测
   request_spacing_seconds: 0.10                     # Prompt 验证使用短重试熔断，可提高真实缺缓存请求放行速率
   request_timeout_seconds: 60                       # Prompt 灵敏度以缓存为主，缺缓存请求超时后本轮熔断
   max_retries: 80                                   # 2026-06-23 统一决策: 与生产 stage 21 一致 (原刻意设 1, fix omni-g-val-prompt-05)。⚠ 24k 变体请求多为冷缓存, 80 次重试在 API 抖动期可能使本阶段运行数小时 (原设 1 即为防此长尾); 失败行仍由 call_failure 掩码剔除 (n_call_failures_excluded), 不偏置 κ

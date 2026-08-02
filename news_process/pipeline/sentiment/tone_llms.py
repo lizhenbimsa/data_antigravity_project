@@ -67,7 +67,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 **输出列** (每轨 _full/_ctx/_ss 各一套): `llm_verified_*`、`llm_sentiment_*`、`llm_agreement_rate_v/s_*`、`n_valid_votes_*`/`n_verifying_votes_*`、`innovation_locus_*`(Gomber 2018 JMIS)、`innovation_substantiveness_*`(W&Z 1994/1998 ASQ)、`innovation_collab_mode_*`(Chesbrough 2003 + L&S 2006 SMJ)、各维度 `*_confidence_*`、`llm_prob_score`(avg_prob_score, 轨级聚合主列)、per-model `{short}_prob_score_*`、`avg_subst/locus/collab_prob_score_*`、逐模型 `{short}_verified/sentiment_*` 存档列; 另产 `llm_verified_dual_*`(3 态) / `llm_verified_triple_*`(7 态) 互斥指示列。
 
-**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 yunwu.ai/v1); 需 YUNWU_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature (+seed 仅当 temperature>0; 生产 temperature=0.0 下 seed 不进键, 故键与历史 no-seed schema 字节级一致, 零缓存失效))。**确定性锚点 = _llm_cache.db** (~2.1GB, 随三轨缓存播种持续增长): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
+**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 api.openlux.ai/v1); 需 OPENLUX_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature (+seed 仅当 temperature>0; 生产 temperature=0.0 下 seed 不进键, 故键与历史 no-seed schema 字节级一致, 零缓存失效))。**确定性锚点 = _llm_cache.db** (~2.1GB, 随三轨缓存播种持续增长): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
 
 **DAG 位置**: 上游 stage 14 (fintech_intensity) + stage 13 (content_ctx/content_ss 物化); 下游 stage 22 (词典法读 21 输出 `21_tone_llms.parquet`)、最终经 stage 24/45 进面板。本阶段是全流水线唯一核心付费阶段。
 
@@ -2423,7 +2423,7 @@ def main():
         4. SQLite 缓存读写 (缓存键含 prompt_version 命名空间, 已实现于 fetch_llm_async)
         5. N8 lineage 记录 + parquet 三轨 (full/ctx/ss) 输出
 
-        v3.0 拆分应让 LLM 调用层独立可测 (mock yunwu API), 与上下游
+        v3.0 拆分应让 LLM 调用层独立可测 (mock OpenLux API), 与上下游
         IO 解耦.
     """
     stage_start = time.time()

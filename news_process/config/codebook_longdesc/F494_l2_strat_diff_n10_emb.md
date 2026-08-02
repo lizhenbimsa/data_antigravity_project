@@ -46,7 +46,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 ## VAR: strat_diff_n10_emb_lg
 
 【变体差分】
-本列与 canonical 基准列的差分维度是嵌入引擎: 底层向量来自 text-embedding-3-large(OpenAI/yunwu 端点, 3072 维), 而非 Qwen3-Embedding-8B(硅基流动端点, 4096 维)。两条嵌入轨道是本仓库自 v3.15.0 起确立的 co-primary 双轨架构——彼此互为主测度、互为稳健性检验、严格 parity(列名双射, both-or-neither 缺失规则: 任一引擎 embed 失败为 None, 则该家族两条轨道同族列同置缺失, 不产生单边孤儿观测), 而非"主轨/稳健轨"的主次关系。这一 both-or-neither 守卫在本列上意味着: 若某银行-年度单元下有文章因 Qwen 端点限流或超时导致 embed 失败进而无法聚合出该行的年度向量, strat_diff_n10_emb 与 strat_diff_n10_emb_lg 会同步置缺失, 不会出现"主引擎有值、_lg 引擎缺失"的单边孤儿列, 反之亦然。文本来源仍是 content_full, 留篇门控仍是 full-only, 银行-年度向量聚合(_aggregate_bank_year_texts)与随后的 top-10 最近邻同行检索均限定在同一(年度, 轨道, 引擎)的银行集合内、不跨引擎混算相似度矩阵, N=10 最近邻同行数设定与 canonical 列一致。使用本列做实证时应将其与无 _lg 后缀的 strat_diff_n10_emb 并排报告(如稳健性表的双栏对照), 而非将两者同时作为同一回归方程里的多重工具变量或叠加控制变量混入同一 Hansen J 检验; 二者数值量级可能因维度(3072 vs 4096)与训练目标差异而不完全等价, 比较时应关注方向与显著性的一致性而非绝对水平。
+本列与 canonical 基准列的差分维度是嵌入引擎: 底层向量来自 text-embedding-3-large(OpenAI/OpenLux 端点, 3072 维), 而非 Qwen3-Embedding-8B(硅基流动端点, 4096 维)。两条嵌入轨道是本仓库自 v3.15.0 起确立的 co-primary 双轨架构——彼此互为主测度、互为稳健性检验、严格 parity(列名双射, both-or-neither 缺失规则: 任一引擎 embed 失败为 None, 则该家族两条轨道同族列同置缺失, 不产生单边孤儿观测), 而非"主轨/稳健轨"的主次关系。这一 both-or-neither 守卫在本列上意味着: 若某银行-年度单元下有文章因 Qwen 端点限流或超时导致 embed 失败进而无法聚合出该行的年度向量, strat_diff_n10_emb 与 strat_diff_n10_emb_lg 会同步置缺失, 不会出现"主引擎有值、_lg 引擎缺失"的单边孤儿列, 反之亦然。文本来源仍是 content_full, 留篇门控仍是 full-only, 银行-年度向量聚合(_aggregate_bank_year_texts)与随后的 top-10 最近邻同行检索均限定在同一(年度, 轨道, 引擎)的银行集合内、不跨引擎混算相似度矩阵, N=10 最近邻同行数设定与 canonical 列一致。使用本列做实证时应将其与无 _lg 后缀的 strat_diff_n10_emb 并排报告(如稳健性表的双栏对照), 而非将两者同时作为同一回归方程里的多重工具变量或叠加控制变量混入同一 Hansen J 检验; 二者数值量级可能因维度(3072 vs 4096)与训练目标差异而不完全等价, 比较时应关注方向与显著性的一致性而非绝对水平。
 
 ## VAR: strat_diff_n10_emb_lg_ctx
 

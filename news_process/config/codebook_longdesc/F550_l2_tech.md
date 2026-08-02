@@ -156,7 +156,7 @@ canonical 列 tech_frac 的计算落在 pipeline/panel/encode.py 的 locus 分�
 
 由 tech_frac 衍生的下游还包括语调差距 tone_gap_tech_app, 即在 min-n≥5 的合格 cell 内取底层技术类内 LLM 投票情感均值减去应用场景类内均值 (正值表示底层技术报道更乐观), 该量是 P4 locus 的一个 headline 情感测度, 与 tech_frac 的占比构念互补但不同层。tech_frac 本身是纯份额量, 不含情感符号。
 
-分类判定的多模型共识机制值得展开。文章级 innovation_locus 标签并非某单一模型的输出, 而是 stage 21 三家大语言模型 (gpt54nano 与 gemini31 经 yunwu 路由、deepseekv4 直连 api.deepseek.com) 投票后的共识: 先各家给出 locus 判定, 再经 verified 门控 (剔除未通过银行金融科技留篇校验的判定)、final_v 清票 (统一有效票口径) 与 locus 关键词回退 (当模型未明确判类时以底层技术/应用场景关键词命中作兜底) 三层处理, 取多数结果作为共识标签。因此本家族的 tech_frac 是"共识轨"的份额, 与各家单独判定的 per-model 份额 (家族 F181 的 gpt54nano/gemini31/deepseekv4 各自 tech_frac_full) 有别; 共识 ≠ 裸多数票, 因为其间插入了门控与回退。这一设计的效度依据见 Carlson 与 Burbano (2026): 用大语言模型标注管理学数据时, 多模型交叉与一致性报告是抵御单模型幻觉与系统性偏置的必要环节。
+分类判定的多模型共识机制值得展开。文章级 innovation_locus 标签并非某单一模型的输出, 而是 stage 21 三家大语言模型 (gpt54nano 与 gemini31 经 OpenLux 路由、deepseekv4 直连 api.deepseek.com) 投票后的共识: 先各家给出 locus 判定, 再经 verified 门控 (剔除未通过银行金融科技留篇校验的判定)、final_v 清票 (统一有效票口径) 与 locus 关键词回退 (当模型未明确判类时以底层技术/应用场景关键词命中作兜底) 三层处理, 取多数结果作为共识标签。因此本家族的 tech_frac 是"共识轨"的份额, 与各家单独判定的 per-model 份额 (家族 F181 的 gpt54nano/gemini31/deepseekv4 各自 tech_frac_full) 有别; 共识 ≠ 裸多数票, 因为其间插入了门控与回退。这一设计的效度依据见 Carlson 与 Burbano (2026): 用大语言模型标注管理学数据时, 多模型交叉与一致性报告是抵御单模型幻觉与系统性偏置的必要环节。
 
 聚合层的实现细节还包括对 merge 后缺失的处理与恒等式核对。分组计数经 pandas merge 回面板后, n_articles_tech / n_articles_app 的缺失被回填为零并转整型 (无该类报道即计零), 随后才做除法得份额。恒等式校验以 n_articles_llm_valid 为分母对 n_articles_tech 与 n_articles_app 之和做放宽口径核对 (与 collab 维度按 R6 放宽一致), 允许存在既非底层技术亦非应用场景的残余判定, 因此 tech_frac + app_frac 不必等于 1。这一放宽是刻意的: 二分类的严格互补会把模型的"无法归类"强行摊入某一侧, 反而引入噪声。
 

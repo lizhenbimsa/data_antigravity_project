@@ -84,7 +84,7 @@ new_dois: []
 【构念与来源】
 本家族刻画的是"外部协同"这一开放式创新报道子群内, 单个大语言模型给出的情感语调。其构念根植于 Chesbrough (2003) 的开放式创新框架与 Laursen and Salter (2006) 关于外部搜寻广度的经典命题: 银行推进金融科技既可以走自主研发的封闭路径, 也可以通过与外部金融科技企业结盟、合资、股权投资、平台开放等方式协同创新。第五条主线论文 (bank_fintech_collab, 内部代号 P5) 关心的正是媒体报道在描述这类"外部协同"事件时所携带的情感倾向: 当一家银行的金融科技进展被描述为向外借力、开放合作时, 报道语调究竟偏乐观还是偏审慎, 这一子群语调是 P5 处理变量与稳健性叙事的构成要素。与之对照的自主研发子群 (_indep) 及二者之差 tone_gap_indep_collab 共同构成该主线的核心测度。
 
-数据来源上, 每一列都建立在阶段 21 (tone_llms) 的两类产出之上。其一是三家大语言模型逐篇、逐轨给出的文章级情感得分 {short}_score{track}: gpt54nano 为 GPT-5.4-nano (经 yunwu 路由), gemini31 为 Gemini-3.1-flash-lite (经 yunwu 路由), deepseekv4 为 DeepSeek-V4-flash (直连 api.deepseek.com)。其二是三家投票合成的开放式创新模式共识分类标签 innovation_collab_mode_full, 取值域为"自主研发"与"外部协同"两类。本家族列取"外部协同"这一子群, 在该子群内对某一指定模型的逐篇语调按 (target_bank, year) 求组内均值, 落成 bank-year 面板列。命名遵循 {short}_tone_collab{track} 模式, 其中 collab 后缀专指外部协同子群, 而 short 指明该语调来自哪一家厂商的模型。
+数据来源上, 每一列都建立在阶段 21 (tone_llms) 的两类产出之上。其一是三家大语言模型逐篇、逐轨给出的文章级情感得分 {short}_score{track}: gpt54nano 为 GPT-5.4-nano (经 OpenLux 路由), gemini31 为 Gemini-3.1-flash-lite (经 OpenLux 路由), deepseekv4 为 DeepSeek-V4-flash (直连 api.deepseek.com)。其二是三家投票合成的开放式创新模式共识分类标签 innovation_collab_mode_full, 取值域为"自主研发"与"外部协同"两类。本家族列取"外部协同"这一子群, 在该子群内对某一指定模型的逐篇语调按 (target_bank, year) 求组内均值, 落成 bank-year 面板列。命名遵循 {short}_tone_collab{track} 模式, 其中 collab 后缀专指外部协同子群, 而 short 指明该语调来自哪一家厂商的模型。
 
 【方法学与计算】
 计算链路在 encode.py 的 innovation_collab_mode 分组聚合块内一次完成。首先以共识分类标签把文章语料切成子集: df_cm = 满足 innovation_collab_mode_full == '外部协同' 的全部文章行。须特别强调一处口径: 子群成员资格恒由全文轨 (_full) 的共识分类标签界定, 与本家族 full-only 留篇门控口径 (2026-06-29) 一致; 三条轨道并不各自重新分类, 换轨只切换语调的度量通道而不改变被计入的文章集合。在该固定子集上, 对每一模型 short 与每一轨道 track, 取源列 {short}_score{track} 按银行-年度分组求均值, 写成 {short}_tone_collab{track}。ss 与 ctx 源列若在上游缺失, 则以 if-in-columns 守卫逐源跳过, 不借用 full 轨分母, 属优雅降级。语调取值继承单篇 LLM 得分的量纲, 约落在 [-1, 1], 正值表示该子群报道整体偏正面。方法学层面, 以生成式模型逐篇标注金融文本、并以 temperature=0 冻结、prompt 冻结、缓存复现的范式, 与 de Kok (2025)、Lan et al. (2025) 所倡导的可复现标注流程一致; 逐篇请求、跨厂商多模型交叉验证的设计则呼应 Ludwig et al. (2025) 对语言模型作为测量工具的计量学审视。
@@ -110,7 +110,7 @@ new_dois: []
 ## VAR: gemini31_tone_collab_full
 
 【变体差分】
-本列 = Gemini-3.1-flash-lite (gemini31, 经 yunwu 路由) 在外部协同子群内的全文轨语调。差分坐标: 模型 = gemini31, 子群 = 外部协同, 轨道 = _full。度量通道取全文轨得分 gemini31_score_full, 按银行-年度求子群组内均值。子群成员资格由全文轨共识分类界定, 与语调同轨, 故本列为 gemini31 该子群语调的基准臂。它相对同子群共识 headline llm_vote_tone_collab_full 是 Google 系单厂商稳健性臂; 与 deepseekv4/gpt54nano 的同轨对应列互为稳健性、不分主次, 三家各自 just-identified 并排, 严禁三家混进同一 over-identified Hansen J。跨厂商并排的价值在于: 若外部协同语调结论仅由某一家模型驱动, 三列并排回归即可暴露; Carlson and Burbano (2026) 正是把这种跨标注器一致性作为 LLM 标注可信度的必要检验。本列亦可与 gemini31 的 _indep 列作差, 复算单厂商口径的自主-协同语调差距。gemini31 经 yunwu 路由, 与 gpt54nano 同源但为不同厂商模型, 二者与直连的 deepseekv4 构成"两路由源、三厂商"的交叉验证结构; 若外部协同语调结论仅在某一路由或某一厂商成立, 三列并排即暴露。本列语调继承 gemini31 单篇得分的尺度, 该尺度可能与另两家存在系统性偏移, 因此在跨模型汇总时应先做 z 标准化, 只比标准化后的回归系数, 不比原始语调水平。本列不参与共识票合成, 仅作 Google 系单厂商稳健性并排轨。
+本列 = Gemini-3.1-flash-lite (gemini31, 经 OpenLux 路由) 在外部协同子群内的全文轨语调。差分坐标: 模型 = gemini31, 子群 = 外部协同, 轨道 = _full。度量通道取全文轨得分 gemini31_score_full, 按银行-年度求子群组内均值。子群成员资格由全文轨共识分类界定, 与语调同轨, 故本列为 gemini31 该子群语调的基准臂。它相对同子群共识 headline llm_vote_tone_collab_full 是 Google 系单厂商稳健性臂; 与 deepseekv4/gpt54nano 的同轨对应列互为稳健性、不分主次, 三家各自 just-identified 并排, 严禁三家混进同一 over-identified Hansen J。跨厂商并排的价值在于: 若外部协同语调结论仅由某一家模型驱动, 三列并排回归即可暴露; Carlson and Burbano (2026) 正是把这种跨标注器一致性作为 LLM 标注可信度的必要检验。本列亦可与 gemini31 的 _indep 列作差, 复算单厂商口径的自主-协同语调差距。gemini31 经 OpenLux 路由, 与 gpt54nano 同源但为不同厂商模型, 二者与直连的 deepseekv4 构成"两路由源、三厂商"的交叉验证结构; 若外部协同语调结论仅在某一路由或某一厂商成立, 三列并排即暴露。本列语调继承 gemini31 单篇得分的尺度, 该尺度可能与另两家存在系统性偏移, 因此在跨模型汇总时应先做 z 标准化, 只比标准化后的回归系数, 不比原始语调水平。本列不参与共识票合成, 仅作 Google 系单厂商稳健性并排轨。
 
 ## VAR: gemini31_tone_collab_ctx
 
@@ -125,7 +125,7 @@ new_dois: []
 ## VAR: gpt54nano_tone_collab_full
 
 【变体差分】
-本列 = GPT-5.4-nano (gpt54nano, 经 yunwu 路由) 在外部协同子群内的全文轨语调。差分坐标: 模型 = gpt54nano, 子群 = 外部协同, 轨道 = _full。度量通道取 gpt54nano_score_full, 按银行-年度求子群组内均值; 子群成员资格由全文轨共识分类界定, 与语调同轨, 是 gpt54nano 该子群语调的基准臂。相对同子群共识 headline llm_vote_tone_collab_full, 本列是 OpenAI 系单厂商稳健性臂; 与 deepseekv4/gemini31 的同轨对应列互为稳健性、不分主次, 三家各自 just-identified 并排, 严禁三家混进同一 over-identified Hansen J。三家逐列并排把 de Kok (2025)、Ludwig et al. (2025) 所强调的"LLM 测量须暴露模型选择敏感性"落成可审计面板。本列可作 P5 外部协同语调跨厂商稳健性检验分子, 亦可与 gpt54nano 的 _indep 列作差, 复算单厂商口径自主-协同语调差距。gpt54nano 经 yunwu 路由, 与 gemini31 同一路由源但为不同厂商模型, 与直连 api.deepseek.com 的 deepseekv4 一道构成两路由源、三厂商的交叉验证结构。本列分母是外部协同子群篇数而非全部留篇, 与非分子群的 gpt54nano_tone_full 分母口径不同, 二者不可混用。本列语调继承 gpt54nano 单篇得分尺度, 该尺度可能与另两家存在系统性偏移, 跨模型汇总须先 z 标准化只比标准化系数。本列受 prompt v8 冻结与缓存命中键约束, 三轨全命中即可在离线守卫下零字节复现; 作为 OpenAI 系单厂商语调, 本列不参与共识票合成, 仅作稳健性并排轨存档。
+本列 = GPT-5.4-nano (gpt54nano, 经 OpenLux 路由) 在外部协同子群内的全文轨语调。差分坐标: 模型 = gpt54nano, 子群 = 外部协同, 轨道 = _full。度量通道取 gpt54nano_score_full, 按银行-年度求子群组内均值; 子群成员资格由全文轨共识分类界定, 与语调同轨, 是 gpt54nano 该子群语调的基准臂。相对同子群共识 headline llm_vote_tone_collab_full, 本列是 OpenAI 系单厂商稳健性臂; 与 deepseekv4/gemini31 的同轨对应列互为稳健性、不分主次, 三家各自 just-identified 并排, 严禁三家混进同一 over-identified Hansen J。三家逐列并排把 de Kok (2025)、Ludwig et al. (2025) 所强调的"LLM 测量须暴露模型选择敏感性"落成可审计面板。本列可作 P5 外部协同语调跨厂商稳健性检验分子, 亦可与 gpt54nano 的 _indep 列作差, 复算单厂商口径自主-协同语调差距。gpt54nano 经 OpenLux 路由, 与 gemini31 同一路由源但为不同厂商模型, 与直连 api.deepseek.com 的 deepseekv4 一道构成两路由源、三厂商的交叉验证结构。本列分母是外部协同子群篇数而非全部留篇, 与非分子群的 gpt54nano_tone_full 分母口径不同, 二者不可混用。本列语调继承 gpt54nano 单篇得分尺度, 该尺度可能与另两家存在系统性偏移, 跨模型汇总须先 z 标准化只比标准化系数。本列受 prompt v8 冻结与缓存命中键约束, 三轨全命中即可在离线守卫下零字节复现; 作为 OpenAI 系单厂商语调, 本列不参与共识票合成, 仅作稳健性并排轨存档。
 
 ## VAR: gpt54nano_tone_collab_ctx
 

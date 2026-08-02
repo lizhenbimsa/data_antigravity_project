@@ -133,7 +133,7 @@ _EXIT_CODE_MEANINGS: Final[dict[int, str]] = {
 }
 
 # 审计快照只记录**复现/行为相关**的环境变量; 严禁纳入任何机密。
-# ⚠ 绝不加入 YUNWU_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY / EMBEDDING_API_KEY
+# ⚠ 绝不加入 OPENLUX_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY / EMBEDDING_API_KEY
 #   等 ``*_API_KEY`` (审计日志会落盘, 密钥入档即泄露)。此处为显式 allow-list, 非 deny-list。
 _AUDIT_ENV_KEYS: Final[tuple[str, ...]] = (
     'NEWS_PROCESS_RUN_ID',       # 本次运行关联 ID (与下游 stage 日志对齐)

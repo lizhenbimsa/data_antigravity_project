@@ -565,7 +565,7 @@ def _validate_env_placeholders(project_root: str) -> None:
     Plan-r3 round-3 review R5 升级: 加第二阶段递归扫描 — ``.env.example``
     中 ``KEY=${OTHER_KEY}`` 形式的间接引用, 若 ``OTHER_KEY`` 既未在
     ``.env.example`` 声明, 也不在 ``os.environ`` 中, 同样报 warning. 防止
-    新机器复制 .env.example -> .env 后只填 YUNWU_API_KEY, 但 EMBEDDING_API_KEY
+    新机器复制 .env.example -> .env 后只填 OPENLUX_API_KEY, 但 EMBEDDING_API_KEY
     间接引用空值的 silent failure.
 
     设计要点:
@@ -652,9 +652,9 @@ def _load_dotenv(project_root: str):
 
     Fallback 解析器与 python-dotenv 行为对齐 (Phase 9 / Plan P0-1):
         - 行内 ``#`` 注释剥离 (要求注释前至少一个空白, 与 ``KEY=#hash`` 区分)
-        - ``${VAR}`` 嵌套展开 (使 ``CLAUDE_KEY=${YUNWU_KEY}`` 在缺 dotenv 时也工作)
+        - ``${VAR}`` 嵌套展开 (使 ``CLAUDE_KEY=${OPENLUX_KEY}`` 在缺 dotenv 时也工作)
         - 已存在的 env 值不覆盖 (与 dotenv ``override=False`` 一致)
-    早期 fallback 不展开 ``${VAR}`` 会让字面量 ``"${YUNWU_API_KEY}"`` 污染
+    早期 fallback 不展开 ``${VAR}`` 会让字面量 ``"${OPENLUX_API_KEY}"`` 污染
     env, 后续 LLM 调用得到 401; 该 bug 在生产恰好被 requirements.txt 锁
     住的 ``python-dotenv>=1.0.0`` 掩盖, 但 ImportError 一旦命中即崩。
     """

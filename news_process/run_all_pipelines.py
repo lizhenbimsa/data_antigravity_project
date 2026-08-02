@@ -35,7 +35,7 @@
         逐字节复现; miss 即 fail-loud raise, 绝不静默直连付费 API);
       - ① (LLMs_for_dic 独立管道) 注入其独立开关 LLMS_DIC_OFFLINE=1 ($0 全链重放)。
     需要真联网/付费首跑或播种时须**显式** --online (并自行确保已过 M0 审批门 + 配好
-    YUNWU_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY)。
+    OPENLUX_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY)。
 
 确定性:
     对齐 core/stage.py 的子进程环境注入 — 强制 PYTHONHASHSEED=0 (消除 jieba+frozenset

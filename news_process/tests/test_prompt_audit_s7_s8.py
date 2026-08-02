@@ -218,7 +218,7 @@ class TestS8CacheGate:
     def test_noncacheable_response_skips_put(self, monkeypatch):
         """构造按 _is_cacheable_llm_response 判负的样例 (缺
         is_bank_fintech_news 验证键) → cache.put 不被调用。"""
-        monkeypatch.setenv('YUNWU_API_KEY', 'stub-key-for-mock')
+        monkeypatch.setenv('OPENLUX_API_KEY', 'stub-key-for-mock')
         monkeypatch.delenv('NEWS_PROCESS_LLM_OFFLINE', raising=False)
 
         resp = _FakeResponse(200, {
@@ -238,7 +238,7 @@ class TestS8CacheGate:
     def test_cacheable_response_still_puts(self, monkeypatch):
         """正控: 合格响应 (含验证键) 仍正常写入缓存 —— 新增的闸不应
         误伤合法响应。"""
-        monkeypatch.setenv('YUNWU_API_KEY', 'stub-key-for-mock')
+        monkeypatch.setenv('OPENLUX_API_KEY', 'stub-key-for-mock')
         monkeypatch.delenv('NEWS_PROCESS_LLM_OFFLINE', raising=False)
 
         resp = _FakeResponse(200, {

@@ -24,9 +24,9 @@ JUDGE_CHECKPOINT_FILE = DATA_DIR / "judge_checkpoint.json"
 # ════════════════════════════════════════════════════════════════
 
 BASE_URL: str = os.environ.get(
-    "YUNWU_BASE_URL", "https://yunwu.ai/v1"
+    "OPENLUX_BASE_URL", "https://api.openlux.ai/v1"
 )
-API_KEY: str = os.environ.get("YUNWU_API_KEY", "")
+API_KEY: str = os.environ.get("OPENLUX_API_KEY", "")
 
 # ════════════════════════════════════════════════════════════════
 # 任务参数

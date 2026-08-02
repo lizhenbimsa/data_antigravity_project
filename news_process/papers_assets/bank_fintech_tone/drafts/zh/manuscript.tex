@@ -235,9 +235,13 @@ hub 银行异质性 (\code{bank\_is\_hub}) 须待生产 T=19 面板。
 我们采用三个独立的 LLM 家族进行情感标注:
 \code{gpt-5.4-nano} (OpenAI)\,、\code{gemini-3.1-flash-lite} (Google)
 和 \code{deepseek-v4-flash} (DeepSeek)。
-其中 OpenAI 与 Google 两家通过 yunwu.ai 聚合器以 OpenAI 兼容的
+其中 OpenAI 与 Google 两家通过 OpenLux 聚合器以 OpenAI 兼容的
 \code{/v1/chat/completions} API 调用; DeepSeek 直连
-\code{api.deepseek.com}。所有调用设置 \code{temperature=0} 与
+\code{api.deepseek.com}\footnote{平台迁移说明: 本文数据的 LLM 推理于 2026 年 7 月经本管线
+当时的聚合中转代理完成; 自 2026 年 8 月起, 管线的聚合中转统一迁移至
+OpenLux (\code{https://api.openlux.ai/v1})。缓存键由「模型名 + prompt
+文本 + prompt 版本 + temperature」四元组构成, 不含端点地址, 故本次迁移
+对既有推理结果逐位无影响, 复现包内的确定性缓存可原样离线重放。}。所有调用设置 \code{temperature=0} 与
 \code{seed=42}, 并使用字节级冻结的 prompt (版本 v8),
 保证输出确定且可经缓存复现。
 家族间一致性以 Cohen's $\kappa$ (计算前先把标签重映射为非负码)

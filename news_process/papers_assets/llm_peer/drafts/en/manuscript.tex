@@ -253,9 +253,16 @@ processed by the \code{news\_process} pipeline (Phase 9b baseline; see
 We employ three independent LLM families for sentiment annotation:
 \code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite}
 (Google), and \code{deepseek-v4-flash} (DeepSeek). The OpenAI and
-Google models are routed through yunwu.ai (\code{/v1/chat/completions},
+Google models are routed through OpenLux (\code{/v1/chat/completions},
 OpenAI-compatible); DeepSeek is called directly at
-\code{api.deepseek.com}. All calls use \code{temperature=0} and
+\code{api.deepseek.com}\footnote{Platform-migration note: the LLM inference underlying this
+paper was executed in July 2026 through the pipeline's then-current
+aggregation proxy; from August 2026 onward the pipeline routes through
+OpenLux (\code{https://api.openlux.ai/v1}). Cache keys are formed from
+the tuple (model name, prompt text, prompt version, temperature) and do
+not include the endpoint address, so the migration leaves existing
+inference results bitwise unchanged and the deterministic cache shipped
+with the replication package replays offline as-is.}. All calls use \code{temperature=0} and
 \code{seed=42} with a byte-frozen prompt (version v8). Inter-family agreement reported as
 Cohen's $\kappa$ and Krippendorff's $\alpha$; majority vote produces the
 final label, with ties or no-vote outcomes triggering up to 80 rounds of

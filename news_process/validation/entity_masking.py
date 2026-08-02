@@ -76,7 +76,7 @@ news_process.validation.entity_masking — 阶段66：Entity Masking 稳健性�
 
 **关键算法/分母双口径**: 主口径 per-protocol (valid 分母, `_call_failure_mask` 剔除掩码重判或 baseline 调用全失败行 — 空票被默认判 False 属测量缺失非翻转); ITT (physical 分母, 含失败行) 以 `*_itt` 键并行披露。混淆矩阵与主口径对齐 (失败行不进图)。`compute_cohens_kappa` 复用 `news_process.validation.llms_evaluation` (返回含 'kappa' 键的 dict)。判定: 三轨各须 验证一致率≥0.90 + 情感一致率≥0.85 + κ≥0.80, 整体 = full/ctx/ss AND; sentiment_consistency is None (n_both_true==0 子集空) 视为'不可判定'不计通过 (degradation F24 修复, 防伪装通过)。三轨两两 pairwise (combinations) 验证一致率/κ 差异 >5pp 则提示文本粒度敏感。
 
-**外部依赖**: LLM API (yunwu, 经 tone_llms.fetch_llm_async), 3 模型 × 3 轨 × 1000 = 最多 9000 请求; aiohttp 异步, ENTITY_MASKING_MAX_CONCURRENCY 限流。确定性锚点 = `_llm_cache_validation.db` (验证变体库, 用 LLMCache 命中缓存; 但掩码文本 prompt 与生产不同 → 这些是增量 LLM 请求, 冷缓存需付费跑)。timeout=21600s (6h) 因冷缓存+限流。matplotlib 三轨混淆矩阵。
+**外部依赖**: LLM API (OpenLux, 经 tone_llms.fetch_llm_async), 3 模型 × 3 轨 × 1000 = 最多 9000 请求; aiohttp 异步, ENTITY_MASKING_MAX_CONCURRENCY 限流。确定性锚点 = `_llm_cache_validation.db` (验证变体库, 用 LLMCache 命中缓存; 但掩码文本 prompt 与生产不同 → 这些是增量 LLM 请求, 冷缓存需付费跑)。timeout=21600s (6h) 因冷缓存+限流。matplotlib 三轨混淆矩阵。
 
 **学术依据**: SSRN-4558295 §7.2 entity substitution; Landis & Koch (1977, Biometrics) κ 解释阈值。
 
@@ -846,7 +846,7 @@ def main():
                 f"≥0.81 才 almost-perfect, Landis-Koch 1977);")
     logger.info("        实体残留率应=0%(否则掩码不完整, 稳健性被高估); 三轨两两差异 <5pp 为好")
     logger.info("        (否则提示文本输入粒度敏感)。三轨须全过(full∧ctx∧ss)才算整体通过。")
-    logger.info("【确定性】调 LLM API(yunwu 3 模型 × 3 轨 × 样本量, 经 _llm_cache_validation.db 命中缓存);")
+    logger.info("【确定性】调 LLM API(OpenLux 3 模型 × 3 轨 × 样本量, 经 _llm_cache_validation.db 命中缓存);")
     logger.info("          掩码文本 prompt 与生产不同 → 这些是增量请求, 冷缓存需付费跑(timeout 6h)。")
     logger.info("=" * 72)
     logger.info("")

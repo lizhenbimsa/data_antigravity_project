@@ -147,7 +147,7 @@ def parse_track_results_from_cache(
                               n_models_responded]
         缺缓存或解析失败的行: 对应字段 NaN.
 
-    实施策略 (无 yunwu API key 时):
+    实施策略 (无 OpenLux API key 时):
         本函数对 cache_db 做只读 lookup; 若 cache 缺命中则返回 NaN 不重跑.
         实际 launch 路径 (含真 LLM 重跑) 走 main() --launch flag.
 
@@ -321,7 +321,7 @@ def _parse_args(argv=None):
     )
     parser.add_argument(
         '--launch', action='store_true',
-        help='实际 launch 10.5k LLM 调用 (需 YUNWU_API_KEY 环境变量)',
+        help='实际 launch 10.5k LLM 调用 (需 OPENLUX_API_KEY 环境变量)',
     )
     parser.add_argument(
         '--radii', type=str, default='0,2,3',
@@ -335,11 +335,11 @@ def _parse_args(argv=None):
 
 
 def _check_launch_prerequisites() -> dict:
-    """Plan v14 §3.5 P5.2 R20-A: launch 前置检查 (yunwu key + cache + N)."""
+    """Plan v14 §3.5 P5.2 R20-A: launch 前置检查 (OpenLux key + cache + N)."""
     checks = {}
-    # 1. YUNWU_API_KEY
-    api_key = os.environ.get('YUNWU_API_KEY', '').strip()
-    checks['yunwu_api_key_present'] = bool(api_key)
+    # 1. OPENLUX_API_KEY
+    api_key = os.environ.get('OPENLUX_API_KEY', '').strip()
+    checks['openlux_api_key_present'] = bool(api_key)
 
     # 2. LLMCache 存在
     try:
@@ -407,7 +407,7 @@ def _log_environment_and_config(stage_14_path: str, args) -> None:
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
         if is_launch:
             logger.info("     · 成本: LAUNCH 模式将真实调用付费 LLM API "
-                        "(需 YUNWU_API_KEY; 非确定性, 非 $0)")
+                        "(需 OPENLUX_API_KEY; 非确定性, 非 $0)")
         else:
             logger.info("     · 成本: DRY-RUN 模式纯 CPU / 无 LLM·网络·API ($0); "
                         "仅估算调用预算与前置检查")
@@ -489,7 +489,7 @@ def main():
     工作流:
         1. CLI argparse + estimate_llm_calls (给用户看实际预算)
         2. --dry-run (default): 只输出 estimate + prerequisites 检查
-        3. --launch: 真实跑 (need YUNWU_API_KEY)
+        3. --launch: 真实跑 (need OPENLUX_API_KEY)
            对每个 new radius ∈ {0, 2, 3}: 重抽 ctx → 调 LLM → cache
            parse_track_results_from_cache 收集篇章级标签 (当前仅 ctx 轨;
            full 轨缓存命中不受 radius 影响, ss 轨另有独立 radius 扫描, 见模块头注)
@@ -569,14 +569,14 @@ def main():
     # 3. dry-run / launch 分支
     if not args.launch:
         logger.info("  [DRY-RUN] 不实际调用 LLM. 加 --launch flag 触发真实 launch.")
-        logger.info(f"  Required: env YUNWU_API_KEY (current: {'set' if checks['yunwu_api_key_present'] else 'NOT SET'})")
+        logger.info(f"  Required: env OPENLUX_API_KEY (current: {'set' if checks['openlux_api_key_present'] else 'NOT SET'})")
         logger.info(f"  本阶段总耗时: {sig4(time.time() - stage_start)} 秒")
         return 0
 
     # --launch 真实路径
-    if not checks['yunwu_api_key_present']:
-        logger.error("  [LAUNCH] YUNWU_API_KEY 未设置, 不能跑真实 LLM.")
-        logger.error("  $env:YUNWU_API_KEY = '<your-key>'; 然后重试.")
+    if not checks['openlux_api_key_present']:
+        logger.error("  [LAUNCH] OPENLUX_API_KEY 未设置, 不能跑真实 LLM.")
+        logger.error("  $env:OPENLUX_API_KEY = '<your-key>'; 然后重试.")
         return 1
 
     # richer_project_context (round 7): --launch 路径仍是 scaffold — 在任何 cache lookup /
@@ -597,8 +597,8 @@ def main():
     #      须显式路由到独立的 _llm_cache_validation.db (验证族缓存隔离决策), 不得沿用
     #      tone_llms.py 默认的生产 _llm_cache.db；本条仅更正文字, 路由代码由 WP-R4 接线
     #   d) 解析新 cache 条目
-    # 完整实施留作 future commit (需要 yunwu API key + 实际跑 4 小时).
-    logger.warning("  [LAUNCH] 实施细节留作 future commit (需 yunwu API + 跑 ~2 min/radius).")
+    # 完整实施留作 future commit (需要 OpenLux API key + 实际跑 4 小时).
+    logger.warning("  [LAUNCH] 实施细节留作 future commit (需 OpenLux API + 跑 ~2 min/radius).")
     logger.warning("  当前 CLI 是 scaffold; 真实 launch 需要再扩展 ~150 行 (异步 LLM 复用 tone_llms.py).")
     return 0
 

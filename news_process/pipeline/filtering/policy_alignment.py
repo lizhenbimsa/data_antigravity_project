@@ -102,7 +102,7 @@
 4. **双 co-primary (v3.14.0, 全平价)**: MAIN = Qwen-embedding(config embedding_api, API, 4096 维)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; LARGE = text-embedding-3-large(API 3072 维, config embedding_large)→ `policy_cosine_sim_lg_{full,ctx,ss}`。both-or-neither parity: MAIN 或 _lg 任一族嵌入失败 → 两族同时置 NaN(无单边孤儿列)。
 5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
 
-**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 与 tests/test_omni_fix_policy.py 引用, 生产0调用)。**API 离线守卫**: 嵌入在线 miss 即付费调 API(离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss 即 raise RuntimeError 零网络/$0, embedding_engine 内, 与 stage 21 LLMCacheMissError 对称但异常类型不同; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / yunwu.ai 证书)。timeout=7200。
+**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 与 tests/test_omni_fix_policy.py 引用, 生产0调用)。**API 离线守卫**: 嵌入在线 miss 即付费调 API(离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss 即 raise RuntimeError 零网络/$0, embedding_engine 内, 与 stage 21 LLMCacheMissError 对称但异常类型不同; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / api.openlux.ai 证书)。timeout=7200。
 
 ■ 白话说明
 
@@ -1230,7 +1230,7 @@ def main():
                     f"LLM_OFFLINE={os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '0')} "
                     "(离线时嵌入 miss 亦 raise RuntimeError 零网络; 在线时付费调 API)")
         logger.info("  · 成本/确定性: MAIN + _lg 两 API co-primary 嵌入在线 miss 即付费 "
-                    "(MAIN/Qwen 经硅基流动, _lg/large 经 yunwu, 均 OpenAI-compat); "
+                    "(MAIN/Qwen 经硅基流动, _lg/large 经 OpenLux, 均 OpenAI-compat); "
                     "缓存命中即逐位可复现")
         logger.info(f"  · 模块: {os.path.abspath(__file__)}")
         logger.info(f"  · 工作目录: {os.getcwd()}")

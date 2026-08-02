@@ -769,7 +769,7 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         dry_run: 仅显示任务规模和成本预估，不实际执行
     """
     if not API_KEY:
-        print("❌ 错误: API Key 未配置。请设置环境变量 YUNWU_API_KEY")
+        print("❌ 错误: API Key 未配置。请设置环境变量 OPENLUX_API_KEY")
         return
 
     # 输入验证

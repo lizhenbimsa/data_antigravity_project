@@ -22,7 +22,7 @@ DATA_DIR = SCRIPT_DIR / "data_processed"
 # ════════════════════════════════════════════════════════════════
 # 本子管道独立运行（python 00_LLMs_for_dic.py）时不经主项目 core.config 的
 # _load_dotenv，故在此显式从主项目 news_process/.env（= SCRIPT_DIR.parent/.env）
-# 载入，使 YUNWU_FULL_KEY 等键可被下方 os.environ.get 读到；override=False 不覆盖
+# 载入，使 OPENLUX_FULL_KEY 等键可被下方 os.environ.get 读到；override=False 不覆盖
 # shell 已显式设定的同名变量（优先级：进程环境 > .env）。
 try:
     from dotenv import load_dotenv
@@ -35,9 +35,9 @@ except ImportError:
 # ════════════════════════════════════════════════════════════════
 
 BASE_URL: str = os.environ.get(
-    "YUNWU_BASE_URL", "https://yunwu.ai/v1"
+    "OPENLUX_BASE_URL", "https://api.openlux.ai/v1"
 )
-API_KEY: str = os.environ.get("YUNWU_FULL_KEY", "")
+API_KEY: str = os.environ.get("OPENLUX_FULL_KEY", "")
 
 # ════════════════════════════════════════════════════════════════
 # LLM 缓存配置（本目录独立缓存，见 llm_cache.py）
@@ -72,7 +72,8 @@ MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防
 # 单次 API 响应的最大输出 token（显式上限，防止响应被截断）。
 # 背景：生成端每次要求 100 个「对象数组」词条 {keyword, reason}（判别端 200 条
 # {keyword, score, reason}），单条响应体量约 6,000–7,000 输出 token。多数模型默认输出
-# 上限足够，但个别模型（实测 kimi-k2.6）在 yunwu 代理下默认上限偏低（约 4,096），
+# 上限足够，但个别模型（实测 kimi-k2.6）在中转代理下默认上限偏低（约 4,096；实测于
+# 2026-08-02 迁移前的 yunwu.ai 代理，OpenLux 上未复测），
 # 会在生成到约 150 词处**截断**成非法 JSON → 解析失败 → 触发大量重试。显式抬高上限
 # 让所有模型都能完整输出整个数组。⚠ 这是**运行期 API 参数**，非 Prompt 字段/模型清单/
 # 阈值/数量链的任何一项，与手稿 FinTech_Dictionary_LLMs_Paper_Final.md 的锁步无关，
@@ -138,7 +139,7 @@ def get_model_params(model_name: str) -> Dict:
     - 判别阶段（judge_batch）：强制 temperature=0 以获得最大确定性
     ⚠ 采样参数限制披露：对 SAMPLING_PARAM_FILTERED_MODELS（claude-opus-4.7 及之后
       模型）temperature/top_p/top_k 在官方 API 层面不受支持（传入即 400）、且被
-      yunwu 中转自 2026-07-10 00:00 起静默过滤 → 此处返回的 temperature=0 对该类
+      中转平台自 2026-07-10 00:00 起静默过滤 → 此处返回的 temperature=0 对该类
       模型不生效（实际按模型默认温度采样）。详见该常量处完整披露注释。
     """
     # 不支持 response_format 的模型列表
@@ -247,7 +248,9 @@ JUDGE_MODELS: List[str] = [
 # claude-fable-5 / claude-opus-4-8 两家）在官方 API 层面不支持自定义采样参数
 # （temperature / top_p / top_k），传入即报 400 参数错误。该限制并非以单独的
 # 「废弃政策」公告发布，而是作为新模型的技术规格与参数约束、随模型发布同步生效；
-# yunwu 中转平台自 2026-07-10 00:00 起对上述模型的这些参数静默过滤（不报错、照常返回）。
+# 中转平台自 2026-07-10 00:00 起对上述模型的这些参数静默过滤（不报错、照常返回）。
+# ⚠ 该行为观测于 2026-08-02 平台迁移前的 yunwu.ai 代理；迁至 OpenLux 后未复测，
+#   但披露口径不变（这两家的 temperature=0 一律按「不保证生效」对待，最保守）。
 # 影响界定：
 #   - 生成阶段零影响（本就不传 temperature，刻意用模型默认温度求多样性）；
 #   - 判别阶段注入的 temperature=0 对这两家不生效（实际按模型默认温度采样），

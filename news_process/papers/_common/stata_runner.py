@@ -924,13 +924,13 @@ def _cli_doctor(args) -> int:
     except Exception:
         n_warn += 1
 
-    # 4. YUNWU_API_KEY (LLM launch 前置)
+    # 4. OPENLUX_API_KEY (LLM launch 前置)
     print("\n[4/7] LLM API access")
-    if os.environ.get('YUNWU_API_KEY', '').strip():
-        print("   [OK] YUNWU_API_KEY set")
+    if os.environ.get('OPENLUX_API_KEY', '').strip():
+        print("   [OK] OPENLUX_API_KEY set")
         n_ok += 1
     else:
-        print("   [WARN] YUNWU_API_KEY not set (stage 21 + stage 35 LLM 不可跑)")
+        print("   [WARN] OPENLUX_API_KEY not set (stage 21 + stage 35 LLM 不可跑)")
         n_warn += 1
 
     # 5. Stata bin (CLI build-replication 后用)
@@ -1035,7 +1035,7 @@ def _cli_doctor(args) -> int:
         print("  Action: 装缺失 Python 包 (pip install -e .)")
         return 1
     if n_warn:
-        print("  Action: 跑 run_pipeline_function.py 产数据; 设 YUNWU_API_KEY 为 LLM launch")
+        print("  Action: 跑 run_pipeline_function.py 产数据; 设 OPENLUX_API_KEY 为 LLM launch")
     return 0
 
 

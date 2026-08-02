@@ -7,7 +7,7 @@
 嵌入文本, 从而在一次运行内对同一批文本用两个 co-primary API 模型各算一遍:
 
   - CO-PRIMARY ① (canonical, 无后缀):  Qwen/Qwen3-Embedding-8B (阿里, OpenAI-compat / 硅基流动, 4096 维)
-  - CO-PRIMARY ② (`_lg`):              text-embedding-3-large (OpenAI, OpenAI-compat / yunwu, 3072 维)
+  - CO-PRIMARY ② (`_lg`):              text-embedding-3-large (OpenAI, OpenAI-compat / OpenLux, 3072 维)
 
 两者 **co-primary 对等互证** (非"主轨 + 稳健性附录"): Qwen (阿里/硅基流动) ⟂ large (OpenAI)
 是 **跨厂商 / 跨训练数据独立性** —— 审稿人质疑"结论是否只是某厂商模型的偶然产物"时,
@@ -84,7 +84,7 @@ logger = logging.getLogger(__name__)
 _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 EMB_MAX_TOKENS = 8191
 # fix(2026-07-24): 新增环境变量 NEWS_PROCESS_EMB_MAX_TOKENS_PER_REQ 运维覆盖 (默认
-#   250_000 不变)。动因 = stage 16 生产首播 `_lg`/yunwu 轨: 25 万 token 大批在服务端
+#   250_000 不变)。动因 = stage 16 生产首播 `_lg`/OpenLux 轨: 25 万 token 大批在服务端
 #   高峰时段响应超过单次尝试 180s 超时 → 全部批反复 TimeoutError 重试, 吞吐塌缩到
 #   ~5 批/80min (2026-07-24 18:20-19:44 实证)。调小单批 token 上限使响应回到秒级即可
 #   绕开; 分批口径只影响请求分组, 不进缓存键 (缓存键=逐字文本), 对产出逐位无影响。

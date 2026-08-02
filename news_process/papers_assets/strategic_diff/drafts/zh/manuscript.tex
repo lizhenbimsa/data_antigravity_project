@@ -229,9 +229,13 @@ Tobin Q 预期呈正向\emph{条件关联}; 按审计裁决
 \subsection{语调标注 (F1: 三家族 LLM 真三角验证)}
 采用三个独立 LLM 家族: \code{gpt-5.4-nano} (OpenAI)、
 \code{gemini-3.1-flash-lite} (Google)、\code{deepseek-v4-flash}
-(DeepSeek)。OpenAI 与 Google 两家通过 yunwu.ai
+(DeepSeek)。OpenAI 与 Google 两家通过 OpenLux
 (\code{/v1/chat/completions}, OpenAI 兼容) 调用, DeepSeek 直连
-\code{api.deepseek.com}; 所有调用 \code{temperature=0}、\code{seed=42},
+\code{api.deepseek.com}\footnote{平台迁移说明: 本文数据的 LLM 推理于 2026 年 7 月经本管线
+当时的聚合中转代理完成; 自 2026 年 8 月起, 管线的聚合中转统一迁移至
+OpenLux (\code{https://api.openlux.ai/v1})。缓存键由「模型名 + prompt
+文本 + prompt 版本 + temperature」四元组构成, 不含端点地址, 故本次迁移
+对既有推理结果逐位无影响, 复现包内的确定性缓存可原样离线重放。}; 所有调用 \code{temperature=0}、\code{seed=42},
 并使用字节级冻结 prompt (版本 v8)。
 家族间一致性以 Cohen's $\kappa$ 与 Krippendorff's $\alpha$ 报告;
 多数投票得最终标签; 平局/空票触发最多 80 轮确定性重试, 仍未破局则
@@ -327,7 +331,7 @@ Burt 结构约束 (\code{bank\_constraint}, 网络嵌入度)。披露约定:
 \emph{LLM 情感标注与路由。}文章级情感与相关性标注采用三家独立
 厂商 LLM 的多数投票集成 (OpenAI \code{gpt-5.4-nano}、Google
 \code{gemini-3.1-flash-lite}、DeepSeek \code{deepseek-v4-flash});
-OpenAI 与 Google 两家经 yunwu.ai 的 OpenAI 兼容端点路由, DeepSeek
+OpenAI 与 Google 两家经 OpenLux 的 OpenAI 兼容端点路由, DeepSeek
 直连 \code{api.deepseek.com}。所有调用 \code{temperature=0}、
 \code{seed=42}、prompt 版本 v8 字节级冻结; 完整调用日志与缓存
 数据库保存在复制包中, 支持零成本离线复现。

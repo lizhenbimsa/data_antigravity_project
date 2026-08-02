@@ -103,8 +103,8 @@ async def call_llm_with_cache(session: aiohttp.ClientSession, cache: LLMCache,
             'NEWS_PROCESS_LLM_OFFLINE=1 下缓存 miss — v7_wz_audit 禁止在线付费调用')
 
     # Cache miss: 调真实 API
-    api_key = os.environ.get('YUNWU_API_KEY') or _read_env_key()
-    url = 'https://yunwu.ai/v1/chat/completions'
+    api_key = os.environ.get('OPENLUX_API_KEY') or _read_env_key()
+    url = 'https://api.openlux.ai/v1/chat/completions'
     headers = {'Authorization': f'Bearer {api_key}',
                'Content-Type': 'application/json'}
     payload = {
@@ -132,9 +132,9 @@ def _read_env_key() -> str:
     env_path = _PROJECT_ROOT / 'news_process' / '.env'
     if env_path.exists():
         for line in env_path.read_text(encoding='utf-8').splitlines():
-            if line.startswith('YUNWU_API_KEY='):
+            if line.startswith('OPENLUX_API_KEY='):
                 return line.split('=', 1)[1].strip().strip('"').strip("'")
-    raise RuntimeError('YUNWU_API_KEY 未设置 (env 或 .env)')
+    raise RuntimeError('OPENLUX_API_KEY 未设置 (env 或 .env)')
 
 
 def build_prompt(row: pd.Series) -> str:

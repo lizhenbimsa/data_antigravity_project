@@ -159,19 +159,19 @@ def test_parse_args_radii_custom():
 
 
 def test_parse_args_max_concurrency_default():
-    """plan v14 R20-A: 默认并发 250 (2026-07-21 项目统一; yunwu 429 退路 8)."""
+    """plan v14 R20-A: 默认并发 250 (2026-07-21 项目统一; OpenLux 429 退路 8)."""
     from news_process.validation.radius_sensitivity_llm import _parse_args
     args = _parse_args([])
     assert args.max_concurrency == 250
 
 
 def test_check_launch_prerequisites_returns_dict():
-    """M1/7: 前置检查返回 dict 含 yunwu/cache/stage_14 状态."""
+    """M1/7: 前置检查返回 dict 含 OpenLux/cache/stage_14 状态."""
     from news_process.validation.radius_sensitivity_llm import _check_launch_prerequisites
     checks = _check_launch_prerequisites()
-    assert 'yunwu_api_key_present' in checks
+    assert 'openlux_api_key_present' in checks
     assert 'llm_cache_exists' in checks
-    assert isinstance(checks['yunwu_api_key_present'], bool)
+    assert isinstance(checks['openlux_api_key_present'], bool)
 
 
 def test_compute_radius_kappa_report_two_radii():

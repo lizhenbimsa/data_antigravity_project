@@ -26,7 +26,7 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
 复现 / 离线注意 (F6/F10, 2026-07-10 五入口再验证):
     - 阶段 66 (entity_masking) / 70 (prompt_sensitivity) 依赖**在线付费 LLM** 重判变体 prompt
       (离线缓存不覆盖变体 prompt_version)。设 NEWS_PROCESS_LLM_OFFLINE=1 时二者优雅跳过、不产出稳健性表;
-      **复现这两张表须配 YUNWU_API_KEY / DEEPSEEK_API_KEY 联网重跑** (F6: 复现包 README/data appendix 须明记)。
+      **复现这两张表须配 OPENLUX_API_KEY / DEEPSEEK_API_KEY 联网重跑** (F6: 复现包 README/data appendix 须明记)。
     - 66/70 离线跳过时**不清理也不覆写**上一轮遗留在 eval_reports/ 的 entity_masking_* / prompt_* 产物 →
       浏览目录时其新鲜度**以 mtime 为准** (F10: 勿把旧轮产物误当本轮结果; 对比 63 的 _DEMO 文件名纪律)。
 

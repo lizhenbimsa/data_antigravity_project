@@ -59,7 +59,7 @@ def test_lg_spec_routes_to_text_embedding_3_large(monkeypatch):
         return _fake_embed(dim=3072)(texts, spec, **kwargs)
 
     lg_spec = {
-        "base_url": "https://yunwu.ai/v1",
+        "base_url": "https://api.openlux.ai/v1",
         "api_key": "fake-key",
         "model": "text-embedding-3-large",
         "text_pipeline_version": "v1-2026-06-27-emb3large",

@@ -267,7 +267,7 @@ new_dois:
 ## VAR: benefit_neg_frac_lg_ctx
 
 【变体差分】
-本列是负面占比的 ctx 轨 _lg 变体: 文本轨道与 benefit_neg_frac_ctx 完全相同 (标题加目标银行实体窗口, conditional-on-full 行宇宙), 唯一差分是嵌入空间 — 使用 co-primary 第二槽 text-embedding-3-large (3072 维, OpenAI 系经 yunwu 通道), 锚点句、文章文本与方向向量全部在该空间内独立重算, 与 canonical 槽零共享中间量, 维度由嵌入矩阵实际列数驱动。列名遵循 lg 中缀置于轨道后缀之前的家族命名法。阈值中心独立冻结: sidecar 键为本列对应的 _lg ctx 得分列名, 中心是该嵌入空间投影分布自身的首跑中位数, 故本列与 canonical ctx 列的占比水平不可直接比较, 跨空间只比较标准化系数的方向与稳健性。本列的方法论职能是双重稳健性交点: 相对 full 轨检验"实体窗口归因收窄是否改变结论", 相对 canonical 槽检验"结论是否被单一嵌入模型的空间几何驱动" — Tang 与 Yang (2025) 的金融嵌入基准表明不同模型在金融语义上的表征差异足以影响下游测度, 双空间并排即为此风险的显式对冲。铁律口径: canonical 与 _lg 两槽同为主测度、互为稳健性、严格 parity (both-or-neither, 本轨任一侧失效则两族同置缺失, 无单边孤儿); 两槽各自 just-identified 并排, 禁混进同一 over-identified Hansen J, 三轨之间亦同。更换嵌入模型前须删除盘上冻结中心 sidecar 对应条目, 否则模型标识守卫 fail-loud 拒跑。
+本列是负面占比的 ctx 轨 _lg 变体: 文本轨道与 benefit_neg_frac_ctx 完全相同 (标题加目标银行实体窗口, conditional-on-full 行宇宙), 唯一差分是嵌入空间 — 使用 co-primary 第二槽 text-embedding-3-large (3072 维, OpenAI 系经 OpenLux 通道), 锚点句、文章文本与方向向量全部在该空间内独立重算, 与 canonical 槽零共享中间量, 维度由嵌入矩阵实际列数驱动。列名遵循 lg 中缀置于轨道后缀之前的家族命名法。阈值中心独立冻结: sidecar 键为本列对应的 _lg ctx 得分列名, 中心是该嵌入空间投影分布自身的首跑中位数, 故本列与 canonical ctx 列的占比水平不可直接比较, 跨空间只比较标准化系数的方向与稳健性。本列的方法论职能是双重稳健性交点: 相对 full 轨检验"实体窗口归因收窄是否改变结论", 相对 canonical 槽检验"结论是否被单一嵌入模型的空间几何驱动" — Tang 与 Yang (2025) 的金融嵌入基准表明不同模型在金融语义上的表征差异足以影响下游测度, 双空间并排即为此风险的显式对冲。铁律口径: canonical 与 _lg 两槽同为主测度、互为稳健性、严格 parity (both-or-neither, 本轨任一侧失效则两族同置缺失, 无单边孤儿); 两槽各自 just-identified 并排, 禁混进同一 over-identified Hansen J, 三轨之间亦同。更换嵌入模型前须删除盘上冻结中心 sidecar 对应条目, 否则模型标识守卫 fail-loud 拒跑。
 
 ## VAR: benefit_neg_frac_lg_full
 

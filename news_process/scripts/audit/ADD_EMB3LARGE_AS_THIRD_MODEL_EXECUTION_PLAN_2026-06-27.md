@@ -1,5 +1,18 @@
 # 执行计划：新增 `text-embedding-3-large` 作**第三嵌入模型**（保留 text2vec）
 
+> ⚠ **2026-08-02 状态订正 (聚合中转平台迁移 yunwu.ai → OpenLux)**: 本文成文时,
+> 本项目的 OpenAI / Google 两家 LLM 与 `_lg` 嵌入孪生轨经 **yunwu.ai 聚合代理**
+> (`https://yunwu.ai/v1`; 环境变量 `YUNWU_API_KEY` / `YUNWU_FULL_KEY`) 路由。
+> **2026-08-02 起全项目已迁移至 OpenLux 聚合代理** (`https://api.openlux.ai/v1`;
+> 变量更名为 `OPENLUX_API_KEY` / `OPENLUX_FULL_KEY`)。DeepSeek 直连
+> (`api.deepseek.com`) 与硅基流动嵌入主轨 (`api.siliconflow.cn`) **不受影响**。
+> 下文一切 `yunwu` / `YUNWU_*` 表述均为**成文当时**的事实记录 (含当时对该端点的
+> 实测探针结果与授权清单), **不代表当前状态**; 保留原文以维持取证链完整。
+> ⚠ 迁移**不改变任何既有数值**: LLM/嵌入缓存键 = (模型名, prompt 文本,
+> prompt 版本, temperature), **不含端点地址** (`core/caching.py::_make_key`),
+> 故 `_llm_cache.db` 既有条目在迁移后仍逐位命中, 离线 `$0` 复现不受影响。
+
+
 > 版本目标：**v3.12.0 · tri-model-embedding**（在既有 主轨 `text-embedding-3-small` + 稳健轨 `text2vec`(`_t2v`) 之上，**新增**第三轨 `text-embedding-3-large`(`_lg`)；三模型并列互为稳健性检验）
 > **本文件 = v3（2026-06-27 第二次 98-agent 顶刊评审后，用户采纳评审 dominant 异议：D-A 由"替换"改为"保留 text2vec + 新增 large"）**
 > 状态：**定稿待第三轮评审 → 批准实施**（D-D 已升级为：评审过后批准执行 + 执行后审核）

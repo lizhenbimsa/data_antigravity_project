@@ -90,7 +90,7 @@ surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
 
 **聚合** `aggregate_to_bank_year`: 每轨 staleness 列 → bank-year mean + highstale(>0.9 占比) 列, `if col in df.columns` 守卫(缺列即跳过, 故 semantic_staleness_ss 在旧 30a parquet 无 emb_ss 时不会误产空列; 2026-06-21 起 30a 产 emb_ss → semantic_ss 三轨平价)。聚合前 `_restrict_to_panel_domain` 把 **平均域** 收缩到 verified 面板语料((docid,target_bank) 内连 24_herd_decay, 缺则 21_tone_llms; 都缺则 ERROR 披露并退回全集)——与面板兄弟列(tone/herd/intensity 聚合自 verified full-only 留篇集; full-only gating 2026-06-29, 此前为三轨并集)口径一致; 但 **参照窗口**(过去7天信息环境)刻意保留全集。
 
-**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。本阶段自身不调 API、$0(纯 CPU MinHash/Faiss); 但其消费的 stage 30a 嵌入 v3.14.0 起为 co-primary 双 API 轨(Qwen 经硅基流动 + text-embedding-3-large 经 yunwu, 由 30a 付费产出, 经 _llm_cache.db 缓存)。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨嵌入 cosine 是扩展(2011年无此类嵌入)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
+**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。本阶段自身不调 API、$0(纯 CPU MinHash/Faiss); 但其消费的 stage 30a 嵌入 v3.14.0 起为 co-primary 双 API 轨(Qwen 经硅基流动 + text-embedding-3-large 经 OpenLux, 由 30a 付费产出, 经 _llm_cache.db 缓存)。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨嵌入 cosine 是扩展(2011年无此类嵌入)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
 
 ■ 白话说明
 

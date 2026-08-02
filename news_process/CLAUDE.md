@@ -11,17 +11,22 @@ Claude Code (claude.ai/code) 在本仓工作的指引。
 
 **Current version**: v3.16.0 (2026-07-17)。逐版 changelog 见 git history (CHANGELOG.md 未维护); 本文件 + git history 是版本权威源, 每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。⚠ 2026-07-21 生产词典换血: `config/fintech_dict.json` 1506→**607 词** (main=b7b70b08, sha16=9c731b78379401e9); 全链缓存/产物已随 2026-07-21/22 九入口审计在线回填重算 (见 `scripts/audit/NINE_ENTRYPOINT_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-21.md`)。2026-07-22 用户裁定**全项目 607 化、严禁 1506 残留**, 三决策项已落地: S13-v2 placebo 白名单换血 {自助银行}; locus_split v2 增量双编码 (289 新词 κ=0.8418, 三桶 215/307/85, v1 双编码表冻结存档); benefit sidecar 补第 4 指纹 `dict_sha256` + 删旧重冻结 (607 语料 median), 27 号/80 号/两侧线同批重生。
 
+**⚠ 2026-08-02 聚合中转平台迁移 (yunwu.ai → OpenLux)**: OpenAI/Google 两家 LLM 与 `_lg` 嵌入孪生轨的 base_url 全部由 `https://yunwu.ai/v1` 换为 **`https://api.openlux.ai/v1`**; 环境变量 `YUNWU_API_KEY`→**`OPENLUX_API_KEY`**、`YUNWU_FULL_KEY`→**`OPENLUX_FULL_KEY`** (密钥值沿用同一串, 实测 OpenLux 认此 key)。DeepSeek 直连 (`api.deepseek.com`) 与硅基流动 Qwen 嵌入主轨 (`api.siliconflow.cn`) **零改动**。
+- 🔑 **缓存零失效 (本次迁移最重要的不变量)**: 缓存键 = `(model_id, prompt, prompt_version, temperature[, seed])`, **不含 base_url/端点/密钥** (`core/caching.py::_make_key`); 且 stage 21 的 `model_id = model_cfg['model_name']`、嵌入侧 = spec 的 `model` + `text_pipeline_version` —— 这三个字段本次 diff **一个都没动**。故 137 GB `_llm_cache.db` 全部条目迁移后仍逐位命中, **零付费重播种、golden 零漂移**。改端点时切勿顺手改 `model_name`/`model`/`text_pipeline_version`, 那才会炸缓存。
+- ✅ 迁移实测 (2026-08-02): `GET /v1/models` HTTP 200 / 481 个授权模型; `gpt-5.4-nano`、`gemini-3.1-flash-lite`、`text-embedding-3-large` 三个生产依赖模型全部可用; 端到端冒烟 (force_json chat ×2 + embeddings ×1, 绕缓存直连) schema 全兼容, `_lg` 返回 3072 维与契约一致。
+- 📜 **历史取证刻意保留 yunwu 字面量** (勿再"清残留"): 22 份历史审计/执行计划文档已加 `2026-08-02 状态订正` 横幅但**保留原文**; `scripts/audit/_replan_v5_evidence/*.json`(原始探针响应)、`data/llm_archive/**/*.jsonl`(原始 API 响应存档, 内含真实 `api_endpoint`)、`21_tone_llms_lineage.json`、历次运行日志、`LLMs_for_dic/保存20260214/` 归档快照**一律不改** —— 它们记录的是当时对 yunwu.ai 的真实调用, 改写即伪造取证链。11 篇论文手稿已切 OpenLux 并加 provenance 脚注 (说明本文数据的推理发生在迁移前、经确定性缓存逐位复现)。
+
 ## 当前状态铁律 (load-bearing, 改动前必读)
 
 **计数不变量**: STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16。注册=32 (16+16); 3 个不注册 shim: 80 (audit-only) / 81、82 (user-CLI, `schemas.py` 显式排除)。阶段增删必同步 `core/dag.py` + `core/schemas.py::OUTPUT_REGISTRY`, 跑 `test_dag_consistency.py`。
 
 **全局稳健性铁律** (下方所有梯子/轨/权重/判据通用, 不再逐处重复): 各变体各自 **just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J**; 梯子间正交不交叉。
 
-**嵌入架构 (co-primary 双轨, 零本地模型)**: canonical 无后缀槽 = `Qwen/Qwen3-Embedding-8B` (硅基流动 `https://api.siliconflow.cn/v1`, 4096 维); `_lg` 槽 = `text-embedding-3-large` (OpenAI/yunwu, 3072 维)。两轨严格 parity (列名双射 both-or-neither; 任一 embed None → 同族两列同置 NaN)。引擎 `embed_texts` 纯 API、维度无关 (由 `emb.shape[1]` 驱动), token 切块 cl100k/8191。stage 15/25/26 产双轨嵌入列。**carve-out**: `surface_staleness`/`surface_highstale` 是 MinHash (非嵌入), 无 `_lg` 孪生。
+**嵌入架构 (co-primary 双轨, 零本地模型)**: canonical 无后缀槽 = `Qwen/Qwen3-Embedding-8B` (硅基流动 `https://api.siliconflow.cn/v1`, 4096 维); `_lg` 槽 = `text-embedding-3-large` (OpenAI/OpenLux, 3072 维)。两轨严格 parity (列名双射 both-or-neither; 任一 embed None → 同族两列同置 NaN)。引擎 `embed_texts` 纯 API、维度无关 (由 `emb.shape[1]` 驱动), token 切块 cl100k/8191。stage 15/25/26 产双轨嵌入列。**carve-out**: `surface_staleness`/`surface_highstale` 是 MinHash (非嵌入), 无 `_lg` 孪生。
 - **换嵌入模型入口**: config 键 `config/features.yaml::embedding_api` + 散落硬编码回退 (核心 4 处 `embedding_engine.spec_model` / `article_sbert._SBERT_MODEL_ID` / `strategic_diff._emb_main` / `stata_export._QWEN_ANNOT`; 另有 producer 内兜底) — 以 `grep 'Qwen/Qwen3-Embedding-8B'` 全仓非测试文件逐处改, 否则 config 改了回退仍指旧模型。完整清单见 `SWAP_GEMINI_TO_QWEN3_SILICONFLOW_EXECUTION_PLAN`。`spec_uses_local` 恒 False 纯谓词守卫 (勿删)。
 - ⚠ 换嵌入前必先删盘上冻结阈值文件 (如 `data/processed/_benefit_center_sidecar.json`), 否则跨嵌入空间阈值守卫 fail-loud → stage 40 benefit 崩。
 - **零 instruct 前缀 (刻意, 绝不加)**: 嵌入用于对称相似度任务, 加官方非对称检索前缀会任务失配, 且无前缀文本已冻结播种为缓存键 → 加前缀 = 全部嵌入缓存作废 + golden 全漂移。
-- 🚫 **嵌入 ≠ LLM**: stage 21 情感 LLM 是三家投票 (`gpt-5.4-nano`/gpt54nano · `gemini-3.1-flash-lite`/gemini31 走 yunwu · `deepseek-v4-flash`/deepseekv4 直连 api.deepseek.com), 与嵌入模型无关 — 换嵌入时全仓零误改。
+- 🚫 **嵌入 ≠ LLM**: stage 21 情感 LLM 是三家投票 (`gpt-5.4-nano`/gpt54nano · `gemini-3.1-flash-lite`/gemini31 走 OpenLux · `deepseek-v4-flash`/deepseekv4 直连 api.deepseek.com), 与嵌入模型无关 — 换嵌入时全仓零误改。
 - gate: `test_embedding_coprimary_parity` + `test_qwen_semantic_validity` (ρ≥0.80 / ≥500 对)。⚠ 生产首次播种须验硅基流动 >256 批是否限流 (探针仅验到 n≤256)。
 
 **三轨 `_full`/`_ctx`/`_ss`**: full=标题+正文; ctx=标题+实体窗口; ss=标题+银行∧金科同句±N 窗 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认1; ≠ `cooccurrence_filter.sentence_radius`)。三轨文本 (`content_{full,ctx,ss}` + `*_is_fallback`) 在 stage 14 `ctx_materializer` 物化 (`prepend_title`, 原始`内容`列不动); 情感 21/22/23/24 均跑三轨。判定不对称: 银行侧=否定+短名过滤, 金科侧=裸 AC 607 词 (2026-07-21 词典换血 1506→607, main=b7b70b08)。
@@ -102,7 +107,7 @@ news_process/
 # 环境 (Windows PowerShell venv; 解释器走 conda base python 3.13)
 python -m venv venv && venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-cp news_process/.env.example news_process/.env   # 填 YUNWU_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY
+cp news_process/.env.example news_process/.env   # 填 OPENLUX_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY
 pre-commit install
 
 # 跑 pipeline —— ⚠ 2026-07-28 订正: 旧载「从 repo 根 …\data_antigravity_project\ 跑
@@ -156,10 +161,11 @@ pytest news_process/tests/integration/test_panel_reproducibility.py   # 从 repo
 - **调试失败阶段**: 看 `logs/<stage>.log` → 单跑 `python news_process/NN_<stage>.py` → `pytest tests/test_XX_<stage>.py -v` → 查 `data/processed/`。
 
 ## Environment Variables (`.env`)
-- `YUNWU_API_KEY`: stage 21 (gpt54nano/gemini31) + 若干 LLM 验证阶段 (66/70) + `_lg`/yunwu 嵌入。
+- `OPENLUX_API_KEY`: stage 21 (gpt54nano/gemini31) + 若干 LLM 验证阶段 (66/70) + `_lg`/OpenLux 嵌入。
 - `DEEPSEEK_API_KEY`: stage 21 第三家 `deepseek-v4-flash` (直连 api.deepseek.com)。离线命中不需; 生产首跑/播种须填。
 - `SILICONFLOW_API_KEY`: canonical Qwen 嵌入轨。
-- `EMBEDDING_API_KEY`: 默认 `${YUNWU_API_KEY}` (可覆盖独立端点)。
+- `EMBEDDING_API_KEY`: 默认 `${OPENLUX_API_KEY}` (可覆盖独立端点)。
+- `OPENLUX_FULL_KEY`: **仅** `LLMs_for_FinTech_dic/` 独立管道读 (`config.py::API_KEY`); 端点由 `OPENLUX_BASE_URL` 覆盖, 默认 `https://api.openlux.ai/v1`。本机与 `OPENLUX_API_KEY` 同值但**是两个独立变量**, 改 key 须同改两处。
 - `FINBERT2_MODEL_DIR`: 可选本地 BERT (stage 23 缺失时优雅跳过)。
 - ⚠ `LLMs_for_FinTech_dic/` 独立管道用**独立开关 `LLMS_DIC_OFFLINE`** (`NEWS_PROCESS_LLM_OFFLINE` 对其无效)。
 - ⚠ 裸环境嵌入 SSL 报错 → 设 `SSL_CERT_FILE=$(python -c "import certifi;print(certifi.where())")`; 重跑 stage 23 BERT 设 `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1`。

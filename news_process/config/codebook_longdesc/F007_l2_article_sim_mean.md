@@ -109,7 +109,7 @@ new_dois: []
 ## VAR: article_sim_mean_lg
 
 【变体差分】
-本列相对 canonical 只改底层嵌入模型一个维度: 文本轨仍是最完整的 full 轨, 但把编码报道与政策锚的嵌入从 Qwen canonical 换成 co-primary 的 _lg 槽, 即 text-embedding-3-large (OpenAI 或 yunwu 代理, 3072 维)。它是 canonical 列 article_sim_mean 的 co-primary 对偶: 两轨同为主测度、互为稳健性、严格 parity, 表现为列名双射 both-or-neither——只要一条轨存在另一条必须存在, 任一嵌入调用返回 None 则同族的这两列一并置 NaN, 绝不留下单边孤儿。文章级原语为 policy_cosine_sim 的 _lg 孪生 policy_cosine_sim_lg, 在面板层沿 full/ctx/ss 三轨对称聚合。之所以要并列两套独立嵌入, 根本原因在于余弦相似度的绝对水平强烈依赖具体嵌入空间的几何性质, 包括维度、训练语料分布与向量各向异性, 同一段文本在不同嵌入空间里算出的相似度并不可直接比较水平; 因此用两个不同厂商、不同维度的模型分别度量同一政策对齐构念, 才能检验主结论并非由单一嵌入空间的表征伪影所驱动, 而是稳健地存在于两套几何之下。铁律: 两条 co-primary 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把 canonical 与 _lg 两列混进同一 over-identified Hansen J 过度识别检验。还须强调, 本列所换的是嵌入模型, 与 Stage 21 情感大模型的三家投票没有任何关系, 换嵌入时对全部情感列零误改。
+本列相对 canonical 只改底层嵌入模型一个维度: 文本轨仍是最完整的 full 轨, 但把编码报道与政策锚的嵌入从 Qwen canonical 换成 co-primary 的 _lg 槽, 即 text-embedding-3-large (OpenAI 或 OpenLux 代理, 3072 维)。它是 canonical 列 article_sim_mean 的 co-primary 对偶: 两轨同为主测度、互为稳健性、严格 parity, 表现为列名双射 both-or-neither——只要一条轨存在另一条必须存在, 任一嵌入调用返回 None 则同族的这两列一并置 NaN, 绝不留下单边孤儿。文章级原语为 policy_cosine_sim 的 _lg 孪生 policy_cosine_sim_lg, 在面板层沿 full/ctx/ss 三轨对称聚合。之所以要并列两套独立嵌入, 根本原因在于余弦相似度的绝对水平强烈依赖具体嵌入空间的几何性质, 包括维度、训练语料分布与向量各向异性, 同一段文本在不同嵌入空间里算出的相似度并不可直接比较水平; 因此用两个不同厂商、不同维度的模型分别度量同一政策对齐构念, 才能检验主结论并非由单一嵌入空间的表征伪影所驱动, 而是稳健地存在于两套几何之下。铁律: 两条 co-primary 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把 canonical 与 _lg 两列混进同一 over-identified Hansen J 过度识别检验。还须强调, 本列所换的是嵌入模型, 与 Stage 21 情感大模型的三家投票没有任何关系, 换嵌入时对全部情感列零误改。
 
 ## VAR: article_sim_mean_lg_ctx
 

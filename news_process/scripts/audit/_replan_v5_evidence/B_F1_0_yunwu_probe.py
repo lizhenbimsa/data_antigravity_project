@@ -1,5 +1,10 @@
 """F1-0 yunwu.ai/v1 透传探针（强制前置门）
 
+[⚠ 2026-08-02 状态订正] 本探针针对 **yunwu.ai** 端点 (成文当时的聚合代理)。
+2026-08-02 起全项目已迁移至 OpenLux (https://api.openlux.ai/v1, OPENLUX_API_KEY)。
+本文件保留原样作历史取证 —— 其记录的是当时对 yunwu.ai 的真实实测结果, 不代表
+当前生产端点; 如需对 OpenLux 做同类探测, 请另写新探针, 勿改本文件。
+
 对 3 个候选 model_name 各发 1 条最小 prompt（探测期候选名，非 config 锁定名；
 其中 gemini-3.1-flash-lite-preview 为带 -preview 后缀的候选，与 config 中
 gemini-3.1-flash-lite 不同），记录：

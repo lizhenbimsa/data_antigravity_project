@@ -4,13 +4,13 @@
 
 # ──────────────────────────────────────────────────────────────────────────
 # Co-primary 双 API 嵌入 (v3.15.0, 2026-06-28): Qwen/Qwen3-Embedding-8B (阿里, 硅基流动)
-# 与 text-embedding-3-large (OpenAI, yunwu) 并列 CO-PRIMARY、对等互证、严格 parity (跨厂商
+# 与 text-embedding-3-large (OpenAI, OpenLux) 并列 CO-PRIMARY、对等互证、严格 parity (跨厂商
 # 独立性)。每个嵌入特征 (stage 15/16/25/26/27/46) 在一次运行内用两个 API spec 各算
 # 一遍, 并排产出 canonical 列 (无后缀=Qwen3-Embedding-8B) + `_lg` 孪生列 (text-embedding-3-large)。
 # `_lg` 后缀仅为列命名机制 (panel 不能两列同名), 无主次/层级含义。
 # 铁律: 两 co-primary 各自 just-identified 并排报告, 禁混进同一 over-identified Hansen J。
 # 本地嵌入模型 (text2vec `_t2v` / bge-m3 `_bge`) 已于 v3.14.0 整体移除 (全 API、零本地)。
-# v3.15.0 (2026-06-28): canonical 槽由 gemini-embedding-2-preview (Google/yunwu, 3072 维)
+# v3.15.0 (2026-06-28): canonical 槽由 gemini-embedding-2-preview (Google/OpenLux, 3072 维)
 #   换为 Qwen/Qwen3-Embedding-8B (阿里/硅基流动, 4096 维); `_lg` 孪生 (text-embedding-3-large) 不动。
 #   维度不同 (4096 vs 3072) 与稳健性无关 — 余弦本就维度无关, 两 co-primary 各自独立编码绝不混算。
 # 白话: 每个语义指标都用 Qwen (阿里, 中文专训) 和 OpenAI 两套在线模型各算一遍, 两套都是
@@ -19,7 +19,7 @@
 embedding_api:                                   # CO-PRIMARY ① (canonical, 无后缀) — Qwen/Qwen3-Embedding-8B (阿里, 硅基流动)
   model: Qwen/Qwen3-Embedding-8B
   base_url: https://api.siliconflow.cn/v1        # 硅基流动 (SiliconFlow) OpenAI-compat 端点
-  api_key: ${SILICONFLOW_API_KEY}                # .env 中独立填硅基流动密钥 (与 yunwu 不同源)
+  api_key: ${SILICONFLOW_API_KEY}                # .env 中独立填硅基流动密钥 (与 OpenLux 不同源)
   # (缓存批号) 传给 LLMCache.get/put 的 prompt_version 参数, 用于 embedding callsite
   # (policy_alignment / strategic_diff / policy_similarity / benefit_society /
   # network_spillover / fintech_intensity / article_sbert) 的缓存键命名空间。
@@ -31,8 +31,8 @@ embedding_api:                                   # CO-PRIMARY ① (canonical, �
 
 embedding_large:                                 # CO-PRIMARY ② (`_lg` 孪生槽) — text-embedding-3-large (OpenAI); 与 Qwen3-Embedding-8B 对等互证, 跨厂商
   model: text-embedding-3-large
-  base_url: https://yunwu.ai/v1
-  api_key: ${EMBEDDING_API_KEY}                  # .env 中 = ${YUNWU_API_KEY}
+  base_url: https://api.openlux.ai/v1
+  api_key: ${EMBEDDING_API_KEY}                  # .env 中 = ${OPENLUX_API_KEY}
   # 独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
   # ⚠ bump 触发条件同 embedding_api: 改 model / 切片策略任一, 必同 diff 改此标号。
   text_pipeline_version: "v1-2026-06-27-emb3large"

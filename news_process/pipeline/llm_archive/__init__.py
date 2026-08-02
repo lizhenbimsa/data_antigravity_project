@@ -45,7 +45,7 @@ cache), 只在 cache miss + API 调用后 *append-only* 归档到独立 JSONL st
 - temperature:       0.0
 - prompt:            完整 prompt 文本
 - response_raw:      API 返回的完整 JSON (不仅是 content, 还有 finish_reason, usage 等)
-- api_endpoint:      "https://api.yunwu.ai/v1/chat/completions"
+- api_endpoint:      "https://api.openlux.ai/v1/chat/completions"
 - http_status:       200
 - http_headers:      {x-request-id, x-ratelimit-*}   (可选, default off)
 
