@@ -254,6 +254,40 @@ class LLMCache:
                 created_at  REAL NOT NULL
             )
         """)
+        # D1 弃票登记表 (2026-08-02, 用户裁定「仅 permanent」变体; 审计计划
+        # STAGE21_LOG_DEFECT_AUDIT_AND_REMEDIATION_PLAN_2026-07-25 §D1/§7-Q2(a)
+        # 中记作 `_llm_dropped_votes`, 实现取与主表一致的无前缀命名)。
+        #
+        # 动因: 模型对个别 (model, prompt) 格**永久拒绝**出票 (实测两型: DeepSeek
+        # HTTP 400 "Content Exists Risk" 内容风控 / gemini31 对特定长文本连续 30 次
+        # 返回空 completion)。这类响应按承重设计**绝不**写入主缓存 llm_cache
+        # (`_is_cacheable_llm_response` 闸门, 防坏条目被固化成伪票), 于是这些格永久
+        # 缺条目 → 离线确定性模式下 miss → raise → **整个付费阶段崩溃**。
+        #
+        # 本表是这一矛盾的出口: 它**不是**缓存, 不参与任何在线命中路径, 只回答一个
+        # 问题 —— 「这一格的 miss, 是已证实的模型永久拒绝, 还是真的没跑过?」。离线跑
+        # 遇 miss 时先查本表: 有据可查 → 返回缺票 (与在线路径对同一格的行为逐字节
+        # 一致) + loud WARNING; 查无此格 → 照旧 raise。
+        #
+        # ⚠ 铁律 (不得放宽): 只登记**永久型**失败 (不可重试 HTTP / 连续 N 次稳定
+        # 返空)。超时、5xx、网络抖动等**瞬时**故障绝不登记 —— 它们下次跑可能成功,
+        # 静默放行会把真实的网络问题固化成"缺票"而不再提醒回填。
+        # ⚠ 实施纪律: 只 CREATE TABLE 新表; 严禁对 llm_cache 主表 ALTER/CREATE INDEX
+        # (本库已达 147 GB, 主表 DDL 会长时间持锁并连坐 stage 15/16/21/25/26/27)。
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS llm_dropped_votes (
+                cache_key      TEXT PRIMARY KEY,
+                model_id       TEXT NOT NULL,
+                prompt_version TEXT NOT NULL,
+                temperature    REAL NOT NULL,
+                failure_kind   TEXT NOT NULL,
+                reason         TEXT NOT NULL,
+                attempts       INTEGER NOT NULL,
+                http_status    INTEGER,
+                first_seen     REAL NOT NULL,
+                last_seen      REAL NOT NULL
+            )
+        """)
         self._conn.commit()
 
     @staticmethod
@@ -516,6 +550,97 @@ class LLMCache:
                     deleted += cursor.rowcount
             self._conn.commit()
         return deleted
+
+    # ------------------------------------------------------------------
+    # D1 弃票登记表 API (见 __init__ 中 llm_dropped_votes 建表处的完整设计说明)
+    # ⚠ 与主缓存**语义正交**: 本组方法既不读也不写 llm_cache, 主缓存的
+    #   "只装通过 _is_cacheable_llm_response 的好响应" 设计零妥协。
+    # ------------------------------------------------------------------
+
+    def get_dropped_vote(self, model_id: str, prompt: str,
+                         *, prompt_version: str = "v0",
+                         temperature: float = 0.0,
+                         random_seed: int | None = None) -> dict | None:
+        """查询某 (model, prompt) 格是否已登记为**永久弃票**。
+
+        与主缓存 ``get()`` 用同一套键算法 (``_make_key``), 故同一格在两表中的
+        键字节级一致。**刻意不做 v0 fallback** — 本表是 2026-08-02 新建的, 不存在
+        历史 v0 条目, 加 fallback 只会凭空多一次无谓查询。
+
+        Returns:
+            dict | None: 命中时返回 {failure_kind, reason, attempts, http_status,
+            first_seen, last_seen}; 未登记返回 None。
+        """
+        key = self._make_key(model_id, prompt,
+                             prompt_version=prompt_version,
+                             temperature=temperature,
+                             random_seed=random_seed)
+        with self._lock:
+            cursor = self._conn.execute(
+                "SELECT failure_kind, reason, attempts, http_status, "
+                "first_seen, last_seen FROM llm_dropped_votes WHERE cache_key = ?",
+                (key,)
+            )
+            row = cursor.fetchone()
+        if not row:
+            return None
+        return {
+            'failure_kind': row[0],
+            'reason': row[1],
+            'attempts': row[2],
+            'http_status': row[3],
+            'first_seen': row[4],
+            'last_seen': row[5],
+        }
+
+    def put_dropped_vote(self, model_id: str, prompt: str,
+                         *, failure_kind: str, reason: str, attempts: int,
+                         http_status: int | None = None,
+                         prompt_version: str = "v0",
+                         temperature: float = 0.0,
+                         random_seed: int | None = None) -> None:
+        """登记一个**永久弃票**格。
+
+        ⚠ 调用方责任: 只对已证实的永久型失败调用 (不可重试 HTTP / 连续 N 次稳定
+        返空)。瞬时故障 (超时 / 5xx / 网络抖动) **绝不**登记 —— 判据在调用方
+        (``tone_llms.fetch_llm_async``), 本方法不做二次甄别。
+
+        重复登记时保留原 ``first_seen`` 并刷新 ``last_seen`` / ``attempts`` /
+        ``reason`` (同一格可能在不同跑中以不同尝试次数复现同一永久失败)。
+        """
+        key = self._make_key(model_id, prompt,
+                             prompt_version=prompt_version,
+                             temperature=temperature,
+                             random_seed=random_seed)
+        now = time.time()
+        with self._lock:
+            # COALESCE 保留首次登记时间: 子查询取旧值, 无旧行时回落到本次 now。
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO llm_dropped_votes
+                    (cache_key, model_id, prompt_version, temperature,
+                     failure_kind, reason, attempts, http_status,
+                     first_seen, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+                        COALESCE((SELECT first_seen FROM llm_dropped_votes
+                                  WHERE cache_key = ?), ?),
+                        ?)
+                """,
+                (key, str(model_id), str(prompt_version), float(temperature),
+                 str(failure_kind), str(reason), int(attempts), http_status,
+                 key, now, now)
+            )
+            self._conn.commit()
+
+    def dropped_vote_stats(self) -> dict:
+        """弃票登记表的规模摘要 (按 failure_kind 分组计数) — 供审计/日志用。"""
+        with self._lock:
+            cursor = self._conn.execute(
+                "SELECT failure_kind, COUNT(*) FROM llm_dropped_votes "
+                "GROUP BY failure_kind"
+            )
+            by_kind = {r[0]: r[1] for r in cursor.fetchall()}
+        return {'total': sum(by_kind.values()), 'by_kind': by_kind}
 
     def stats(self) -> dict:
         """返回运行时 hit/miss/write 计数 + 推导的 hit_rate (T0.0a).

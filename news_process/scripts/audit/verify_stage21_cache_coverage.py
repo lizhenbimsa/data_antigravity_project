@@ -8,14 +8,23 @@ golden snapshot 的可复现性依赖 stage 21 (LLM 双轨投票) 的确定性�
 有效文章的边缘银行整行掉出, panel 176→174 行漂移)。
 
 因此确定性的充要条件是: **当前语料 × 全部启用模型 × 三轨 (full/ctx/ss), 在 ``_llm_cache.db``
-中 0 个 miss**。本脚本即如实测量这一覆盖率, 全程 **纯缓存读, 零网络、零 API、$0**。
+中 0 个真 miss**。本脚本即如实测量这一覆盖率, 全程 **纯缓存读, 零网络、零 API、$0**。
 
-判定
-----
-- ``misses == 0``  → 当前 golden 语料完全被缓存覆盖 → golden 可在 *不调用付费
-  API* 的前提下字节级确定性复现。退出码 0。
-- ``misses > 0``   → 存在未覆盖的 ``(model, prompt)``; 打印前若干缺口 (model /
-  row_idx / track) 供回填。退出码 2。
+判定 (2026-08-02 修订: 引入「真 miss」口径)
+------------------------------------------
+主缓存 miss 的格分两类, 只有前者阻塞复现:
+
+- **真 miss** — 主缓存无条目, 且不在 D1 弃票登记表 (``llm_dropped_votes``) 中。
+  这类格下次跑会真调付费 API, 结果可能与 golden 不一致。
+- **已登记弃票** — 主缓存无条目, 但登记表有据: 模型对该格**永久拒绝出票**
+  (实测两型: DeepSeek HTTP 400 内容风控 / gemini31 对特定长文连续 30 次返空)。
+  这类格物理上补不回来, 而在线路径对它们的行为本来就是"返 None 票、退化为 2 票
+  多数决"; 离线跑照此放行即为**忠实复现**, 不构成不确定性。
+
+- ``true_misses == 0``  → 语料被完全覆盖 → golden 可在 *不调用付费 API* 的前提下
+  字节级确定性复现。退出码 0 (registered_dropped 可 > 0)。
+- ``true_misses > 0``   → 存在未覆盖的 ``(model, prompt)``; 打印前若干缺口供回填
+  (``backfill_stage21_cache_misses --execute``)。退出码 2。
 
 与 stage 21 的一致性
 --------------------
@@ -105,8 +114,12 @@ def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
 
     hits = 0
     misses = 0
+    # D1 (2026-08-02): 命中弃票登记表的格 — 模型已证实永久拒绝出票, 物理上补不
+    # 回来, 离线跑对它们按缺票放行而非崩溃。故它们**不是**真 miss, 单独计数。
+    registered = 0
     per_model_miss: dict[str, int] = {m['model_name']: 0 for m in models}
     miss_samples: list[tuple] = []
+    registered_samples: list[tuple] = []
 
     with LLMCache(cache_db) as cache:
         for row_idx, track, prompt in tone_llms.iter_article_track_prompts(df):
@@ -118,20 +131,38 @@ def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
                     temperature=tone_llms.TEMPERATURE,
                     random_seed=tone_llms.RANDOM_SEED,
                 )
-                if resp is None:
-                    misses += 1
-                    per_model_miss[model_id] += 1
-                    if len(miss_samples) < max_show:
-                        miss_samples.append((model_id, row_idx, track))
-                else:
+                if resp is not None:
                     hits += 1
+                    continue
+                dropped = cache.get_dropped_vote(
+                    model_id, prompt,
+                    prompt_version=tone_llms.PROMPT_VERSION,
+                    temperature=tone_llms.TEMPERATURE,
+                    random_seed=tone_llms.RANDOM_SEED,
+                )
+                if dropped is not None:
+                    registered += 1
+                    if len(registered_samples) < max_show:
+                        registered_samples.append(
+                            (model_id, row_idx, track, dropped['failure_kind']))
+                    continue
+                misses += 1
+                per_model_miss[model_id] += 1
+                if len(miss_samples) < max_show:
+                    miss_samples.append((model_id, row_idx, track))
 
-    total = hits + misses
+    total = hits + registered + misses
     rate = hits / total if total else 0.0
-    print(f"\n[verify] 结果: lookups={total} hits={hits} misses={misses} "
+    print(f"\n[verify] 结果: lookups={total} hits={hits} "
+          f"registered_dropped={registered} true_misses={misses} "
           f"hit_rate={rate:.6f}")
     for mid, mc in per_model_miss.items():
-        print(f"[verify]   {mid}: misses={mc}")
+        print(f"[verify]   {mid}: true_misses={mc}")
+    if registered:
+        print(f"\n[verify] ℹ {registered} 个格命中 D1 弃票登记表 (模型永久拒绝出票, "
+              f"离线按缺票放行, 与在线路径行为一致 — **不是**缺陷):")
+        for s in registered_samples:
+            print(f"[verify]     {s}")
 
     if misses == 0:
         if min_rows > 0 and n_rows < min_rows:
@@ -139,15 +170,18 @@ def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
                   "覆盖率证明仅对该子生产帧有效, **不足以** 在 $0 下确定性复现全量 T=19 "
                   "golden。请对全量 18.2M 语料帧重跑本检查 (--input <全量 15_fintech_intensity>)。")
             return 3
-        print("\n[verify] ✅ 0 miss — golden 语料完全被缓存覆盖, stage 21 可 $0 "
-              "确定性复现 (缓存即确定性锚点, 勿删 _llm_cache.db)。")
+        print(f"\n[verify] ✅ 真 miss = 0 — golden 语料完全被缓存覆盖"
+              f"{f' (另有 {registered} 格在弃票登记表中有据可查)' if registered else ''}, "
+              "stage 21 可 $0 确定性复现 (缓存即确定性锚点, 勿删 _llm_cache.db)。")
         return 0
 
-    print(f"\n[verify] ❌ {misses} 个 miss — golden 无法在不调 API 下确定性复现。"
+    print(f"\n[verify] ❌ {misses} 个真 miss — golden 无法在不调 API 下确定性复现。"
           f" 前 {len(miss_samples)} 个缺口 (model, row_idx, track):")
     for s in miss_samples:
         print(f"[verify]     {s}")
-    print("[verify] 修复: 在线跑一次 stage 21 回填缓存, 或检查语料/prompt_version 漂移。")
+    print("[verify] 修复: python -m news_process.scripts.audit."
+          "backfill_stage21_cache_misses --execute (只碰 miss 格), "
+          "或检查语料/prompt_version 漂移。")
     return 2
 
 

@@ -346,14 +346,34 @@ LLM_OFFLINE = os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in 
 class LLMCacheMissError(RuntimeError):
     """离线确定性模式 (``NEWS_PROCESS_LLM_OFFLINE=1``) 下遭遇缓存 miss。
 
-    含义: 当前语料存在未被 ``_llm_cache.db`` 覆盖的 ``(model, prompt)`` 组合,
-    意味着 golden 无法在 *不调用付费 API* 的前提下确定性复现。
+    含义: 当前语料存在未被 ``_llm_cache.db`` 覆盖、**且未登记为永久弃票**的
+    ``(model, prompt)`` 组合, 意味着 golden 无法在 *不调用付费 API* 的前提下
+    确定性复现。
 
     修复路径:
-    1. 显式在线跑一次 stage 21 (env 不设此开关) 回填缺失缓存; 或
-    2. 检查语料 / ``prompt_template_version`` / 模型清单是否相对 golden 漂移
+    1. 定向回填: ``python -m news_process.scripts.audit.backfill_stage21_cache_misses
+       --execute`` (只对 miss 格调 API, 不覆写任何既有条目); 或
+    2. 显式在线跑一次 stage 21 (env 不设此开关) 回填缺失缓存; 或
+    3. 检查语料 / ``prompt_template_version`` / 模型清单是否相对 golden 漂移
        (漂移会改变缓存键 → 全 miss)。
+
+    ⚠ 注意本异常**不再**覆盖「模型永久拒绝出票」的格 (见
+    ``_PERMANENT_EMPTY_MIN_ATTEMPTS`` 与 ``LLMCache.get_dropped_vote``): 那类格
+    物理上补不回来, 已改为查弃票登记表后按缺票放行 + loud WARNING。
     """
+
+
+# D1 弃票登记表 (2026-08-02 用户裁定「仅 permanent」变体) — 判定「200 空响应」
+# 型失败为**永久**所需的最小连续尝试次数。
+#
+# 为什么要独立于 ``max_retries``: 判据若写成"用满预算即永久", 则把 max_retries
+# 调到 1 就能让任何一次偶发失败被登记成永久弃票, 判据强度随参数漂移。定一个
+# 与参数无关的地板, 保证「登记 = 至少连续 5 次稳定返空」这一含义恒定。
+#
+# 取 5 的依据 (2026-08-02 实测): 生产遗留的 4 个不可回填格中, gemini31 行 109994
+# full 轨连续 **30** 次全返空; 而同批另外 116 个 gemini 格在 OpenLux 网关下**一次
+# 即成** —— 5 次已足以把"这一篇内容让模型稳定返空"与"网关抖动"分开。
+_PERMANENT_EMPTY_MIN_ATTEMPTS = 5
 
 
 def _compute_retry_sleep(attempt: int) -> float:
@@ -760,6 +780,24 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     # 调用, 显式 raise 让 run 经 asyncio.as_completed (run_all_llms) 立即
     # loud-fail。这一步发生在 semaphore / session.post 之前, 保证 $0 与零网络。
     if LLM_OFFLINE:
+        # D1 (2026-08-02 用户裁定): raise 之前先问弃票登记表 —— 「这一格的 miss,
+        # 是模型已证实的**永久拒绝**, 还是真的没跑过?」。前者物理上补不回来
+        # (实测两型: DeepSeek 400 内容风控 / gemini31 对特定长文连续 30 次返空),
+        # 而在线路径对同一格的行为**本来就是**返 None 票、退化为 2 票多数决 ——
+        # 故此处按缺票放行才是对在线跑的**忠实**复现, hard-fail 反而做不到。
+        # 瞬时故障不会进登记表 (写入侧判据), 遇之照旧 raise。
+        dropped = (cache.get_dropped_vote(
+            model_id, prompt, prompt_version=prompt_version,
+            temperature=TEMPERATURE, random_seed=RANDOM_SEED,
+        ) if cache is not None else None)
+        if dropped is not None:
+            logger.warning(
+                f"[{model_id}] 行 {row_idx} [轨 {track}]: 缓存 miss 但命中**弃票登记表** "
+                f"(kind={dropped['failure_kind']}, attempts={dropped['attempts']}, "
+                f"http_status={dropped['http_status']}) — 该格为模型永久拒绝出票, "
+                f"按缺票放行 (与在线路径行为一致), 不中止离线复现。原因: {dropped['reason']}"
+            )
+            return row_idx, model_id, None, track
         raise LLMCacheMissError(
             f"离线确定性模式缓存 miss: model={model_id} row_idx={row_idx} "
             f"track={track} prompt_version={prompt_version}; "
@@ -777,8 +815,17 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
 
     last_failure_reason = f"连续 {max_attempts} 次请求未成功"
 
+    # D1 弃票登记表判据的三个计数器 (仅用于区分永久 vs 瞬时失败, 不影响任何
+    # 请求/缓存/投票逻辑)。判据严格: 只有「不可重试 HTTP」或「每一次尝试都是
+    # 空响应且尝试数 ≥ _PERMANENT_EMPTY_MIN_ATTEMPTS」才算永久; 一旦掺入超时/
+    # 5xx/网络抖动 (empty_attempts < attempts_used), 即视为瞬时, 不登记。
+    permanent_http_status: int | None = None
+    empty_attempts = 0
+    attempts_used = 0
+
     async with semaphore:
         for attempt in range(max_attempts):
+            attempts_used = attempt + 1
             if model_availability is not None and model_availability.is_disabled(model_id):
                 return row_idx, model_id, None, track
 
@@ -800,6 +847,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                         # 永不写入确定性锚点 _llm_cache.db (否则缓存命中后该格永不重试,
                         # 被固化为伪 False 票 / 模型缺席, 即用户实测 rawlen=806/933 现象)。
                         if not _is_cacheable_llm_response(result_text):
+                            empty_attempts += 1   # D1: 空响应型失败计数
                             last_failure_reason = (
                                 f"连续 {max_attempts} 次请求未成功，"
                                 f"最后一次 200 响应内容为空、不可解析或缺 "
@@ -893,6 +941,9 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                             f"HTTP {resp.status} 不可重试错误 (fail-fast, 未重试): "
                             f"{_summarize_http_failure(resp_text)}"
                         )
+                        # D1: 不可重试 HTTP = 服务端永久拒绝 (典型 DeepSeek 400
+                        # "Content Exists Risk" 内容风控), 重试多少次都是同一答案。
+                        permanent_http_status = resp.status
                         logger.error(f"[{model_id}] API 错误 {resp.status}: {resp_text}")
                         break
             except asyncio.TimeoutError:
@@ -908,6 +959,42 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                 if has_more_attempts:
                     _log_retryable_transport_issue(model_id, attempt, sleep_s, max_attempts)
                     await asyncio.sleep(sleep_s)
+
+    # D1 弃票登记 (2026-08-02 用户裁定「仅 permanent」变体): 在返回 None 票之前,
+    # 若本次失败已证实为**永久型**, 把这一格登记到 llm_dropped_votes 独立表, 使
+    # 下次离线复现遇到它时按缺票放行而非崩溃 (读取侧见上方 LLM_OFFLINE 分支)。
+    #
+    # ⚠ 主缓存语义零妥协: 这里**不**往 llm_cache 写任何东西 —— 坏响应绝不进确定性
+    #   锚点的承重设计原封不动, 登记表只是"这格为何永远没有好响应"的旁证账本。
+    # ⚠ 判据从严 (这是「仅 permanent」裁定的落点):
+    #   · http_permanent — 服务端明确的不可重试错误 (break 出循环), 必永久;
+    #   · empty_response — **每一次**尝试都是空/不可解析响应, 且尝试数 ≥ 地板值;
+    #     只要掺了一次超时/5xx/网络抖动 (empty_attempts < attempts_used), 就判为
+    #     瞬时、**不登记** → 下次离线仍会 loud-fail 提醒回填, 不把网络问题固化成缺票。
+    #   · auth 失败 / 模型被停用走的是循环内的 early return, 根本到不了这里 (刻意:
+    #     那是运维问题, 必须每次都暴露)。
+    _dropped_kind = None
+    if permanent_http_status is not None:
+        _dropped_kind = 'http_permanent'
+    elif (empty_attempts > 0 and empty_attempts == attempts_used
+            and attempts_used >= _PERMANENT_EMPTY_MIN_ATTEMPTS):
+        _dropped_kind = 'empty_response'
+    if _dropped_kind is not None and cache is not None:
+        try:
+            cache.put_dropped_vote(
+                model_id, prompt,
+                failure_kind=_dropped_kind,
+                reason=last_failure_reason,
+                attempts=attempts_used,
+                http_status=permanent_http_status,
+                prompt_version=prompt_version,
+                temperature=TEMPERATURE,
+                random_seed=RANDOM_SEED,
+            )
+        except Exception as _reg_exc:
+            # 登记失败绝不拖垮阶段: 本表是复现便利设施, 不是正确性前提。
+            # 未登记的后果仅是"下次离线跑对该格仍 hard-fail", 与改前行为一致。
+            logger.warning(f"[{model_id}] 弃票登记失败 (不阻塞 pipeline): {_reg_exc!r}")
 
     # 所有重试均失败，返回 None 标记（区别于空 JSON，避免影响多数投票）。
     # 5xx/429/网络抖动通常是瞬时问题，不能因此停用整轮模型；否则大样本验证会
@@ -2589,9 +2676,15 @@ def main():
         phase_durations['②三轨LLM并发请求'] = time.time() - _t
 
         # 问题3: 缓存命中统计摘要 — 让确定性可观测。misses=0 & writes=0
-        # ⟺ 本次 run 全部命中 _llm_cache.db (无新 API 调用) → golden 字节级
-        # 可复现。离线模式下 (NEWS_PROCESS_LLM_OFFLINE=1) miss 会先 raise, 故
-        # 此处能打印即代表零 miss。
+        # ⟺ 本次 run 全部命中 _llm_cache.db (无新 API 调用) → golden 字节级可复现。
+        #
+        # ⚠ 判据修订 (2026-08-02, D1「仅 permanent」弃票登记表落地; 本条即审计计划
+        # §7-Q2 点名"放行后会失效、必须同步改"的那条不变量):
+        # 旧断言「离线模式下 miss 会先 raise, 故此处能打印即代表零 miss」**已不再
+        # 成立** —— 离线跑现在会对**已登记为永久弃票**的格按缺票放行 (模型物理上
+        # 拒绝出票, 补不回来), 于是可以出现 `misses = 弃票数 > 0` 却正常跑完。
+        # 现行判据: **真 miss = 0** (即 misses 全部在弃票登记表中有据可查) ⟺ 离线
+        # $0 复现。下方随即打印登记表规模, 使二者可当场对账。
         _cstats = cache.stats()
         logger.info(
             f"LLM 缓存命中统计: lookups={_cstats['lookups']:,d} hits={_cstats['hits']:,d} "
@@ -2599,6 +2692,28 @@ def main():
             f"writes={_cstats['writes']:,d} hit_rate={sig4(_cstats['hit_rate'])}"
             + ("  [OFFLINE 确定性模式]" if LLM_OFFLINE else "")
         )
+        try:
+            _dstats = cache.dropped_vote_stats()
+            if _dstats['total']:
+                logger.info(
+                    f"D1 弃票登记表: 共 {_dstats['total']:,d} 个 (model, prompt) 键"
+                    f"已证实为模型永久拒绝出票 (按类型: {_dstats['by_kind']}) — 这些格在"
+                    f"离线复现时按缺票放行, 与在线路径行为一致; 上方 misses 中属于它们的"
+                    f"部分**不是**真 miss。"
+                )
+                # ⚠ 口径提示 (2026-08-02 实弹: 这两个数曾被误读成"漏登记一格"):
+                # 本行按**唯一键**计数, 而 misses 按 (行 × 轨 × 模型) 的**查找次数**
+                # 计数, 二者不必相等 —— 当某行无同句共现时 content_ss 回退为全文 body,
+                # 该行 full 与 ss 两轨的 prompt 逐字节相同 ⟹ 共享同一键, 被查两次却只
+                # 占登记表一行。与主缓存同构 (同一 prompt 也只存一条被两轨共享命中)。
+                if _cstats['misses'] != _dstats['total']:
+                    logger.info(
+                        f"   └ 口径说明: misses={_cstats['misses']:,d} (查找次数) vs "
+                        f"登记表 {_dstats['total']:,d} (唯一键数) 不等属**正常** — 三轨"
+                        f"回退会使同一行的两轨 prompt 逐字节相同而共享一个缓存键。"
+                    )
+        except Exception as _dexc:   # 纯诊断, 绝不拖垮阶段
+            logger.debug(f"弃票登记表统计跳过: {_dexc!r}")
 
         # 提取与投票（三轨 full/ctx/ss）
         logger.info("开始聚合各模型 JSON 响应并执行三轨多数投票三角验证...")

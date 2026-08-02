@@ -115,6 +115,39 @@ ss : 160,489 − 153,807 = 6,682 = ss-only 3,267 + ctx&ss 3,415   ✅
 
 ### D1 【严重·阻塞复现】弃票不入缓存 ⟹ 离线 `$0` 复现永久不可达, 且离线跑是 **hard-fail 崩溃**而非降级
 
+> ✅ **2026-08-02 状态订正: 本项已实施** (原文保留, 下述为实施记录与对原方案的两处收紧)。
+>
+> **触发**: 2026-08-02 九入口编排 `run_all_pipelines` 的入口② 主流水线在 stage 21
+> 处 `exit=1` 崩溃 (00→16 全 ✓, 745.2s 后崩, ③–⑨ fail-fast 全 ⛔) —— 正是本项预言的
+> 实弹重现。全量验钞机测得 2,178,000 格中 **120 miss** (hit_rate=0.999945; gemini31
+> 117 / deepseekv4 3 / gpt54nano **0**), miss 呈"随机散落单格、同一 (行,轨) 只一个
+> 模型"形态, 与 D5「gemini31 独占 264/267 弃票」的分布高度一致。
+>
+> **处置**: ① 新建定向回填工具 `scripts/audit/backfill_stage21_cache_misses.py`
+> (只碰 miss 格, 不覆写任何既有条目) 补齐 **116** 格 —— 其中 116/117 个 gemini 格在
+> OpenLux 网关下**一次即成**, 这实证了 D5 三个待查根因中的 **①「yunwu 网关对 gemini
+> 的 `response_format: json_object` 支持退化」**, 迁移 OpenLux 后该型失败基本消失。
+> ② 余 **4 格物理不可回填** (`deepseekv4 × 行 50816 × 三轨` = HTTP 400 `Content
+> Exists Risk` 秒回; `gemini31 × 行 109994 × full` = 连续 **30** 次稳定返空), 按本项
+> 方案登记入表。
+>
+> **对原方案的两处收紧 (用户 2026-08-02 裁定「仅 permanent」变体)**:
+> 1. **只登记永久型失败** —— `http_permanent` (不可重试 HTTP) 与 `empty_response`
+>    (**每一次**尝试都返空且尝试数 ≥ 地板值)。原方案对所有弃票 (含超时/5xx/网络
+>    抖动) 一律登记; 收紧后瞬时故障**不登记**, 离线遇之仍 hard-fail 提醒回填, 避免
+>    把真实网络问题静默固化成"缺票"。掺一次瞬时故障即判瞬时。
+> 2. **地板值与 `max_retries` 解耦** —— 新增模块常量
+>    `tone_llms._PERMANENT_EMPTY_MIN_ATTEMPTS = 5`。若判据写成"用满预算即永久",
+>    把 `max_retries` 调到 1 就能让任何偶发失败被洗成永久弃票, 判据强度随参数漂移。
+>
+> **落点**: 表 `llm_dropped_votes` (本文记作 `_llm_dropped_votes`, 实现取与主表
+> `llm_cache` 一致的无前缀命名) · `core/caching.py::LLMCache.{get,put}_dropped_vote`
+> / `dropped_vote_stats` · `tone_llms.fetch_llm_async` 读写两侧 · 判据同步进
+> `verify_stage21_cache_coverage.py` (`true_misses` 口径) · gate
+> `tests/test_llm_dropped_votes_registry.py` (11 项)。§7-Q2 点名"放行后会失效、必须
+> 同步改"的那条不变量注释 (`:2430-2433`) 与 CLAUDE.md 铁律判据均已按「真 miss = 0」
+> 改写。E13 的实施纪律已遵守: **只 `CREATE TABLE` 新表, 未对主表做任何 DDL**。
+
 **现象**: 本次 267 次弃票对应的 (model, prompt) 格**永不写入** `_llm_cache.db`。下次任何一跑对这些格都必然 miss。
 
 **根因 (代码级)**:
