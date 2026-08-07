@@ -407,11 +407,28 @@ class LLMCache:
                              random_seed=random_seed)
         # 索引点查 (point lookup): 按 cache_key 主键 B-tree 直达, 非全表扫描;
         # 命中与否成本 ≈ O(log n), 与库中总条目数 (13 万 vs 0) 几乎无关。
+        #
+        # 🔴 F45 (2026-08-03, 生产实弹修复): `fetchone()` 后**必须** `cursor.close()`。
+        # 病理 (本文件 :237-242 的 F43 补注早已实测记录, 但当时只写进注释未修代码):
+        #   `execute(SELECT)` + `fetchone()` 取单行 ⟹ 语句未走完, 该连接扣着 WAL 读
+        #   快照不放; 其后同连接的 `put/put_batch` INSERT 构成"读事务升级为写",
+        #   SQLite 为避免死锁**刻意不调 busy handler**, 直接返回 SQLITE_BUSY ——
+        #   这条路径**调到 600 s 也照样秒级 `database is locked`**, busy_timeout 无效。
+        # 实弹后果 (2026-08-03 定谳): stage 40 strategic_diff / embedding_peer_network
+        #   的逐年并行 worker 边读边写同一库, 撞锁 → `put_batch` 抛 →
+        #   `embedding_engine` 的 `except` 记 WARNING 后放行 ⟹ 整批向量**当轮可用但
+        #   永久不入库**。盘点实测留下 1,379 个空洞 (两 spec 各 1,379, 六种轨×模型
+        #   组合数字两两全等), 使下一趟**离线**跑在离线闸处 hard-fail, 15.65h 报废。
+        # close() 让语句走完并释放读快照 ⟹ 写者重新受 busy_timeout=30000 保护。
+        # golden-safe by construction: 只改游标生命周期, 不碰键算法/命中语义/返回值。
         with self._lock:
             cursor = self._conn.execute(
                 "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
             )
-            row = cursor.fetchone()
+            try:
+                row = cursor.fetchone()
+            finally:
+                cursor.close()
             if row:
                 # T0.0a: v1 命中, 在锁内增计数避免竞争
                 self._hits += 1
@@ -423,7 +440,10 @@ class LLMCache:
                 cursor = self._conn.execute(
                     "SELECT response FROM llm_cache WHERE cache_key = ?", (v0_key,)
                 )
-                row = cursor.fetchone()
+                try:
+                    row = cursor.fetchone()
+                finally:
+                    cursor.close()          # F45: 同上, 勿留未耗尽读快照
                 if row:
                     # T0.0a: v0 fallback 命中
                     self._v0_hits += 1
@@ -433,6 +453,59 @@ class LLMCache:
         with self._lock:
             self._misses += 1
         return None
+
+    # ── F45 (2026-08-03): 写侧 SQLITE_BUSY 退避重试 ─────────────────────────
+    # 与 F45 读侧修复 (get/get_dropped_vote/size 的 cursor.close()) 配套的**第二层
+    # 防御**。读侧修复消除的是"本连接自己扣着读快照"这一必然失败源; 本层管的是仍
+    # 可能发生的**跨进程**真实写锁竞争 (stage 15/16/21/25/26/27/40 会多进程并发写
+    # 同一库, WAL checkpoint 撞上大批量 put_batch)。
+    # 为何非重试不可: 上层 `embedding_engine.get_embeddings_api` 对 put_batch 失败
+    # 的处理是「记 WARNING 后放行, 不重试不重调」—— 语义上正确 (向量本轮已算出,
+    # 不该为写缓存失败去重复付费 API), 但代价是**静默打洞**: 那批向量当轮可用却
+    # 永不入库, 下一趟离线跑就在离线闸 hard-fail。2026-08-03 实测 1,379 个空洞、
+    # 一趟 15.65h 生产跑报废, 即此机制。故把重试下沉到缓存层, 让"放行"成为真正的
+    # 最后手段而非首次失败即触发。
+    # 幂等性: INSERT OR REPLACE + 内容寻址主键 ⟹ 重放逐位等价, 重试绝对安全。
+    # golden-safe: 只改写入的重试次数与时序, 不碰键算法/取值/命中语义。
+    _WRITE_MAX_ATTEMPTS = 5
+    _WRITE_RETRY_BASE_SLEEP = 0.2          # 指数退避: 0.2/0.4/0.8/1.6 s (总计 ~3 s)
+
+    def _write_with_retry(self, op, *, n_rows: int) -> None:
+        """在锁内执行写操作 + commit; 仅对 locked/busy 退避重试, 其余异常原样上抛。
+
+        Args:
+            op: 接受 sqlite3.Connection 的可调用对象, 内部只做 execute/executemany。
+            n_rows: 成功后计入 ``self._writes`` 的行数。
+        """
+        last_exc = None
+        for attempt in range(self._WRITE_MAX_ATTEMPTS):
+            try:
+                with self._lock:
+                    op(self._conn)
+                    self._conn.commit()
+                    self._writes += n_rows          # T0.0a: 仅成功路径计数
+                return
+            except sqlite3.OperationalError as exc:
+                _msg = str(exc).lower()
+                # 只吞"锁竞争"这一类可重试错误; disk I/O error / malformed 等
+                # 结构性故障必须立即上抛, 否则会把真问题拖成 5 次静默重试。
+                if 'locked' not in _msg and 'busy' not in _msg:
+                    raise
+                last_exc = exc
+                try:
+                    with self._lock:
+                        self._conn.rollback()       # 让连接脱离半开事务再重试
+                except sqlite3.Error:
+                    pass
+                if attempt < self._WRITE_MAX_ATTEMPTS - 1:
+                    time.sleep(self._WRITE_RETRY_BASE_SLEEP * (2 ** attempt))
+        # 重试耗尽: 原样上抛最后一次锁竞争异常, 交由调用方 (embedding_engine /
+        # tone_llms) 按各自既有语义处置 —— 本层只负责"别一撞就放弃", 不改变
+        # 最终失败时的契约。
+        if last_exc is not None:
+            raise last_exc
+        raise sqlite3.OperationalError(
+            "_write_with_retry: 重试耗尽但未捕获异常 (不应发生)")
 
     def put(self, model_id: str, prompt: str, response: str,
             *, prompt_version: str = "v0",
@@ -455,14 +528,16 @@ class LLMCache:
                              random_seed=random_seed)
         m_id = str(model_id) if model_id is not None else ""
         r_str = str(response) if response is not None else ""
-        with self._lock:
-            self._conn.execute(
+        # F45: created_at 在重试前算定 (勿放进重试闭包, 否则每次重试写入不同时间戳)
+        _now = time.time()
+        self._write_with_retry(
+            lambda conn: conn.execute(
                 "INSERT OR REPLACE INTO llm_cache (cache_key, model_id, response, created_at) "
                 "VALUES (?, ?, ?, ?)",
-                (key, m_id, r_str, time.time())
-            )
-            self._conn.commit()
-            self._writes += 1  # T0.0a
+                (key, m_id, r_str, _now)
+            ),
+            n_rows=1,
+        )
 
     def put_batch(self, model_id: str, prompts: list[str], responses: list[str],
                   *, prompt_version: str = "v0",
@@ -494,14 +569,16 @@ class LLMCache:
             r_str = str(r) if r is not None else ""
             rows.append((key, m_id, r_str, now))
 
-        with self._lock:
-            self._conn.executemany(
+        # F45: 经 _write_with_retry 走 SQLITE_BUSY 退避重试 —— 本方法正是 2026-08-03
+        # 那 1,379 个缓存空洞的产生点 (embedding_engine 对其失败记 WARNING 后放行)。
+        self._write_with_retry(
+            lambda conn: conn.executemany(
                 "INSERT OR REPLACE INTO llm_cache (cache_key, model_id, response, created_at) "
                 "VALUES (?, ?, ?, ?)",
                 rows
-            )
-            self._conn.commit()
-            self._writes += len(rows)  # T0.0a
+            ),
+            n_rows=len(rows),
+        )
 
     def delete(self, model_id: str, prompt: str,
                *, prompt_version: str = "v0",
@@ -581,7 +658,10 @@ class LLMCache:
                 "first_seen, last_seen FROM llm_dropped_votes WHERE cache_key = ?",
                 (key,)
             )
-            row = cursor.fetchone()
+            try:
+                row = cursor.fetchone()
+            finally:
+                cursor.close()              # F45: 同 get(), 勿留未耗尽读快照阻塞写者
         if not row:
             return None
         return {
@@ -688,7 +768,10 @@ class LLMCache:
         """
         with self._lock:
             cursor = self._conn.execute("SELECT COUNT(*) FROM llm_cache")
-            return cursor.fetchone()[0]
+            try:
+                return cursor.fetchone()[0]
+            finally:
+                cursor.close()              # F45: 同 get(), 勿留未耗尽读快照阻塞写者
 
     def close(self) -> None:
         """关闭数据库连接。"""
