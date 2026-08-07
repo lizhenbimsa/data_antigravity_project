@@ -1,13 +1,13 @@
 meta:
   plan: COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v7
-  n_entries: 979
-  n_emit: 569
+  n_entries: 1062
+  n_emit: 652
   n_cut: 410
   n_cols_40_panel: 4183
   company_names_sha256: 98c818c3378a920fafbd1ea309b25a4b2270d2380f9c60e9217022cbc4204867
   bank_names_sha256: ec4ee1864e855358b951222f5e9942f9672490f0ab0bbd1c0dcfb293b1972c60
   cut_list_sha256: b88ef0db70926445ae6734fa663acdf35c9d4a706e317dbc8f0003ef03925394
-  registry_sha256: f783aa041d09e05a41959d1276b0ddcc1eb7e0011af8b930a823eadb0f1cb494
+  registry_sha256: a8b723d87263ec20869bbf56a83d1ff4f0a2184da79312fddd28308b5fff380e
 entries:
 - basename: hidden_adopt_int_p25
   family: AD
@@ -10876,6 +10876,1666 @@ entries:
     family: BAL
     base: n_media_bal_w1125
   short_name: n_media_bal_w1125
+- basename: exc_bian_2021_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_full
+    ctx: exc_bian_2021_score_ctx
+    ss: exc_bian_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score
+  short_name: exc_bian_2021_score
+- basename: exc_bian_2021_score_advonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_advonly_full
+    ctx: exc_bian_2021_score_advonly_ctx
+    ss: exc_bian_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_advonly
+  short_name: exc_bian2021_advonly
+- basename: exc_bian_2021_score_degadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_degadv_full
+    ctx: exc_bian_2021_score_degadv_ctx
+    ss: exc_bian_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_degadv
+  short_name: exc_bian2021_degadv
+- basename: exc_bian_2021_score_degonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_degonly_full
+    ctx: exc_bian_2021_score_degonly_ctx
+    ss: exc_bian_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_degonly
+  short_name: exc_bian2021_degonly
+- basename: exc_bian_2021_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_hw_full
+    ctx: exc_bian_2021_score_hw_ctx
+    ss: exc_bian_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_hw
+  short_name: exc_bian_2021_score_hw
+- basename: exc_bian_2021_score_negadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_negadv_full
+    ctx: exc_bian_2021_score_negadv_ctx
+    ss: exc_bian_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_negadv
+  short_name: exc_bian2021_negadv
+- basename: exc_bian_2021_score_negdeg
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_negdeg_full
+    ctx: exc_bian_2021_score_negdeg_ctx
+    ss: exc_bian_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_negdeg
+  short_name: exc_bian2021_negdeg
+- basename: exc_bian_2021_score_negonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_negonly_full
+    ctx: exc_bian_2021_score_negonly_ctx
+    ss: exc_bian_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_negonly
+  short_name: exc_bian2021_negonly
+- basename: exc_bian_2021_score_raw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_raw_full
+    ctx: exc_bian_2021_score_raw_ctx
+    ss: exc_bian_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_raw
+  short_name: exc_bian_2021_score_raw
+- basename: exc_bian_2021_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_bian_2021_score_w_full
+    ctx: exc_bian_2021_score_w_ctx
+    ss: exc_bian_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_bian_2021_score_w
+  short_name: exc_bian_2021_score_w
+- basename: exc_deepseekv4_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_deepseekv4_score_full
+    ctx: exc_deepseekv4_score_ctx
+    ss: exc_deepseekv4_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_deepseekv4_score
+  short_name: exc_deepseekv4_score
+- basename: exc_deepseekv4_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_deepseekv4_score_hw_full
+    ctx: exc_deepseekv4_score_hw_ctx
+    ss: exc_deepseekv4_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_deepseekv4_score_hw
+  short_name: exc_deepseekv4_score_hw
+- basename: exc_deepseekv4_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_deepseekv4_score_w_full
+    ctx: exc_deepseekv4_score_w_ctx
+    ss: exc_deepseekv4_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_deepseekv4_score_w
+  short_name: exc_deepseekv4_score_w
+- basename: exc_du_2022_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_full
+    ctx: exc_du_2022_score_ctx
+    ss: exc_du_2022_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score
+  short_name: exc_du_2022_score
+- basename: exc_du_2022_score_advonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_advonly_full
+    ctx: exc_du_2022_score_advonly_ctx
+    ss: exc_du_2022_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_advonly
+  short_name: exc_du2022_advonly
+- basename: exc_du_2022_score_degadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_degadv_full
+    ctx: exc_du_2022_score_degadv_ctx
+    ss: exc_du_2022_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_degadv
+  short_name: exc_du_2022_score_degadv
+- basename: exc_du_2022_score_degonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_degonly_full
+    ctx: exc_du_2022_score_degonly_ctx
+    ss: exc_du_2022_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_degonly
+  short_name: exc_du2022_degonly
+- basename: exc_du_2022_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_hw_full
+    ctx: exc_du_2022_score_hw_ctx
+    ss: exc_du_2022_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_hw
+  short_name: exc_du_2022_score_hw
+- basename: exc_du_2022_score_negadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_negadv_full
+    ctx: exc_du_2022_score_negadv_ctx
+    ss: exc_du_2022_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_negadv
+  short_name: exc_du_2022_score_negadv
+- basename: exc_du_2022_score_negdeg
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_negdeg_full
+    ctx: exc_du_2022_score_negdeg_ctx
+    ss: exc_du_2022_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_negdeg
+  short_name: exc_du_2022_score_negdeg
+- basename: exc_du_2022_score_negonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_negonly_full
+    ctx: exc_du_2022_score_negonly_ctx
+    ss: exc_du_2022_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_negonly
+  short_name: exc_du2022_negonly
+- basename: exc_du_2022_score_polw00
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_polw00_full
+    ctx: exc_du_2022_score_polw00_ctx
+    ss: exc_du_2022_score_polw00_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_polw00
+  short_name: exc_du_2022_score_polw00
+- basename: exc_du_2022_score_polw05
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_polw05_full
+    ctx: exc_du_2022_score_polw05_ctx
+    ss: exc_du_2022_score_polw05_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_polw05
+  short_name: exc_du_2022_score_polw05
+- basename: exc_du_2022_score_polw10
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_polw10_full
+    ctx: exc_du_2022_score_polw10_ctx
+    ss: exc_du_2022_score_polw10_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_polw10
+  short_name: exc_du_2022_score_polw10
+- basename: exc_du_2022_score_raw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_raw_full
+    ctx: exc_du_2022_score_raw_ctx
+    ss: exc_du_2022_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_raw
+  short_name: exc_du_2022_score_raw
+- basename: exc_du_2022_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_du_2022_score_w_full
+    ctx: exc_du_2022_score_w_ctx
+    ss: exc_du_2022_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_du_2022_score_w
+  short_name: exc_du_2022_score_w
+- basename: exc_fin_sent_zh_正面
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_fin_sent_zh_正面_full
+    ctx: exc_fin_sent_zh_正面_ctx
+    ss: exc_fin_sent_zh_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_fin_sent_zh_正面
+  short_name: exc_fin_sent_zh_正面
+- basename: exc_fin_sent_zh_正面_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_fin_sent_zh_正面_hw_full
+    ctx: exc_fin_sent_zh_正面_hw_ctx
+    ss: exc_fin_sent_zh_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_fin_sent_zh_正面_hw
+  short_name: exc_fin_sent_zh_正面_hw
+- basename: exc_fin_sent_zh_正面_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_fin_sent_zh_正面_w_full
+    ctx: exc_fin_sent_zh_正面_w_ctx
+    ss: exc_fin_sent_zh_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_fin_sent_zh_正面_w
+  short_name: exc_fin_sent_zh_正面_w
+- basename: exc_finbert2_正面
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_finbert2_正面_full
+    ctx: exc_finbert2_正面_ctx
+    ss: exc_finbert2_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_finbert2_正面
+  short_name: exc_finbert2_正面
+- basename: exc_finbert2_正面_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_finbert2_正面_hw_full
+    ctx: exc_finbert2_正面_hw_ctx
+    ss: exc_finbert2_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_finbert2_正面_hw
+  short_name: exc_finbert2_正面_hw
+- basename: exc_finbert2_正面_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_finbert2_正面_w_full
+    ctx: exc_finbert2_正面_w_ctx
+    ss: exc_finbert2_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_finbert2_正面_w
+  short_name: exc_finbert2_正面_w
+- basename: exc_finbert_cn_正面
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_finbert_cn_正面_full
+    ctx: exc_finbert_cn_正面_ctx
+    ss: exc_finbert_cn_正面_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_finbert_cn_正面
+  short_name: exc_finbert_cn_正面
+- basename: exc_finbert_cn_正面_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_finbert_cn_正面_hw_full
+    ctx: exc_finbert_cn_正面_hw_ctx
+    ss: exc_finbert_cn_正面_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_finbert_cn_正面_hw
+  short_name: exc_finbert_cn_正面_hw
+- basename: exc_finbert_cn_正面_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_finbert_cn_正面_w_full
+    ctx: exc_finbert_cn_正面_w_ctx
+    ss: exc_finbert_cn_正面_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_finbert_cn_正面_w
+  short_name: exc_finbert_cn_正面_w
+- basename: exc_gemini31_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_gemini31_score_full
+    ctx: exc_gemini31_score_ctx
+    ss: exc_gemini31_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_gemini31_score
+  short_name: exc_gemini31_score
+- basename: exc_gemini31_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_gemini31_score_hw_full
+    ctx: exc_gemini31_score_hw_ctx
+    ss: exc_gemini31_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_gemini31_score_hw
+  short_name: exc_gemini31_score_hw
+- basename: exc_gemini31_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_gemini31_score_w_full
+    ctx: exc_gemini31_score_w_ctx
+    ss: exc_gemini31_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_gemini31_score_w
+  short_name: exc_gemini31_score_w
+- basename: exc_gpt54nano_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_gpt54nano_score_full
+    ctx: exc_gpt54nano_score_ctx
+    ss: exc_gpt54nano_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_gpt54nano_score
+  short_name: exc_gpt54nano_score
+- basename: exc_gpt54nano_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_gpt54nano_score_hw_full
+    ctx: exc_gpt54nano_score_hw_ctx
+    ss: exc_gpt54nano_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_gpt54nano_score_hw
+  short_name: exc_gpt54nano_score_hw
+- basename: exc_gpt54nano_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_gpt54nano_score_w_full
+    ctx: exc_gpt54nano_score_w_ctx
+    ss: exc_gpt54nano_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_gpt54nano_score_w
+  short_name: exc_gpt54nano_score_w
+- basename: exc_jiang_2021_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_full
+    ctx: exc_jiang_2021_score_ctx
+    ss: exc_jiang_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score
+  short_name: exc_jiang_2021_score
+- basename: exc_jiang_2021_score_advonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_advonly_full
+    ctx: exc_jiang_2021_score_advonly_ctx
+    ss: exc_jiang_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_advonly
+  short_name: exc_jiang2021_advonly
+- basename: exc_jiang_2021_score_degadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_degadv_full
+    ctx: exc_jiang_2021_score_degadv_ctx
+    ss: exc_jiang_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_degadv
+  short_name: exc_jiang2021_degadv
+- basename: exc_jiang_2021_score_degonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_degonly_full
+    ctx: exc_jiang_2021_score_degonly_ctx
+    ss: exc_jiang_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_degonly
+  short_name: exc_jiang2021_degonly
+- basename: exc_jiang_2021_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_hw_full
+    ctx: exc_jiang_2021_score_hw_ctx
+    ss: exc_jiang_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_hw
+  short_name: exc_jiang_2021_score_hw
+- basename: exc_jiang_2021_score_negadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_negadv_full
+    ctx: exc_jiang_2021_score_negadv_ctx
+    ss: exc_jiang_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_negadv
+  short_name: exc_jiang2021_negadv
+- basename: exc_jiang_2021_score_negdeg
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_negdeg_full
+    ctx: exc_jiang_2021_score_negdeg_ctx
+    ss: exc_jiang_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_negdeg
+  short_name: exc_jiang2021_negdeg
+- basename: exc_jiang_2021_score_negonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_negonly_full
+    ctx: exc_jiang_2021_score_negonly_ctx
+    ss: exc_jiang_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_negonly
+  short_name: exc_jiang2021_negonly
+- basename: exc_jiang_2021_score_raw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_raw_full
+    ctx: exc_jiang_2021_score_raw_ctx
+    ss: exc_jiang_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_raw
+  short_name: exc_jiang_2021_score_raw
+- basename: exc_jiang_2021_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_jiang_2021_score_w_full
+    ctx: exc_jiang_2021_score_w_ctx
+    ss: exc_jiang_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_jiang_2021_score_w
+  short_name: exc_jiang_2021_score_w
+- basename: exc_loughran_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_full
+    ctx: exc_loughran_score_ctx
+    ss: exc_loughran_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score
+  short_name: exc_loughran_score
+- basename: exc_loughran_score_advonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_advonly_full
+    ctx: exc_loughran_score_advonly_ctx
+    ss: exc_loughran_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_advonly
+  short_name: exc_lough_advonly
+- basename: exc_loughran_score_degadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_degadv_full
+    ctx: exc_loughran_score_degadv_ctx
+    ss: exc_loughran_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_degadv
+  short_name: exc_lough_degadv
+- basename: exc_loughran_score_degonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_degonly_full
+    ctx: exc_loughran_score_degonly_ctx
+    ss: exc_loughran_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_degonly
+  short_name: exc_lough_degonly
+- basename: exc_loughran_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_hw_full
+    ctx: exc_loughran_score_hw_ctx
+    ss: exc_loughran_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_hw
+  short_name: exc_loughran_score_hw
+- basename: exc_loughran_score_negadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_negadv_full
+    ctx: exc_loughran_score_negadv_ctx
+    ss: exc_loughran_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_negadv
+  short_name: exc_lough_negadv
+- basename: exc_loughran_score_negdeg
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_negdeg_full
+    ctx: exc_loughran_score_negdeg_ctx
+    ss: exc_loughran_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_negdeg
+  short_name: exc_lough_negdeg
+- basename: exc_loughran_score_negonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_negonly_full
+    ctx: exc_loughran_score_negonly_ctx
+    ss: exc_loughran_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_negonly
+  short_name: exc_lough_negonly
+- basename: exc_loughran_score_raw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_raw_full
+    ctx: exc_loughran_score_raw_ctx
+    ss: exc_loughran_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_raw
+  short_name: exc_loughran_score_raw
+- basename: exc_loughran_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_loughran_score_w_full
+    ctx: exc_loughran_score_w_ctx
+    ss: exc_loughran_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_loughran_score_w
+  short_name: exc_loughran_score_w
+- basename: exc_tone
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_tone_full
+    ctx: exc_tone_ctx
+    ss: exc_tone_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: tone
+  label_elems:
+    family: CES
+    base: exc_tone
+  short_name: exc_tone
+- basename: exc_yao_2021_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_full
+    ctx: exc_yao_2021_score_ctx
+    ss: exc_yao_2021_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score
+  short_name: exc_yao_2021_score
+- basename: exc_yao_2021_score_advonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_advonly_full
+    ctx: exc_yao_2021_score_advonly_ctx
+    ss: exc_yao_2021_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_advonly
+  short_name: exc_yao2021_advonly
+- basename: exc_yao_2021_score_degadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_degadv_full
+    ctx: exc_yao_2021_score_degadv_ctx
+    ss: exc_yao_2021_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_degadv
+  short_name: exc_yao2021_degadv
+- basename: exc_yao_2021_score_degonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_degonly_full
+    ctx: exc_yao_2021_score_degonly_ctx
+    ss: exc_yao_2021_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_degonly
+  short_name: exc_yao2021_degonly
+- basename: exc_yao_2021_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_hw_full
+    ctx: exc_yao_2021_score_hw_ctx
+    ss: exc_yao_2021_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_hw
+  short_name: exc_yao_2021_score_hw
+- basename: exc_yao_2021_score_negadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_negadv_full
+    ctx: exc_yao_2021_score_negadv_ctx
+    ss: exc_yao_2021_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_negadv
+  short_name: exc_yao2021_negadv
+- basename: exc_yao_2021_score_negdeg
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_negdeg_full
+    ctx: exc_yao_2021_score_negdeg_ctx
+    ss: exc_yao_2021_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_negdeg
+  short_name: exc_yao2021_negdeg
+- basename: exc_yao_2021_score_negonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_negonly_full
+    ctx: exc_yao_2021_score_negonly_ctx
+    ss: exc_yao_2021_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_negonly
+  short_name: exc_yao2021_negonly
+- basename: exc_yao_2021_score_raw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_raw_full
+    ctx: exc_yao_2021_score_raw_ctx
+    ss: exc_yao_2021_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_raw
+  short_name: exc_yao_2021_score_raw
+- basename: exc_yao_2021_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_yao_2021_score_w_full
+    ctx: exc_yao_2021_score_w_ctx
+    ss: exc_yao_2021_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_yao_2021_score_w
+  short_name: exc_yao_2021_score_w
+- basename: exc_you_2018_score
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_full
+    ctx: exc_you_2018_score_ctx
+    ss: exc_you_2018_score_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score
+  short_name: exc_you_2018_score
+- basename: exc_you_2018_score_advonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_advonly_full
+    ctx: exc_you_2018_score_advonly_ctx
+    ss: exc_you_2018_score_advonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_advonly
+  short_name: exc_you2018_advonly
+- basename: exc_you_2018_score_degadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_degadv_full
+    ctx: exc_you_2018_score_degadv_ctx
+    ss: exc_you_2018_score_degadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_degadv
+  short_name: exc_you2018_degadv
+- basename: exc_you_2018_score_degonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_degonly_full
+    ctx: exc_you_2018_score_degonly_ctx
+    ss: exc_you_2018_score_degonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_degonly
+  short_name: exc_you2018_degonly
+- basename: exc_you_2018_score_hw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_hw_full
+    ctx: exc_you_2018_score_hw_ctx
+    ss: exc_you_2018_score_hw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_hw
+  short_name: exc_you_2018_score_hw
+- basename: exc_you_2018_score_negadv
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_negadv_full
+    ctx: exc_you_2018_score_negadv_ctx
+    ss: exc_you_2018_score_negadv_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_negadv
+  short_name: exc_you2018_negadv
+- basename: exc_you_2018_score_negdeg
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_negdeg_full
+    ctx: exc_you_2018_score_negdeg_ctx
+    ss: exc_you_2018_score_negdeg_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_negdeg
+  short_name: exc_you2018_negdeg
+- basename: exc_you_2018_score_negonly
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_negonly_full
+    ctx: exc_you_2018_score_negonly_ctx
+    ss: exc_you_2018_score_negonly_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_negonly
+  short_name: exc_you2018_negonly
+- basename: exc_you_2018_score_raw
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_raw_full
+    ctx: exc_you_2018_score_raw_ctx
+    ss: exc_you_2018_score_raw_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_raw
+  short_name: exc_you_2018_score_raw
+- basename: exc_you_2018_score_w
+  family: CES
+  source: '40'
+  col_by_track:
+    full: exc_you_2018_score_w_full
+    ctx: exc_you_2018_score_w_ctx
+    ss: exc_you_2018_score_w_ss
+  track_agnostic: false
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: exc_you_2018_score_w
+  short_name: exc_you_2018_score_w
+- basename: n_articles_exc
+  family: CES
+  source: '40'
+  col_by_track:
+    full: n_articles_exc
+    ctx: n_articles_exc
+    ss: n_articles_exc
+  track_agnostic: true
+  agg: null
+  emit_tracks:
+  - full
+  - ctx
+  - ss
+  emit_panel: true
+  cut_code: null
+  range_gate: none
+  label_elems:
+    family: CES
+    base: n_articles_exc
+  short_name: n_articles_exc
 - basename: hidden_adopt_int_p25_allv
   family: AD
   source: '40'
@@ -24931,252 +26591,6 @@ excluded:
   emb_peer_tone_lag1_lg_full: D15_1_PEER
   emb_peer_tone_lag1_lg_ss: D15_1_PEER
   emb_peer_tone_lag1_ss: D15_1_PEER
-  exc_bian_2021_score_advonly_ctx: D15_1_PEER
-  exc_bian_2021_score_advonly_full: D15_1_PEER
-  exc_bian_2021_score_advonly_ss: D15_1_PEER
-  exc_bian_2021_score_ctx: D15_1_PEER
-  exc_bian_2021_score_degadv_ctx: D15_1_PEER
-  exc_bian_2021_score_degadv_full: D15_1_PEER
-  exc_bian_2021_score_degadv_ss: D15_1_PEER
-  exc_bian_2021_score_degonly_ctx: D15_1_PEER
-  exc_bian_2021_score_degonly_full: D15_1_PEER
-  exc_bian_2021_score_degonly_ss: D15_1_PEER
-  exc_bian_2021_score_full: D15_1_PEER
-  exc_bian_2021_score_hw_ctx: D15_1_PEER
-  exc_bian_2021_score_hw_full: D15_1_PEER
-  exc_bian_2021_score_hw_ss: D15_1_PEER
-  exc_bian_2021_score_negadv_ctx: D15_1_PEER
-  exc_bian_2021_score_negadv_full: D15_1_PEER
-  exc_bian_2021_score_negadv_ss: D15_1_PEER
-  exc_bian_2021_score_negdeg_ctx: D15_1_PEER
-  exc_bian_2021_score_negdeg_full: D15_1_PEER
-  exc_bian_2021_score_negdeg_ss: D15_1_PEER
-  exc_bian_2021_score_negonly_ctx: D15_1_PEER
-  exc_bian_2021_score_negonly_full: D15_1_PEER
-  exc_bian_2021_score_negonly_ss: D15_1_PEER
-  exc_bian_2021_score_raw_ctx: D15_1_PEER
-  exc_bian_2021_score_raw_full: D15_1_PEER
-  exc_bian_2021_score_raw_ss: D15_1_PEER
-  exc_bian_2021_score_ss: D15_1_PEER
-  exc_bian_2021_score_w_ctx: D15_1_PEER
-  exc_bian_2021_score_w_full: D15_1_PEER
-  exc_bian_2021_score_w_ss: D15_1_PEER
-  exc_deepseekv4_score_ctx: D15_1_PEER
-  exc_deepseekv4_score_full: D15_1_PEER
-  exc_deepseekv4_score_hw_ctx: D15_1_PEER
-  exc_deepseekv4_score_hw_full: D15_1_PEER
-  exc_deepseekv4_score_hw_ss: D15_1_PEER
-  exc_deepseekv4_score_ss: D15_1_PEER
-  exc_deepseekv4_score_w_ctx: D15_1_PEER
-  exc_deepseekv4_score_w_full: D15_1_PEER
-  exc_deepseekv4_score_w_ss: D15_1_PEER
-  exc_du_2022_score_advonly_ctx: D15_1_PEER
-  exc_du_2022_score_advonly_full: D15_1_PEER
-  exc_du_2022_score_advonly_ss: D15_1_PEER
-  exc_du_2022_score_ctx: D15_1_PEER
-  exc_du_2022_score_degadv_ctx: D15_1_PEER
-  exc_du_2022_score_degadv_full: D15_1_PEER
-  exc_du_2022_score_degadv_ss: D15_1_PEER
-  exc_du_2022_score_degonly_ctx: D15_1_PEER
-  exc_du_2022_score_degonly_full: D15_1_PEER
-  exc_du_2022_score_degonly_ss: D15_1_PEER
-  exc_du_2022_score_full: D15_1_PEER
-  exc_du_2022_score_hw_ctx: D15_1_PEER
-  exc_du_2022_score_hw_full: D15_1_PEER
-  exc_du_2022_score_hw_ss: D15_1_PEER
-  exc_du_2022_score_negadv_ctx: D15_1_PEER
-  exc_du_2022_score_negadv_full: D15_1_PEER
-  exc_du_2022_score_negadv_ss: D15_1_PEER
-  exc_du_2022_score_negdeg_ctx: D15_1_PEER
-  exc_du_2022_score_negdeg_full: D15_1_PEER
-  exc_du_2022_score_negdeg_ss: D15_1_PEER
-  exc_du_2022_score_negonly_ctx: D15_1_PEER
-  exc_du_2022_score_negonly_full: D15_1_PEER
-  exc_du_2022_score_negonly_ss: D15_1_PEER
-  exc_du_2022_score_polw00_ctx: D15_1_PEER
-  exc_du_2022_score_polw00_full: D15_1_PEER
-  exc_du_2022_score_polw00_ss: D15_1_PEER
-  exc_du_2022_score_polw05_ctx: D15_1_PEER
-  exc_du_2022_score_polw05_full: D15_1_PEER
-  exc_du_2022_score_polw05_ss: D15_1_PEER
-  exc_du_2022_score_polw10_ctx: D15_1_PEER
-  exc_du_2022_score_polw10_full: D15_1_PEER
-  exc_du_2022_score_polw10_ss: D15_1_PEER
-  exc_du_2022_score_raw_ctx: D15_1_PEER
-  exc_du_2022_score_raw_full: D15_1_PEER
-  exc_du_2022_score_raw_ss: D15_1_PEER
-  exc_du_2022_score_ss: D15_1_PEER
-  exc_du_2022_score_w_ctx: D15_1_PEER
-  exc_du_2022_score_w_full: D15_1_PEER
-  exc_du_2022_score_w_ss: D15_1_PEER
-  exc_fin_sent_zh_正面_ctx: D15_1_PEER
-  exc_fin_sent_zh_正面_full: D15_1_PEER
-  exc_fin_sent_zh_正面_hw_ctx: D15_1_PEER
-  exc_fin_sent_zh_正面_hw_full: D15_1_PEER
-  exc_fin_sent_zh_正面_hw_ss: D15_1_PEER
-  exc_fin_sent_zh_正面_ss: D15_1_PEER
-  exc_fin_sent_zh_正面_w_ctx: D15_1_PEER
-  exc_fin_sent_zh_正面_w_full: D15_1_PEER
-  exc_fin_sent_zh_正面_w_ss: D15_1_PEER
-  exc_finbert2_正面_ctx: D15_1_PEER
-  exc_finbert2_正面_full: D15_1_PEER
-  exc_finbert2_正面_hw_ctx: D15_1_PEER
-  exc_finbert2_正面_hw_full: D15_1_PEER
-  exc_finbert2_正面_hw_ss: D15_1_PEER
-  exc_finbert2_正面_ss: D15_1_PEER
-  exc_finbert2_正面_w_ctx: D15_1_PEER
-  exc_finbert2_正面_w_full: D15_1_PEER
-  exc_finbert2_正面_w_ss: D15_1_PEER
-  exc_finbert_cn_正面_ctx: D15_1_PEER
-  exc_finbert_cn_正面_full: D15_1_PEER
-  exc_finbert_cn_正面_hw_ctx: D15_1_PEER
-  exc_finbert_cn_正面_hw_full: D15_1_PEER
-  exc_finbert_cn_正面_hw_ss: D15_1_PEER
-  exc_finbert_cn_正面_ss: D15_1_PEER
-  exc_finbert_cn_正面_w_ctx: D15_1_PEER
-  exc_finbert_cn_正面_w_full: D15_1_PEER
-  exc_finbert_cn_正面_w_ss: D15_1_PEER
-  exc_gemini31_score_ctx: D15_1_PEER
-  exc_gemini31_score_full: D15_1_PEER
-  exc_gemini31_score_hw_ctx: D15_1_PEER
-  exc_gemini31_score_hw_full: D15_1_PEER
-  exc_gemini31_score_hw_ss: D15_1_PEER
-  exc_gemini31_score_ss: D15_1_PEER
-  exc_gemini31_score_w_ctx: D15_1_PEER
-  exc_gemini31_score_w_full: D15_1_PEER
-  exc_gemini31_score_w_ss: D15_1_PEER
-  exc_gpt54nano_score_ctx: D15_1_PEER
-  exc_gpt54nano_score_full: D15_1_PEER
-  exc_gpt54nano_score_hw_ctx: D15_1_PEER
-  exc_gpt54nano_score_hw_full: D15_1_PEER
-  exc_gpt54nano_score_hw_ss: D15_1_PEER
-  exc_gpt54nano_score_ss: D15_1_PEER
-  exc_gpt54nano_score_w_ctx: D15_1_PEER
-  exc_gpt54nano_score_w_full: D15_1_PEER
-  exc_gpt54nano_score_w_ss: D15_1_PEER
-  exc_jiang_2021_score_advonly_ctx: D15_1_PEER
-  exc_jiang_2021_score_advonly_full: D15_1_PEER
-  exc_jiang_2021_score_advonly_ss: D15_1_PEER
-  exc_jiang_2021_score_ctx: D15_1_PEER
-  exc_jiang_2021_score_degadv_ctx: D15_1_PEER
-  exc_jiang_2021_score_degadv_full: D15_1_PEER
-  exc_jiang_2021_score_degadv_ss: D15_1_PEER
-  exc_jiang_2021_score_degonly_ctx: D15_1_PEER
-  exc_jiang_2021_score_degonly_full: D15_1_PEER
-  exc_jiang_2021_score_degonly_ss: D15_1_PEER
-  exc_jiang_2021_score_full: D15_1_PEER
-  exc_jiang_2021_score_hw_ctx: D15_1_PEER
-  exc_jiang_2021_score_hw_full: D15_1_PEER
-  exc_jiang_2021_score_hw_ss: D15_1_PEER
-  exc_jiang_2021_score_negadv_ctx: D15_1_PEER
-  exc_jiang_2021_score_negadv_full: D15_1_PEER
-  exc_jiang_2021_score_negadv_ss: D15_1_PEER
-  exc_jiang_2021_score_negdeg_ctx: D15_1_PEER
-  exc_jiang_2021_score_negdeg_full: D15_1_PEER
-  exc_jiang_2021_score_negdeg_ss: D15_1_PEER
-  exc_jiang_2021_score_negonly_ctx: D15_1_PEER
-  exc_jiang_2021_score_negonly_full: D15_1_PEER
-  exc_jiang_2021_score_negonly_ss: D15_1_PEER
-  exc_jiang_2021_score_raw_ctx: D15_1_PEER
-  exc_jiang_2021_score_raw_full: D15_1_PEER
-  exc_jiang_2021_score_raw_ss: D15_1_PEER
-  exc_jiang_2021_score_ss: D15_1_PEER
-  exc_jiang_2021_score_w_ctx: D15_1_PEER
-  exc_jiang_2021_score_w_full: D15_1_PEER
-  exc_jiang_2021_score_w_ss: D15_1_PEER
-  exc_loughran_score_advonly_ctx: D15_1_PEER
-  exc_loughran_score_advonly_full: D15_1_PEER
-  exc_loughran_score_advonly_ss: D15_1_PEER
-  exc_loughran_score_ctx: D15_1_PEER
-  exc_loughran_score_degadv_ctx: D15_1_PEER
-  exc_loughran_score_degadv_full: D15_1_PEER
-  exc_loughran_score_degadv_ss: D15_1_PEER
-  exc_loughran_score_degonly_ctx: D15_1_PEER
-  exc_loughran_score_degonly_full: D15_1_PEER
-  exc_loughran_score_degonly_ss: D15_1_PEER
-  exc_loughran_score_full: D15_1_PEER
-  exc_loughran_score_hw_ctx: D15_1_PEER
-  exc_loughran_score_hw_full: D15_1_PEER
-  exc_loughran_score_hw_ss: D15_1_PEER
-  exc_loughran_score_negadv_ctx: D15_1_PEER
-  exc_loughran_score_negadv_full: D15_1_PEER
-  exc_loughran_score_negadv_ss: D15_1_PEER
-  exc_loughran_score_negdeg_ctx: D15_1_PEER
-  exc_loughran_score_negdeg_full: D15_1_PEER
-  exc_loughran_score_negdeg_ss: D15_1_PEER
-  exc_loughran_score_negonly_ctx: D15_1_PEER
-  exc_loughran_score_negonly_full: D15_1_PEER
-  exc_loughran_score_negonly_ss: D15_1_PEER
-  exc_loughran_score_raw_ctx: D15_1_PEER
-  exc_loughran_score_raw_full: D15_1_PEER
-  exc_loughran_score_raw_ss: D15_1_PEER
-  exc_loughran_score_ss: D15_1_PEER
-  exc_loughran_score_w_ctx: D15_1_PEER
-  exc_loughran_score_w_full: D15_1_PEER
-  exc_loughran_score_w_ss: D15_1_PEER
-  exc_tone_ctx: D15_1_PEER
-  exc_tone_full: D15_1_PEER
-  exc_tone_ss: D15_1_PEER
-  exc_yao_2021_score_advonly_ctx: D15_1_PEER
-  exc_yao_2021_score_advonly_full: D15_1_PEER
-  exc_yao_2021_score_advonly_ss: D15_1_PEER
-  exc_yao_2021_score_ctx: D15_1_PEER
-  exc_yao_2021_score_degadv_ctx: D15_1_PEER
-  exc_yao_2021_score_degadv_full: D15_1_PEER
-  exc_yao_2021_score_degadv_ss: D15_1_PEER
-  exc_yao_2021_score_degonly_ctx: D15_1_PEER
-  exc_yao_2021_score_degonly_full: D15_1_PEER
-  exc_yao_2021_score_degonly_ss: D15_1_PEER
-  exc_yao_2021_score_full: D15_1_PEER
-  exc_yao_2021_score_hw_ctx: D15_1_PEER
-  exc_yao_2021_score_hw_full: D15_1_PEER
-  exc_yao_2021_score_hw_ss: D15_1_PEER
-  exc_yao_2021_score_negadv_ctx: D15_1_PEER
-  exc_yao_2021_score_negadv_full: D15_1_PEER
-  exc_yao_2021_score_negadv_ss: D15_1_PEER
-  exc_yao_2021_score_negdeg_ctx: D15_1_PEER
-  exc_yao_2021_score_negdeg_full: D15_1_PEER
-  exc_yao_2021_score_negdeg_ss: D15_1_PEER
-  exc_yao_2021_score_negonly_ctx: D15_1_PEER
-  exc_yao_2021_score_negonly_full: D15_1_PEER
-  exc_yao_2021_score_negonly_ss: D15_1_PEER
-  exc_yao_2021_score_raw_ctx: D15_1_PEER
-  exc_yao_2021_score_raw_full: D15_1_PEER
-  exc_yao_2021_score_raw_ss: D15_1_PEER
-  exc_yao_2021_score_ss: D15_1_PEER
-  exc_yao_2021_score_w_ctx: D15_1_PEER
-  exc_yao_2021_score_w_full: D15_1_PEER
-  exc_yao_2021_score_w_ss: D15_1_PEER
-  exc_you_2018_score_advonly_ctx: D15_1_PEER
-  exc_you_2018_score_advonly_full: D15_1_PEER
-  exc_you_2018_score_advonly_ss: D15_1_PEER
-  exc_you_2018_score_ctx: D15_1_PEER
-  exc_you_2018_score_degadv_ctx: D15_1_PEER
-  exc_you_2018_score_degadv_full: D15_1_PEER
-  exc_you_2018_score_degadv_ss: D15_1_PEER
-  exc_you_2018_score_degonly_ctx: D15_1_PEER
-  exc_you_2018_score_degonly_full: D15_1_PEER
-  exc_you_2018_score_degonly_ss: D15_1_PEER
-  exc_you_2018_score_full: D15_1_PEER
-  exc_you_2018_score_hw_ctx: D15_1_PEER
-  exc_you_2018_score_hw_full: D15_1_PEER
-  exc_you_2018_score_hw_ss: D15_1_PEER
-  exc_you_2018_score_negadv_ctx: D15_1_PEER
-  exc_you_2018_score_negadv_full: D15_1_PEER
-  exc_you_2018_score_negadv_ss: D15_1_PEER
-  exc_you_2018_score_negdeg_ctx: D15_1_PEER
-  exc_you_2018_score_negdeg_full: D15_1_PEER
-  exc_you_2018_score_negdeg_ss: D15_1_PEER
-  exc_you_2018_score_negonly_ctx: D15_1_PEER
-  exc_you_2018_score_negonly_full: D15_1_PEER
-  exc_you_2018_score_negonly_ss: D15_1_PEER
-  exc_you_2018_score_raw_ctx: D15_1_PEER
-  exc_you_2018_score_raw_full: D15_1_PEER
-  exc_you_2018_score_raw_ss: D15_1_PEER
-  exc_you_2018_score_ss: D15_1_PEER
-  exc_you_2018_score_w_ctx: D15_1_PEER
-  exc_you_2018_score_w_full: D15_1_PEER
-  exc_you_2018_score_w_ss: D15_1_PEER
   fin_sent_zh_neg_app_ctx: D15_6_INTERACT
   fin_sent_zh_neg_app_full: D15_6_INTERACT
   fin_sent_zh_neg_app_ss: D15_6_INTERACT
@@ -25762,7 +27176,6 @@ excluded:
   n_articles_collab_disagree: D15_7_DIAG
   n_articles_collab_freerider: D15_7_DIAG
   n_articles_collab_quietworker: D15_7_DIAG
-  n_articles_exc: D15_1_PEER
   n_articles_for_ctx_independence: D15_7_DIAG
   n_articles_for_ss_independence: D15_7_DIAG
   n_articles_llm_valid: D15_10_ENV_STATIC
