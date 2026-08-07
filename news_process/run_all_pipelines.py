@@ -284,8 +284,22 @@ def build_plan(args, paper_ids: list[str]) -> list[dict]:
         rp = str(HERE / "run_paper.py")
         cmds: list[tuple[str, list[str]]] = [("run_paper --list", [PY, "-u", rp, "--list"])]
         for pid in paper_ids:
+            # F46 (2026-08-07, 生产实弹修复): 把 main_extra (--skip-21-if-exists /
+            # --skip-unchanged) 一并透传给 ④。
+            # 病理: `--stage all` 内含 `pipeline` 子阶段 → analysis.main() 调
+            #   `run_main_pipeline(_extra)`; 此处不拼 main_extra ⟹ _extra 为空 ⟹
+            #   `run_pipeline()` 零参 = **无条件全量重跑 00→51**, 且 11 篇各跑一遍。
+            # 实测代价 (T=19 生产面板 23,693×4,183 / 166 万篇): 单篇 00→26 ≈24h +
+            #   stage 40 ≈15.2h ≈ 40h/篇 × 11 篇 ≈ 18 天; 而 ② 刚用同样的 flag 把
+            #   00→26 全部跳过、总墙钟仅 15.4h。历史九入口审计"最快 67 分钟"是
+            #   T=2 小面板时的基线, 不可外推 (见 memory eight-entrypoint-fourthrun-audit)。
+            # 通路本就存在 (A10, 2026-07-09): run_paper.py 用 parse_known_args 透传
+            #   未知 flag → analysis.py 的 _extra → run_main_pipeline → _parse_cli_args。
+            #   本处只是没接上最后一棒。
+            # 语义: ④ 与 ② 用同一套跳过判据 ⟹ 上游产物指纹未变则跳过, 变了照跑,
+            #   不牺牲任何正确性; flag 未开时 main_extra 为空, 行为与修复前逐字节一致。
             cmds.append((f"run_paper {pid} --stage {args.paper_stage}",
-                         [PY, "-u", rp, pid, "--stage", args.paper_stage]))
+                         [PY, "-u", rp, pid, "--stage", args.paper_stage, *main_extra]))
         return cmds
 
     plan: list[dict] = [
