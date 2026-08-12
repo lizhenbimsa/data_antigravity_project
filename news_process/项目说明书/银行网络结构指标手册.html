@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>银行网络结构指标手册 — news_process</title>
+<style>
+:root{
+  --bg:#fbfaf7; --fg:#1d1c1a; --mut:#6b6862; --line:#e3ded4; --card:#fff;
+  --accent:#7a4a1f; --accent2:#2f5d50; --warn:#8a4b12; --warnbg:#fdf6ec;
+  --plainbg:#f2f7f4; --code:#f4f1ea; --node:#2f5d50; --net:#3a5a86; --gf:#7a4a1f; --spill:#6b4a7a;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#16171a; --fg:#e8e6e1; --mut:#9d9a94; --line:#2e3035; --card:#1d1f23;
+    --accent:#d8a56a; --accent2:#7fc3ad; --warn:#e0a15c; --warnbg:#2a2218;
+    --plainbg:#1a2422; --code:#24262b; --node:#7fc3ad; --net:#8fb3e0; --gf:#d8a56a; --spill:#c3a0d6; }
+}
+:root[data-theme="dark"]{ --bg:#16171a; --fg:#e8e6e1; --mut:#9d9a94; --line:#2e3035; --card:#1d1f23;
+  --accent:#d8a56a; --accent2:#7fc3ad; --warn:#e0a15c; --warnbg:#2a2218;
+  --plainbg:#1a2422; --code:#24262b; --node:#7fc3ad; --net:#8fb3e0; --gf:#d8a56a; --spill:#c3a0d6; }
+:root[data-theme="light"]{ --bg:#fbfaf7; --fg:#1d1c1a; --mut:#6b6862; --line:#e3ded4; --card:#fff;
+  --accent:#7a4a1f; --accent2:#2f5d50; --warn:#8a4b12; --warnbg:#fdf6ec;
+  --plainbg:#f2f7f4; --code:#f4f1ea; --node:#2f5d50; --net:#3a5a86; --gf:#7a4a1f; --spill:#6b4a7a; }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:16px/1.75 "Noto Serif CJK SC","Source Han Serif SC","Songti SC",Georgia,"Microsoft YaHei",serif;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 96px}
+header.top{padding:56px 0 28px;border-bottom:3px double var(--line);margin-bottom:8px}
+h1{font-size:2.05rem;line-height:1.3;margin:0 0 10px;letter-spacing:.01em}
+.sub{color:var(--mut);font-size:.95rem;margin:0}
+.kicker{color:var(--accent);font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;margin:0 0 12px;font-family:system-ui,sans-serif}
+.factbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:8px 13px;font-size:.83rem;font-family:system-ui,sans-serif}
+.fact b{color:var(--accent);font-size:1.05rem}
+h2{font-size:1.35rem;margin:56px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+h2 .no{color:var(--accent);font-family:system-ui,sans-serif;font-size:.85em;margin-right:.5em}
+h3{font-size:1.12rem;margin:0}
+h4{font-size:.82rem;margin:0 0 6px;color:var(--accent);font-family:system-ui,sans-serif;
+  letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+p{margin:0 0 12px}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.86em;
+  font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;word-break:break-word}
+a{color:var(--accent2);text-decoration-thickness:1px;text-underline-offset:2px}
+
+.layout{display:grid;grid-template-columns:250px 1fr;gap:38px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav.toc{position:static;max-height:none}}
+nav.toc{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;
+  font-family:system-ui,sans-serif;font-size:.8rem;border-right:1px solid var(--line);padding-right:14px}
+nav.toc h4{margin-top:16px}
+.tocol{list-style:none;margin:0;padding:0}
+.tocol li{margin:0 0 3px}
+.tocol a{display:block;color:var(--fg);text-decoration:none;padding:3px 6px;border-radius:5px;line-height:1.35}
+.tocol a:hover{background:var(--code)}
+.tk{display:block;color:var(--mut);font-size:.72rem;font-family:ui-monospace,monospace}
+
+.note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:6px;padding:14px 18px;margin:16px 0}
+.note.hard{border-left-color:var(--warn);background:var(--warnbg)}
+.note h4{margin-bottom:8px}
+ul,ol{margin:0 0 12px;padding-left:1.4em}
+li{margin:0 0 6px}
+
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-family:system-ui,sans-serif}
+th,td{border-bottom:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--code);font-weight:600;font-size:.78rem}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin:14px 0}
+.tblwrap table{min-width:640px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:22px 24px;margin:22px 0;scroll-margin-top:16px}
+.cardhead{display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--line);
+  padding-bottom:12px;margin-bottom:14px}
+.idx{flex:0 0 auto;width:34px;height:34px;border-radius:8px;background:var(--code);
+  display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;
+  font-weight:700;font-size:.88rem;color:var(--accent)}
+.titles{flex:1 1 auto;min-width:0}
+.en{color:var(--mut);font-size:.8rem;font-weight:400;font-family:system-ui,sans-serif;margin-left:.4em}
+.meta{margin-top:6px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;
+  font-family:system-ui,sans-serif;font-size:.75rem}
+.badge{padding:2px 8px;border-radius:20px;border:1px solid currentColor;font-size:.72rem}
+.b-node{color:var(--node)} .b-net{color:var(--net)} .b-gf{color:var(--gf)} .b-spill{color:var(--spill)}
+.b-sub{color:var(--mut)}
+.unit{color:var(--mut)}
+.cols{font-family:ui-monospace,monospace;font-size:.78rem;color:var(--mut);margin-bottom:14px;word-break:break-word}
+.block{margin:0 0 16px}
+.block.formula{background:var(--code);border-radius:7px;padding:12px 15px}
+.block.formula p{margin:0;font-size:.92rem}
+.block.plain{background:var(--plainbg);border-radius:7px;padding:12px 15px}
+.block.plain p{margin:0}
+.block.warn{background:var(--warnbg);border-radius:7px;padding:12px 15px}
+.block.warn ul{margin:0;font-size:.92rem}
+.block.refs p{font-size:.82rem;color:var(--mut);font-family:system-ui,sans-serif;margin:0}
+.statwrap{overflow-x:auto;margin:0 0 16px}
+.stats{min-width:520px}
+.stats caption{caption-side:top;text-align:left;font-size:.75rem;color:var(--mut);
+  font-family:system-ui,sans-serif;padding-bottom:5px}
+.sfx{color:var(--mut);font-family:ui-monospace,monospace;font-size:.9em}
+
+ol.biblio{font-size:.84rem;line-height:1.6;font-family:system-ui,sans-serif}
+ol.biblio li{margin-bottom:9px;scroll-margin-top:16px}
+.doi{font-family:ui-monospace,monospace;font-size:.85em;white-space:nowrap}
+.nodoi{color:var(--warn);cursor:help;font-weight:700}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);
+  color:var(--mut);font-size:.8rem;font-family:system-ui,sans-serif}
+@media print{
+  nav.toc{display:none}.layout{grid-template-columns:1fr}
+  .card{break-inside:avoid;border-color:#ccc}body{background:#fff;color:#000}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="kicker">news_process · 银行-年面板 · 变量手册</p>
+  <h1>银行网络结构指标手册</h1>
+  <p class="sub">33 个结构指标 × 3 种共现判据 = 99 个落盘列, 外加 9 类网络衍生变量。
+  每个指标给出定义与实现、学术释义、大白话释义、生产面板实测统计、口径披露与参考文献。</p>
+  <div class="factbar">
+    <div class="fact"><b>33</b> 结构指标 SSOT</div>
+    <div class="fact"><b>99</b> 落盘列 (33 × 3 判据)</div>
+    <div class="fact"><b>23,693</b> 银行-年格</div>
+    <div class="fact"><b>1,247</b> 家银行 × <b>19</b> 年 (2007–2025)</div>
+    <div class="fact"><b>93</b> 条参考文献</div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <h4 style="margin-top:8px">正文</h4>
+  <ol class="tocol">
+    <li><a href="#s1">§1 网络是怎么建出来的</a></li>
+    <li><a href="#s2">§2 三判据稳健性梯子</a></li>
+    <li><a href="#s3">§3 指标总览表</a></li>
+    <li><a href="#s8">§8 使用禁忌速查</a></li>
+    <li><a href="#s9">§9 参考文献</a></li>
+  </ol>
+  <div class="tocgrp"><h4>节点级 18 (银行位置)</h4><ol class="tocol"><li><a href="#bank_degree_cent">1. 度中心度<span class="tk">bank_degree_cent</span></a></li><li><a href="#bank_strength_cent">2. 强度中心度 (加权度)<span class="tk">bank_strength_cent</span></a></li><li><a href="#bank_eigen_cent">3. 特征向量中心度<span class="tk">bank_eigen_cent</span></a></li><li><a href="#bank_katz_cent">4. Katz 中心度<span class="tk">bank_katz_cent</span></a></li><li><a href="#bank_subgraph_cent">5. 子图中心度<span class="tk">bank_subgraph_cent</span></a></li><li><a href="#bank_cfbetween_cent">6. 电流流介数中心度<span class="tk">bank_cfbetween_cent</span></a></li><li><a href="#bank_between_cent">7. 最短路介数中心度<span class="tk">bank_between_cent</span></a></li><li><a href="#bank_harmonic_cent">8. 调和中心度<span class="tk">bank_harmonic_cent</span></a></li><li><a href="#bank_closeness_cent">9. 接近中心度<span class="tk">bank_closeness_cent</span></a></li><li><a href="#bank_eccentricity">10. 离心率<span class="tk">bank_eccentricity</span></a></li><li><a href="#bank_clustering">11. 局部聚类系数<span class="tk">bank_clustering</span></a></li><li><a href="#bank_ego_density">12. 自我网密度<span class="tk">bank_ego_density</span></a></li><li><a href="#bank_constraint">13. 结构约束<span class="tk">bank_constraint</span></a></li><li><a href="#bank_ci">14. 约束逆 (结构洞指数)<span class="tk">bank_ci</span></a></li><li><a href="#bank_effective_size">15. 有效规模<span class="tk">bank_effective_size</span></a></li><li><a href="#bank_avg_nbr_deg">16. 平均最近邻度<span class="tk">bank_avg_nbr_deg</span></a></li><li><a href="#bank_coreness">17. k-核序数 (核度)<span class="tk">bank_coreness</span></a></li><li><a href="#bank_is_hub">18. 枢纽哑变量<span class="tk">bank_is_hub</span></a></li></ol></div><div class="tocgrp"><h4>网络级 10 (年度形态)</h4><ol class="tocol"><li><a href="#net_density_yr">19. 网络密度<span class="tk">net_density_yr</span></a></li><li><a href="#net_avg_cluster_yr">20. 平均聚类系数<span class="tk">net_avg_cluster_yr</span></a></li><li><a href="#net_transitivity_yr">21. 全局传递性<span class="tk">net_transitivity_yr</span></a></li><li><a href="#net_avg_path_yr">22. 平均最短路径长度<span class="tk">net_avg_path_yr</span></a></li><li><a href="#net_diameter_yr">23. 网络直径<span class="tk">net_diameter_yr</span></a></li><li><a href="#net_degree_gini_yr">24. 度分布基尼系数<span class="tk">net_degree_gini_yr</span></a></li><li><a href="#net_modularity_yr">25. 模块度<span class="tk">net_modularity_yr</span></a></li><li><a href="#net_assortativity_yr">26. 度同配系数<span class="tk">net_assortativity_yr</span></a></li><li><a href="#net_giant_share_yr">27. 巨片占比<span class="tk">net_giant_share_yr</span></a></li><li><a href="#net_n_components_yr">28. 连通分量数<span class="tk">net_n_components_yr</span></a></li></ol></div><div class="tocgrp"><h4>GF 经纪角色 5</h4><ol class="tocol"><li><a href="#gf_coordinator">29. 协调者<span class="tk">gf_coordinator</span></a></li><li><a href="#gf_itinerant">30. 巡回经纪<span class="tk">gf_itinerant</span></a></li><li><a href="#gf_gatekeeper_rep">31. 守门人 / 代表 (合并)<span class="tk">gf_gatekeeper_rep</span></a></li><li><a href="#gf_liaison">32. 联络人<span class="tk">gf_liaison</span></a></li><li><a href="#gf_total">33. 经纪总量<span class="tk">gf_total</span></a></li></ol></div><div class="tocgrp"><h4>附录: 衍生 / W-轨 9</h4><ol class="tocol"><li><a href="#peer_tone_lag1">A1. 同行情感溢出 (一阶)<span class="tk">peer_tone_lag1</span></a></li><li><a href="#peer_tone_2nd_lag1">A2. 同行情感溢出 (二阶)<span class="tk">peer_tone_2nd_lag1</span></a></li><li><a href="#peer_fintech_exposure_lag1">A3. 同行金科声量溢出<span class="tk">peer_fintech_exposure_lag1</span></a></li><li><a href="#emb_peer_tone_lag1">A4. 嵌入语义同行溢出<span class="tk">emb_peer_tone_lag1</span></a></li><li><a href="#bank_emb_sim_mean_lag1">A5. 嵌入平均语义相似度<span class="tk">bank_emb_sim_mean_lag1</span></a></li><li><a href="#bank_cogn_mean">A6. 认知邻近度 (TF-IDF)<span class="tk">bank_cogn_mean</span></a></li><li><a href="#brokerage_eigen_cent">A7. 媒体—银行二分图经纪中心度<span class="tk">brokerage_eigen_cent</span></a></li><li><a href="#industry_neg_shock">A8. 行业负面冲击指数<span class="tk">industry_neg_shock</span></a></li><li><a href="#brokerage_fire_sale">A9. 火灾甩卖交乘项<span class="tk">brokerage_fire_sale</span></a></li></ol></div>
+</nav>
+
+<main>
+
+<h2 id="s1"><span class="no">§1</span>网络是怎么建出来的</h2>
+
+<p>本手册所有<b>结构</b>指标都建立在同一张图上: <b>年度银行—银行媒体共现网</b>。
+节点是银行, 边是"两家银行在同一年的新闻报道中按某判据被共同提及"。
+生成位置在 <code>pipeline/panel/network_spillover.py::compute_bank_network_centrality</code>
+(面板构建 runner 的步骤 7g / 7g_win1 / 7g_sent), 33 指标基名的唯一事实源是
+同文件的 <code>NETWORK_METRIC_BASES</code> 常量。</p>
+
+<h3 style="margin:22px 0 8px">1.1 边是怎么来的 (both-verified 主路径)</h3>
+<p>邻接矩阵按 <code>docid</code> 聚合: 一篇文章中<b>全部通过验证并幸存</b>的
+<code>target_bank</code> 集合内, 每一个无序银行对恰好各加一次权重 (对称写入, 每篇每对 +1)。
+这是 2026-06-11 的一次关键口径修复 —— 旧实现直接消费 stage-11 遗留的
+<code>co_mentioned_banks</code> 字符串逐行双向计数, 而该串在 stage 21 验证过滤之后
+仍会列出<b>已被判定为非真提及而剔除</b>的银行, 于是产生两个后果: 一是幽灵边
+(phantom edge) 入网, 二是同一篇文章的两条孪生行是否各自幸存, 使同一对银行的边权
+在 1× 与 2× 之间任意混合。<code>co_mentioned_banks</code> 现仅在缺 <code>docid</code>
+的旧 schema 下作降级兜底, 并伴随显式 WARNING。</p>
+
+<p>入网节点全集与 2026-06-29 起生效的 <b>full-only 留篇门控</b>严格一致: 一篇报道是否算
+"银行金科报道"只看 <code>llm_verified_full</code>。因此共现网的节点宇宙与面板
+<code>n_articles</code> 的分母共享同一事实源, 不会因文本轨口径差异而漂移。</p>
+
+<div class="note hard">
+<h4>⚠ 已知局限: 大-N 文章的团投影污染</h4>
+<p>共现图本质是<b>二模隶属网络的一模投影</b> (银行—文章 → 银行—银行)。一篇同时点名
+N 家银行的榜单式报道或批量监管通报, 会一次性投出一个 N-团, 贡献 C(N,2) 条<b>等权</b>边,
+凭边数膨胀主导整张网络。引擎保留了 Newman (2001) degree-preserving 归一开关
+<code>hyperedge_normalize</code> (每对贡献 1/(N−1), 使单篇总度贡献守恒), 但该参数
+<b>目前仍是未接线到 config/runner 的预留开关</b>, 生产口径仍为等权 +1; 判据分轨路径
+(_win1/_sent) 对该参数直接 raise, 防止三判据无警告分叉。引擎每年对 &gt;10 家银行的
+大文章输出 info 诊断日志, 可据以事后审计污染程度。受此影响最重的是
+<code>net_transitivity_yr</code> 与 <code>net_modularity_yr</code>; 而 GF 经纪角色族因
+只计"端点不直连"的 2-path, 对团投影<b>天然免疫</b>。</p>
+</div>
+
+<h3 style="margin:22px 0 8px">1.2 两张图: 原始图 G 与倒数图 G_inv</h3>
+<p>共现次数的语义是"越大越<b>近</b>", 而 networkx 的加权最短路把 weight 解释为<b>距离</b>
+(越大越<b>远</b>)。若直接把共现次数当距离传入, 结果的语义会完全颠倒。因此引擎同时维护两张图:</p>
+<div class="tblwrap"><table>
+<thead><tr><th>图</th><th>边权语义</th><th>消费它的指标</th></tr></thead>
+<tbody>
+<tr><td><b>G</b> (原始图)</td><td>weight = 共现次数 (强度 / 电导)</td>
+<td>degree · strength · eigen · katz · subgraph · <b>cfbetween</b> · clustering · constraint ·
+ego_density · effective_size · avg_nbr_deg · coreness · 全部 net_*_yr · 全部 gf_*</td></tr>
+<tr><td><b>G_inv</b> (倒数图)</td><td>weight = 1 / 共现次数 (距离)</td>
+<td>between_cent · harmonic_cent · closeness_cent · eccentricity</td></tr>
+</tbody></table></div>
+<p><b>唯一的例外值得单独记住</b>: 电流流介数 <code>bank_cfbetween_cent</code> 虽是路径型指标,
+却使用<b>原始图</b> —— 因为在电阻网络语义下边权即电导 (共现越多导电越好), 已经是正确方向,
+再取倒数反而翻转语义。</p>
+
+<h3 style="margin:22px 0 8px">1.3 断连与最大连通分量 (LCC)</h3>
+<p>生产 T=19 的年度共现网高度碎片化 (实测年均 <b>260</b> 个连通分量, 最大连通分量仅覆盖
+<b>22.6%</b> 的入网银行)。因此几个要求连通性的指标只能在 LCC 上计算, 其余节点置 NaN:
+<code>bank_cfbetween_cent</code>、<code>bank_eccentricity</code>、<code>net_avg_path_yr</code>、
+<code>net_diameter_yr</code>。这直接解释了它们约 18% 的低覆盖率 —— 这是<b>结构事实</b>而非数据缺陷。</p>
+<p>特征向量中心度另有专门处理: 按<b>每个连通分量分别</b>求解并在分量内 L2 归一,
+&lt; 3 节点的微小分量置 NaN。旧实现在整图上跑幂迭代, 在断连图下会把特征向量质量全部
+压到谱半径最大的分量, 使其余分量的银行得到约 1e-42 的<b>数值残渣</b> (不是 NaN, 会被回归
+当成"中心度极低的真实银行"读入)。修复后的代价是: 中心度水平<b>仅在分量内可比</b>。</p>
+
+<h2 id="s2"><span class="no">§2</span>三判据稳健性梯子</h2>
+<p>同一套 33 个指标按"银行∧银行共现判据"的松紧分三轨<b>并排</b>计算。三条轨的<b>节点全集完全相同</b>
+(都是当年幸存的 target_bank), 只有边集逐级变稀:</p>
+<div class="tblwrap"><table>
+<thead><tr><th>判据</th><th>列后缀</th><th>成边条件</th><th>实现路径</th></tr></thead>
+<tbody>
+<tr><td><b>同篇</b> (article, canonical)</td><td><i>无后缀</i></td>
+<td>两家银行出现在同一篇文档中即成边 (可以一个在标题、一个在文末)</td>
+<td>按 docid 聚合幸存集合成团, 不做句级重扫 (计算最省)</td></tr>
+<tr><td><b>±1 句窗</b></td><td><code>_win1</code></td>
+<td>两家银行出现在相距 ≤ win_radius 句的位置</td>
+<td>docid 组内文本重扫 (标题 prepend 后自成第 0 句)</td></tr>
+<tr><td><b>严格同句</b></td><td><code>_sent</code></td>
+<td>两家银行出现在同一句话之内</td>
+<td>同上, radius = 0</td></tr>
+</tbody></table></div>
+<p>句窗半径取 <code>config/panel.yaml::network_criteria.win_radius</code> (默认 1)。
+⚠ 该键与 <code>config/filtering.yaml::cooccurrence_filter.sentence_radius</code> (stage 13 的
+银行∧金科过滤) 是<b>互不联动的两个不同键</b>。分轨路径与 stage 11/13/ctx/ss 共用同一份
+否定词 AC 与短名排除表 (禁裸 AC 匹配, 防"涉农行业"→"农行"假阳性), 且审计脚本与生产调用
+共用同一原语 (审计 ≡ 生产)。</p>
+
+<div class="note hard">
+<h4>⚠ 全局稳健性铁律</h4>
+<ul>
+<li>三个判据变体各自 <b>just-identified 并排、互为稳健性、不分主次</b>;
+<b>严禁混进同一 over-identified Hansen J 检验</b> —— 它们不是三份独立证据, 而是同一构念的三种测量。</li>
+<li>判据后缀 (<i>无</i> / <code>_win1</code> / <code>_sent</code>) 与三轨<b>文本</b>后缀
+(<code>_full</code> / <code>_ctx</code> / <code>_ss</code>) 是<b>两个正交的概念空间</b>:
+前者刻画"两家<b>银行</b>算不算共现"(判据主体 = 银行∧银行), 后者刻画"用哪段文本判定<b>银行—金科</b>关联"
+(判据主体 = 银行∧金科)。不可互相替代, 更不可混入同一识别式。</li>
+</ul>
+</div>
+
+<h2 id="s3"><span class="no">§3</span>指标总览表</h2>
+<p>下表按同篇 (canonical) 判据列出全部 33 个结构指标。覆盖率分母为 23,693 个银行-年格;
+其中仅 <b>6,224</b> 格有实际报道 (其余 73.7% 是笛卡尔补全的零报道格), 故节点级指标的
+"有效格数"上限即 6,224 而非 23,693。</p>
+<div class="tblwrap"><table>
+<thead><tr><th class="num">#</th><th>指标</th><th>canonical 列名</th><th>子类</th>
+<th class="num">有效格数</th><th class="num">均值</th></tr></thead>
+<tbody><tr><td class="num">1</td><td><a href="#bank_degree_cent">度中心度</a></td><td><code>bank_degree_cent</code></td><td>连接广度</td><td class="num">6,224</td><td class="num">0.0052</td></tr><tr><td class="num">2</td><td><a href="#bank_strength_cent">强度中心度 (加权度)</a></td><td><code>bank_strength_cent</code></td><td>连接广度</td><td class="num">6,224</td><td class="num">0.0200</td></tr><tr><td class="num">3</td><td><a href="#bank_eigen_cent">特征向量中心度</a></td><td><code>bank_eigen_cent</code></td><td>谱型 (邻居重要性递归)</td><td class="num">1,240</td><td class="num">0.0865</td></tr><tr><td class="num">4</td><td><a href="#bank_katz_cent">Katz 中心度</a></td><td><code>bank_katz_cent</code></td><td>谱型 (邻居重要性递归)</td><td class="num">6,224</td><td class="num">0.0335</td></tr><tr><td class="num">5</td><td><a href="#bank_subgraph_cent">子图中心度</a></td><td><code>bank_subgraph_cent</code></td><td>谱型 (邻居重要性递归)</td><td class="num">6,224</td><td class="num">165,323.7</td></tr><tr><td class="num">6</td><td><a href="#bank_cfbetween_cent">电流流介数中心度</a></td><td><code>bank_cfbetween_cent</code></td><td>路径 / 桥梁</td><td class="num">1,150</td><td class="num">0.0436</td></tr><tr><td class="num">7</td><td><a href="#bank_between_cent">最短路介数中心度</a></td><td><code>bank_between_cent</code></td><td>路径 / 桥梁</td><td class="num">6,224</td><td class="num">0.0003</td></tr><tr><td class="num">8</td><td><a href="#bank_harmonic_cent">调和中心度</a></td><td><code>bank_harmonic_cent</code></td><td>路径 / 桥梁</td><td class="num">6,224</td><td class="num">16.114</td></tr><tr><td class="num">9</td><td><a href="#bank_closeness_cent">接近中心度</a></td><td><code>bank_closeness_cent</code></td><td>路径 / 桥梁</td><td class="num">6,224</td><td class="num">0.0279</td></tr><tr><td class="num">10</td><td><a href="#bank_eccentricity">离心率</a></td><td><code>bank_eccentricity</code></td><td>路径 / 桥梁</td><td class="num">1,150</td><td class="num">3.002</td></tr><tr><td class="num">11</td><td><a href="#bank_clustering">局部聚类系数</a></td><td><code>bank_clustering</code></td><td>闭合性 / 抱团</td><td class="num">6,224</td><td class="num">0.0049</td></tr><tr><td class="num">12</td><td><a href="#bank_ego_density">自我网密度</a></td><td><code>bank_ego_density</code></td><td>闭合性 / 抱团</td><td class="num">950</td><td class="num">0.7244</td></tr><tr><td class="num">13</td><td><a href="#bank_constraint">结构约束</a></td><td><code>bank_constraint</code></td><td>结构洞</td><td class="num">950</td><td class="num">0.4930</td></tr><tr><td class="num">14</td><td><a href="#bank_ci">约束逆 (结构洞指数)</a></td><td><code>bank_ci</code></td><td>结构洞</td><td class="num">950</td><td class="num">2.468</td></tr><tr><td class="num">15</td><td><a href="#bank_effective_size">有效规模</a></td><td><code>bank_effective_size</code></td><td>结构洞</td><td class="num">1,412</td><td class="num">4.260</td></tr><tr><td class="num">16</td><td><a href="#bank_avg_nbr_deg">平均最近邻度</a></td><td><code>bank_avg_nbr_deg</code></td><td>嵌入深度</td><td class="num">1,412</td><td class="num">16.324</td></tr><tr><td class="num">17</td><td><a href="#bank_coreness">k-核序数 (核度)</a></td><td><code>bank_coreness</code></td><td>嵌入深度</td><td class="num">6,224</td><td class="num">0.9659</td></tr><tr><td class="num">18</td><td><a href="#bank_is_hub">枢纽哑变量</a></td><td><code>bank_is_hub</code></td><td>嵌入深度</td><td class="num">6,224</td><td class="num">0.1200</td></tr><tr><td class="num">19</td><td><a href="#net_density_yr">网络密度</a></td><td><code>net_density_yr</code></td><td>整体连通程度</td><td class="num">23,693</td><td class="num">0.0141</td></tr><tr><td class="num">20</td><td><a href="#net_avg_cluster_yr">平均聚类系数</a></td><td><code>net_avg_cluster_yr</code></td><td>闭合性</td><td class="num">23,693</td><td class="num">0.0097</td></tr><tr><td class="num">21</td><td><a href="#net_transitivity_yr">全局传递性</a></td><td><code>net_transitivity_yr</code></td><td>闭合性</td><td class="num">23,693</td><td class="num">0.5270</td></tr><tr><td class="num">22</td><td><a href="#net_avg_path_yr">平均最短路径长度</a></td><td><code>net_avg_path_yr</code></td><td>可达性 / 尺度</td><td class="num">23,693</td><td class="num">1.424</td></tr><tr><td class="num">23</td><td><a href="#net_diameter_yr">网络直径</a></td><td><code>net_diameter_yr</code></td><td>可达性 / 尺度</td><td class="num">23,693</td><td class="num">4.842</td></tr><tr><td class="num">24</td><td><a href="#net_degree_gini_yr">度分布基尼系数</a></td><td><code>net_degree_gini_yr</code></td><td>集中度 / 不平等</td><td class="num">23,693</td><td class="num">0.8697</td></tr><tr><td class="num">25</td><td><a href="#net_modularity_yr">模块度</a></td><td><code>net_modularity_yr</code></td><td>社群结构</td><td class="num">23,693</td><td class="num">0.1587</td></tr><tr><td class="num">26</td><td><a href="#net_assortativity_yr">度同配系数</a></td><td><code>net_assortativity_yr</code></td><td>混合模式</td><td class="num">23,693</td><td class="num">-0.1472</td></tr><tr><td class="num">27</td><td><a href="#net_giant_share_yr">巨片占比</a></td><td><code>net_giant_share_yr</code></td><td>碎片化</td><td class="num">23,693</td><td class="num">0.2264</td></tr><tr><td class="num">28</td><td><a href="#net_n_components_yr">连通分量数</a></td><td><code>net_n_components_yr</code></td><td>碎片化</td><td class="num">23,693</td><td class="num">260.158</td></tr><tr><td class="num">29</td><td><a href="#gf_coordinator">协调者</a></td><td><code>gf_coordinator</code></td><td>组内经纪</td><td class="num">6,224</td><td class="num">0.2029</td></tr><tr><td class="num">30</td><td><a href="#gf_itinerant">巡回经纪</a></td><td><code>gf_itinerant</code></td><td>跨组经纪</td><td class="num">6,224</td><td class="num">0.7898</td></tr><tr><td class="num">31</td><td><a href="#gf_gatekeeper_rep">守门人 / 代表 (合并)</a></td><td><code>gf_gatekeeper_rep</code></td><td>跨组经纪</td><td class="num">6,224</td><td class="num">1.866</td></tr><tr><td class="num">32</td><td><a href="#gf_liaison">联络人</a></td><td><code>gf_liaison</code></td><td>跨组经纪</td><td class="num">6,224</td><td class="num">2.592</td></tr><tr><td class="num">33</td><td><a href="#gf_total">经纪总量</a></td><td><code>gf_total</code></td><td>汇总</td><td class="num">6,224</td><td class="num">5.450</td></tr></tbody></table></div>
+
+<h2 id="s4"><span class="no">§4</span>节点级指标 (18): 单家银行在网中的位置</h2>
+<p>节点级指标回答"这家银行在共现网里有多重要/多居中"。不同指标量的是<b>不同种类的重要</b>:
+度 = 认识多少邻居; 介数 = 多少条最短路径必须经过它 (桥梁地位); 特征向量 / Katz = 邻居本身重不重要;
+约束 / 有效规模 = 邻居之间是否互相认识 (结构洞); 核度 = 嵌在核心团有多深。</p>
+
+<section class="card" id="bank_degree_cent">
+  <header class="cardhead">
+    <div class="idx">1</div>
+    <div class="titles">
+      <h3>度中心度 <span class="en">Degree centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">连接广度</span>
+        <span class="unit">单位/值域: 无量纲, 归一化 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_degree_cent</code> · <code>bank_degree_cent_win1</code> · <code>bank_degree_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>C_D(i) = deg(i) / (n − 1); deg(i) = 银行 i 在年度共现图中相邻的<b>不同</b>银行数 (纯拓扑, 不计边权), n = 该年入网银行总数。实现 = <code>nx.degree_centrality(G)</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>度中心度是社会网络分析中最古老、最基础的中心性度量, 由 Freeman (1978) 在其对"中心性"构念的系统澄清中确立为三大经典维度 (degree / betweenness / closeness) 之首, 捕捉的是节点的<b>活动性与直接可及性</b>: 一个节点直接触达的邻居越多, 它在信息、资源与影响力流动中所处的位置就越居中。Bonacich (1987) 进一步把度中心度置于一个更大的中心性度量家族中, 说明当把"邻居本身的重要性"也纳入加权时, 度中心度恰是特征向量中心度一族在权重参数取零阶时的退化特例——这为本项目在同一张图上并置度、特征向量、Katz、子图等多种中心度提供了统一的谱系依据。</p><p>本项目把该构念移植到中国银行业的新闻文本语境: 节点是银行, 边是"两家银行在同一年的媒体报道中按判据被共同提及"。需强调本图是<b>二模隶属网络的一模投影</b> (银行—文章的隶属结构投影为银行—银行图, Borgatti &amp; Everett, 1997; Faust, 1997), 因此度水平对投影方式与文章规模分布敏感。金融应用上, Nezami et al. (2025) 的元分析表明中心度与企业绩效的关联在方向与强度上依中心性类型与情境而异, 提示不宜把"度高"直接读作"绩效好"; Bonato et al. (2025) 用 BIS 跨境银行间头寸数据以度中心度识别全球银行网络的领导者节点, Fan et al. (2023) 则记录了银行层面网络中心度与银行风险的负相关。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把一年里的新闻当成一张"谁和谁一起被报道"的关系网, 银行是网上的点, 两家银行一起上过新闻就在它们之间画一条线。度中心度就是数一家银行连出去多少条线——它今年在新闻里"认识"多少家<b>不同</b>的同业, 再除以理论上最多能认识的家数, 换算成 0 到 1 之间的比例。注意它只数"认识几家", 不数"熟不熟"(一起上一次和一起上一百次, 度都只加 1, 熟不熟由"强度中心度"那一列管)。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0052</td><td class="num">0.0206</td><td class="num">0</td><td class="num">0.3571</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0043</td><td class="num">0.0184</td><td class="num">0</td><td class="num">0.3571</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0036</td><td class="num">0.0160</td><td class="num">0</td><td class="num">0.2500</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>纯拓扑、不计边权</b>: 共现强度这一维度由姊妹列 <code>bank_strength_cent</code> 单独承载, 两者刻意分工, 禁把"广度"与"频度"压进同一个数字。</li><li><b>大-N 文章的团投影污染</b>: 一篇同时点名 N 家银行的榜单/批量监管通报会以等权投影一次贡献 C(N,2) 条边。引擎保留 Newman (2001) degree-preserving 归一开关 <code>hyperedge_normalize</code> (每对贡献 1/(N−1)), 但该参数<b>尚未接线到 config/runner</b>, 生产口径仍为等权 +1; 每年对 &gt;10 家银行的大文章有 info 诊断日志。</li><li><b>确定性锚</b>: 纯整数计数, 不受 BLAS 浮点漂移影响, 跨次重建逐位可复现——与同函数产出的 clustering / cfbetween / harmonic 三列 (BLAS 非确定) 形成对照。</li><li>本列是下游 <code>bank_is_hub</code> (枢纽哑变量) 与 <code>net_degree_gini_yr</code> (度基尼) 的原料, 口径变动会连带传导。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-bonacich1987">Bonacich 1987</a> · <a href="#ref-faust1997">Faust 1997</a> · <a href="#ref-borgatti1997">Borgatti 1997</a> · <a href="#ref-nezami2025">Nezami 2025</a> · <a href="#ref-bonato2025">Bonato 2025</a> · <a href="#ref-fan2023">Fan 2023</a></p></div>
+</section>
+<section class="card" id="bank_strength_cent">
+  <header class="cardhead">
+    <div class="idx">2</div>
+    <div class="titles">
+      <h3>强度中心度 (加权度) <span class="en">Strength centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">连接广度</span>
+        <span class="unit">单位/值域: 无量纲, 年内最大加权度归一 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_strength_cent</code> · <code>bank_strength_cent_win1</code> · <code>bank_strength_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>s_i = Σ_j w_ij (node strength, 加权度); bank_strength_cent = s_i / max_j s_j。w_ij = 两家银行按判据共现的文章计数 (每篇每对 +1)。实现 = <code>dict(G.degree(weight='weight'))</code> 后按<b>年内最大值</b>归一。</p></div>
+  <div class="block"><h4>学术释义</h4><p>在加权网络中, 单纯的邻居计数会丢失"关系强弱"这一维度。Barrat et al. (2004) 与 Opsahl et al. (2010) 给出了度中心度向加权网络推广的规范框架: 节点强度 (node strength) 定义为该节点所有关联边权之和, 它与无权度共同刻画节点的局部连接结构——度回答"连了几个", 强度回答"连得多重"。在共现分布高度偏斜的媒体网络中, 两者可以大相径庭: 一家只与两三家同业但被反复并列报道的银行可以度低而强度高; 一家在一份大榜单里与几十家银行各共现一次的银行则度高而单次强度低。</p><p><b>口径披露 (重要)</b>: Opsahl et al. (2010) 只定义 s_i = Σ w_ij, <b>并不</b>按网络内最大值归一。本项目的 max-normalize 是自有实现细节, 而非 Opsahl 口径 (导出标签中的 "Opsahl 2010" 仅指 strength 构念本身)。该归一使其成为<b>年相对</b>度量 (每年最大加权度银行恒等于 1.0), 跨年水平不可比; 且除以年特定标量在含年固定效应的回归中是乘性重标度、无法被加性年 FE 吸收。故当前仅供 Table 1 描述统计消费, 无 Stata 模板将其用作回归右手边变量; 若要升为 RHS, 须先改为结构性归一 (ln(strength) / 全样本归一 / within-bank z 分数)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>还是那张"谁和谁一起被报道"的关系网, 但这次不数线的<b>条数</b>, 而是数线的<b>粗细</b>之和——两家银行今年一起被报道了 30 次, 这条线就记 30 分。把一家银行所有线的分数加起来, 再除以当年得分最高那家的分数, 就得到 0 到 1 之间的相对值。它回答的是"这家银行今年在新闻里被并提得有多频繁"。⚠ 因为除数是"当年冠军", 所以每年都必然有一家等于 1.0, 不同年份之间不能直接比大小。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0200</td><td class="num">0.1028</td><td class="num">0</td><td class="num">1.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0194</td><td class="num">0.1022</td><td class="num">0</td><td class="num">1.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0192</td><td class="num">0.1026</td><td class="num">0</td><td class="num">1.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>跨年不可比</b>: 年内最大值归一 ⇒ 每年恒有一家 = 1.0; 只能作年内相对位置读, 不能读作跨年水平变化。</li><li><b>仅描述统计消费</b>: 生产 Stata 模板未把它作回归 RHS; 升为 RHS 前须改结构性归一。</li><li>与 <code>bank_degree_cent</code> 严格互补: 一个数广度、一个数频度, 高度相关但不同构念, 不宜同入一式。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-barrat2004">Barrat 2004</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-kazinnik2026">Kazinnik 2026</a> · <a href="#ref-klaucke2025">Klaucke 2025</a></p></div>
+</section>
+<section class="card" id="bank_eigen_cent">
+  <header class="cardhead">
+    <div class="idx">3</div>
+    <div class="titles">
+      <h3>特征向量中心度 <span class="en">Eigenvector centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">谱型 (邻居重要性递归)</span>
+        <span class="unit">单位/值域: 无量纲; 分量内 L2 归一; 微小分量与未参与银行置 NaN</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_eigen_cent</code> · <code>bank_eigen_cent_win1</code> · <code>bank_eigen_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>x = (1/λ_max) · A x, 即节点得分正比于其邻居得分之加权和。实现 = <b>按连通分量分别</b>求解 <code>nx.eigenvector_centrality(sub, weight='weight', max_iter=2000, tol=1e-06)</code>, 分量内 L2 归一; 节点数 &lt; 3 的微小分量与未参与银行 → NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>特征向量中心度 (Bonacich, 1972, 1987) 把"重要性"定义为一个递归不动点: 一个节点重要, 当且仅当它的邻居重要。形式上取邻接矩阵主特征值对应的特征向量, 由 Perron–Frobenius 定理保证非负连通图上解的存在唯一性。它与度中心度的关键差别在于<b>阶数</b>: 度只看一阶邻居的数量, 特征向量看邻居本身的地位, 因此一家只与几家超级中心银行相连的机构可以度低而特征向量高。在金融网络文献中, 这一"声望型"中心度被广泛用于系统重要性识别 (Jackson &amp; Pernoud, 2021; Yu et al., 2024)。</p><p><b>关键修复 (network-metrics-audit 2026-06-13, P1-1)</b>: 旧实现在<b>整图</b>上跑幂迭代。断连图下该迭代不抛不收敛异常, 而是把特征向量质量几乎全部压到谱半径最大的那个分量, 其余分量的银行得到约 1e-42 量级的数值残渣——这些残渣不是 NaN, 会被回归当作"中心度极低的真实银行"读入, 造成大面积污染 (全量 T=19 共现网几乎必然断连)。现行实现改为逐连通分量单独求解并在分量内归一, 微小分量 (&lt; 3 节点, 特征向量平凡) 一律置 NaN。副作用是<b>中心度水平仅在分量内可比</b>, 跨分量比较只在"是否处于大分量"这一意义上成立。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>度中心度只数"认识几家", 特征向量中心度还要问"认识的都是些什么人物"。它的逻辑是循环的: 你重要, 是因为跟你有联系的人重要; 而那些人重要, 又是因为跟他们有联系的人重要……最后解出一组自洽的分数。所以一家小银行如果总跟工农中建这类超级枢纽一起上新闻, 它的特征向量分数会明显高于它那点可怜的"认识家数"所暗示的水平。⚠ 因为整张网是碎成很多块的, 分数只在同一块里面能横向比较; 太小的碎块 (不到 3 个点) 直接记为缺失, 不硬凑一个数。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">1,240</td><td class="num">5.2%</td><td class="num">0.0865</td><td class="num">0.1698</td><td class="num">2.059e-10</td><td class="num">0.7071</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">1,091</td><td class="num">4.6%</td><td class="num">0.0905</td><td class="num">0.1742</td><td class="num">3.900e-12</td><td class="num">0.7071</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">908</td><td class="num">3.8%</td><td class="num">0.1058</td><td class="num">0.1844</td><td class="num">8.373e-10</td><td class="num">0.7071</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>覆盖率天然偏低</b>: 生产 T=19 下同篇判据仅 1,240 个银行-年格有值 (占有报道格 6,224 的 19.9%), 因绝大多数银行落在 &lt;3 节点的微小分量。这是<b>设计</b>而非缺陷——旧实现给它们填的是 1e-42 残渣。</li><li><b>分量内可比</b>: networkx 在子图范围内 L2 归一, 故最大值 0.7071 (=1/√2) 反复出现于 2 节点... 实为 3 节点小分量的边界解; 跨分量水平比较不成立。</li><li>仅当分量内幂迭代不收敛时才退回该分量的 degree centrality 兜底, 并升 CRITICAL 日志 (构念已变, 须人工核查)。</li><li>与 <code>brokerage_eigen_cent</code> (媒体—银行二分图上的特征向量中心度) 是<b>两张不同基底图</b>上的同名算法, 禁混读。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-bonacich1972">Bonacich 1972</a> · <a href="#ref-bonacich1987">Bonacich 1987</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-yu2024">Yu 2024</a> · <a href="#ref-huang2025">Huang 2025</a> · <a href="#ref-boldi2014">Boldi 2014</a></p></div>
+</section>
+<section class="card" id="bank_katz_cent">
+  <header class="cardhead">
+    <div class="idx">4</div>
+    <div class="titles">
+      <h3>Katz 中心度 <span class="en">Katz centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">谱型 (邻居重要性递归)</span>
+        <span class="unit">单位/值域: 无量纲 (networkx 默认 L2 归一化分值)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_katz_cent</code> · <code>bank_katz_cent_win1</code> · <code>bank_katz_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>x = α Aᵀ x + β·1 (β = 1), 展开即 x_i = Σ_k Σ_j α^k (A^k)_{ji} + 常数基线; <b>α = 0.9 / λ_max(A)</b> (λ_max ≤ 0 时回退 0.01)。实现 = <code>nx.katz_centrality(G, alpha, weight='weight')</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Katz (1953) 提出的中心度可视为特征向量中心度的<b>正则化版本</b>: 它把所有长度为 k 的路径按 α^k 几何衰减后累加, 并加上一个常数基线 β。这一设计解决了纯特征向量中心度在有向图与断连图上的两个痼疾——零入度节点得分恒为 0、非主分量得分坍缩。常数基线保证每个节点都有一个不为零的"自有地位", 衰减因子 α 则控制高阶路径的贡献权重: α 越小越接近度中心度, α 越接近 1/λ_max 越接近特征向量中心度。本项目取 α = 0.9/λ_max, 即刻意逼近 (但不触及) 收敛边界, 使高阶结构信息被充分吸收, 同时保留数值稳定性。</p><p>在本项目的三个谱型中心度中, Katz 是唯一在<b>全图</b>上求解、且对全部入网银行都给出有限值的一个 (覆盖 6,224 格, 与 degree 同), 因此它是 eigen 覆盖缺口 (仅 1,240 格) 的天然补位: 当研究设计需要"邻居重要性加权"的构念但又不能承受 80% 样本损失时, Katz 是首选。β = 1 的常数基线使孤立银行取到该列的最小值 (生产实测 0.0240), 而非缺失。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>Katz 中心度也是"看你认识的人重不重要", 但比特征向量中心度更宽容、更稳。它的算法是: 把"直接认识的人"算满分权重, "朋友的朋友"打个折扣, "朋友的朋友的朋友"再打折扣, 一路加下去; 另外还给每个人发一份"底薪", 保证就算你谁也不认识, 分数也不是零。这两条改动让它在这张碎成几百块的网上依然人人有分——特征向量中心度只有约两成的银行-年能算出数, Katz 则全部都有。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0335</td><td class="num">0.0439</td><td class="num">0.0240</td><td class="num">0.5959</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0340</td><td class="num">0.0435</td><td class="num">0.0248</td><td class="num">0.5920</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0343</td><td class="num">0.0434</td><td class="num">0.0245</td><td class="num">0.5958</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>α 的选择即口径</b>: 0.9/λ_max 是本项目的取值, 非文献通用默认。改 α 会改变高阶路径权重, 属构念变动而非参数微调。</li><li><b>常数基线的解读陷阱</b>: 孤立银行不是 0 而是最小正值 (生产 0.0240), 该值随年度网络规模漂移, 不宜当作"绝对零点"。</li><li>谱分解失败时整年该列置 NaN 并 WARNING (不静默填零)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-katz1953">Katz 1953</a> · <a href="#ref-bonacich1987">Bonacich 1987</a> · <a href="#ref-boldi2014">Boldi 2014</a> · <a href="#ref-yu2024">Yu 2024</a> · <a href="#ref-xuzhao2024">Xu 2024</a></p></div>
+</section>
+<section class="card" id="bank_subgraph_cent">
+  <header class="cardhead">
+    <div class="idx">5</div>
+    <div class="titles">
+      <h3>子图中心度 <span class="en">Subgraph centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">谱型 (邻居重要性递归)</span>
+        <span class="unit">单位/值域: 闭合游走加权和, 无量纲; 孤立节点下界 = 1</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_subgraph_cent</code> · <code>bank_subgraph_cent_win1</code> · <code>bank_subgraph_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>SC(i) = [exp(A)]_{ii} = Σ_j (v_j^i)² · e^{λ_j}, 即以 1/k! 衰减加权的所有长度 k <b>闭合游走</b>之和。实现 = <code>nx.subgraph_centrality(G)</code> (<b>不消费边权</b>, 纯无权邻接)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Estrada 与 Rodríguez-Velázquez (2005) 提出的子图中心度度量节点<b>参与网络中所有子图的程度</b>: 它统计从该节点出发又回到自身的所有闭合游走, 并按游走长度以 1/k! 衰减加权求和, 数学上恰等于邻接矩阵指数的对角元。与度、特征向量等测度不同, 它对<b>短闭合游走 (三角形、四边形等紧密局部结构)</b> 赋予压倒性权重, 因此天然偏好嵌入在稠密团簇中的节点。这一性质使其成为识别"结构化社群核心成员"的敏感工具, 在复杂网络与金融网络研究中被用于系统重要性排序。</p><p><b>数值性质须格外注意</b>: 因含指数项 e^{λ_j}, 该列取值跨越多个数量级——生产 T=19 同篇判据下均值约 1.65×10⁵, 标准差约 1.66×10⁶, 最大值高达 3.30×10⁷, 而孤立节点恒为 1.0。这种极端右偏使其在未取对数的情况下几乎不可直接进入线性回归 (少数超级中心银行将完全主导拟合)。实现层对 OverflowError / LinAlgError 有显式捕获, 溢出年份整年置 NaN 并 WARNING。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个指标问的是: "从这家银行出发, 绕一圈再回到它自己, 有多少种走法?" 圈子越短、走法越多, 分数越高——所以它特别偏爱那些深深嵌在"抱团小圈子"里的银行。因为算法里带指数运算, 分数会暴涨: 孤立银行是 1, 而最中心的银行能到三千三百万, 差了七个数量级。所以用它做回归前<b>务必先取对数</b>, 否则整个结果都会被那几家超级银行牵着走。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">165,323.7</td><td class="num">1.658e+06</td><td class="num">1.000</td><td class="num">3.304e+07</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">91,853.0</td><td class="num">1.237e+06</td><td class="num">1.000</td><td class="num">2.658e+07</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">56,018.2</td><td class="num">811,667.8</td><td class="num">1.000</td><td class="num">1.763e+07</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>忽略边权</b>: <code>nx.subgraph_centrality</code> 不接受 weight 参数, 故本列是纯无权量, 与同为谱型的 eigen/Katz (均加权) 口径不同。</li><li><b>极端右偏, 建议取对数</b>: 生产实测 min = 1.0, max = 3.30×10⁷ (同篇判据)。</li><li>溢出/数值异常 → 该年整列 NaN + WARNING, 不静默降级。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-estrada2005">Estrada 2005</a> · <a href="#ref-bonacich1987">Bonacich 1987</a> · <a href="#ref-boldi2014">Boldi 2014</a> · <a href="#ref-gao2024entropy">Gao 2024</a> · <a href="#ref-li2026aor">Li 2026</a></p></div>
+</section>
+<section class="card" id="bank_cfbetween_cent">
+  <header class="cardhead">
+    <div class="idx">6</div>
+    <div class="titles">
+      <h3>电流流介数中心度 <span class="en">Current-flow betweenness centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">路径 / 桥梁</span>
+        <span class="unit">单位/值域: 无量纲, networkx 归一化 ∈ [0, 1]; <b>仅最大连通分量 (LCC)</b> 内有值</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_cfbetween_cent</code> · <code>bank_cfbetween_cent_win1</code> · <code>bank_cfbetween_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>把网络视为电阻网络, 边权 = 电导 (共现次数越多导电越好); 节点值 = 该节点承载的、在所有节点对间注入单位电流时的平均电流量。实现 = <code>nx.current_flow_betweenness_centrality(G_lcc, weight='weight')</code>, 用<b>原始图</b> (电导语义)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Freeman 式最短路介数假定信息只沿最短路径传播, 这在信息扩散、随机游走型传染等场景下过于严苛。Newman (2005) 与 Brandes 和 Fleischer (2005) 分别从随机游走与电流两个等价视角提出了替代测度: 电流流介数把网络当作电阻网络, 在每一对节点间注入单位电流, 统计流经各节点的电流量。由于电流会沿<b>所有</b>路径按电导比例分流, 该测度对非最短但仍高效的替代路径敏感, 更贴合"信息在多条渠道上并行扩散"的实际机制。</p><p>实现上有两处关键设计。其一, 与其他路径型指标不同, 本列使用<b>原始图</b> G 而非倒数权重图: 因为在电阻网络语义下, 边权直接就是电导 (共现越多 = 导电越好 = 阻抗越低), 已经是"越大越通畅"的正确方向, 再取倒数就会把语义翻转。其二, 电流流介数要求图连通, 故只在当年<b>最大连通分量</b>上计算, 非 LCC 节点一律 NaN——生产 T=19 同篇判据下仅 1,150 格有值 (占有报道格的 18.5%)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>想象把这张银行关系网做成一个电路板: 每条线是一根电阻丝, 两家银行一起上新闻的次数越多, 这根丝导电越好。现在在任意两个点之间通上电, 看电流会从哪些银行身上流过去——被电流反复"路过"最多的那家, 就是这张网真正的交通要道。它和下一个指标 (最短路介数) 的区别是: 最短路介数只认"最近的那条路", 而电流会<b>同时走所有的路</b>, 只是好走的路上分到的电流多。这更像现实中消息传播的样子。⚠ 电路必须连通才有意义, 所以只有落在最大那一整块网里的银行才有分数, 其余全是缺失。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">1,150</td><td class="num">4.9%</td><td class="num">0.0436</td><td class="num">0.0766</td><td class="num">-9.349e-18</td><td class="num">0.5836</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">1,016</td><td class="num">4.3%</td><td class="num">0.0513</td><td class="num">0.0828</td><td class="num">-5.560e-18</td><td class="num">0.6007</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">835</td><td class="num">3.5%</td><td class="num">0.0614</td><td class="num">0.0888</td><td class="num">-3.172e-17</td><td class="num">0.5479</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>用原始图不用倒数图</b>: 电导语义下边权已是"越大越通畅", 与 betweenness/harmonic/closeness/eccentricity 四个用 1/w 倒数图的路径指标口径<b>相反</b>, 勿混改。</li><li><b>覆盖率约 18.5%</b> (同篇判据 1,150/6,224): 仅 LCC 内节点有值。</li><li><b>BLAS 浮点非确定列</b>: 与 <code>bank_clustering</code> / <code>bank_harmonic_cent</code> 同属 9 个已登记的非逐位可复现列, golden 零漂移验证须按全名剔除。</li><li>生产实测 min 为 −0.0 (浮点负零), 非真负值。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-newman2005">Newman 2005</a> · <a href="#ref-brandes2005">Brandes 2005</a> · <a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-gao2024entropy">Gao 2024</a></p></div>
+</section>
+<section class="card" id="bank_between_cent">
+  <header class="cardhead">
+    <div class="idx">7</div>
+    <div class="titles">
+      <h3>最短路介数中心度 <span class="en">Shortest-path betweenness centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">路径 / 桥梁</span>
+        <span class="unit">单位/值域: 无量纲, networkx 默认归一化 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_between_cent</code> · <code>bank_between_cent_win1</code> · <code>bank_between_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>C_B(i) = Σ_{s≠i≠t} σ_st(i) / σ_st, σ_st = s→t 的最短路径条数, σ_st(i) = 其中经过 i 的条数。实现 = <code>nx.betweenness_centrality(G_inv, weight='weight')</code>, 用<b>倒数权重图</b> G_inv (边距离 = 1/共现次数)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>介数中心度是 Freeman (1978) 三大经典中心性中的"中介/桥梁"维度: 它统计有多少对节点之间的最短路径必须借道该节点, 从而度量其对信息流的<b>控制力与不可替代性</b>。与度中心度刻画的"局部连接广度"正交——一家度不高、却恰好卡在两个稠密社群之间的银行, 可以介数极高而度平平。这一"桥梁地位"在金融网络的传染研究中具有直接的政策含义: 高介数节点是冲击跨社群传播的必经关口 (Jackson &amp; Pernoud, 2021)。</p><p><b>倒数权重的必要性</b>: networkx 的加权最短路把 weight 解释为<b>距离</b> (越大越远), 而共现次数的语义是"越大越近"。若直接把共现次数当 weight 传入, 会得到语义完全颠倒的结果 (共现越频繁反被判为越远)。故本项目对四个路径型指标 (betweenness / harmonic / closeness / eccentricity) 统一构造倒数权重图 G_inv, 边距离 = 1/w, 使"共现 30 次"翻译为距离 1/30、"共现 1 次"翻译为距离 1。这一变换遵循 Newman (2001) 与 Opsahl et al. (2010) 对加权网络最短路的标准处理。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个指标问的是: "如果网里任意两家银行要通过关系链搭上线, 有多少次必须从这家银行手上过?" 过手次数越多, 说明它越是这张网的<b>咽喉要道</b>。有意思的是, 一家银行完全可以认识的家数不多 (度很低), 却因为恰好架在两个原本不相往来的圈子之间, 介数高得惊人——这就是"桥"的价值。技术上有个必须做的翻译: 共现次数越多代表关系越<b>近</b>, 但最短路算法要的是"距离"越小越近, 所以建图时把次数取倒数 (一起上过 30 次新闻 = 距离 1/30)。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0003</td><td class="num">0.0026</td><td class="num">0</td><td class="num">0.0899</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0002</td><td class="num">0.0023</td><td class="num">0</td><td class="num">0.0754</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0002</td><td class="num">0.0017</td><td class="num">0</td><td class="num">0.0479</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>倒数权重图</b>: 与 harmonic / closeness / eccentricity 共用 G_inv; 与 cfbetween (原始图) 口径相反。</li><li><b>数值极小且极偏</b>: 生产同篇判据 mean = 2.70×10⁻⁴, max = 0.0899 — 因网络高度稀疏且碎片化, 绝大多数银行介数为 0。</li><li><b>判据敏感性显著</b>: 同篇 → ±1 句窗 → 严格同句, 均值单调下降 (2.70→2.37→1.75 ×10⁻⁴), 符合"判据收紧则桥梁机会减少"的预期。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-newman2001">Newman 2001</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-chen2024bjm">Chen 2024</a> · <a href="#ref-xiang2025">Xiang 2025</a></p></div>
+</section>
+<section class="card" id="bank_harmonic_cent">
+  <header class="cardhead">
+    <div class="idx">8</div>
+    <div class="titles">
+      <h3>调和中心度 <span class="en">Harmonic centrality</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">路径 / 桥梁</span>
+        <span class="unit">单位/值域: 无量纲; <b>倒数距离之和的原始值</b>, networkx 未按 n−1 归一</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_harmonic_cent</code> · <code>bank_harmonic_cent_win1</code> · <code>bank_harmonic_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>H(u) = Σ_{v≠u} 1 / d(u, v), d = 倒数权重图 G_inv 上的加权最短路距离; <b>不可达对贡献 0</b>。实现 = <code>nx.harmonic_centrality(G_inv, distance='weight')</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>调和中心度是接近中心度在<b>断连图</b>上的自然推广: 经典接近中心度取距离之和的倒数, 一旦存在不可达节点 (距离 = ∞) 整个求和即发散; 调和中心度改取<b>倒数距离之和</b>, 不可达对的贡献自动归零, 于是在任意图上都良定义。Boldi 和 Vigna (2014) 从公理化角度系统比较各类中心性对节点增删、边加密等操作的响应性质, 论证调和中心度在一组自然公理下具有最优的稳健性, 并推荐它作为断连网络上的默认接近型测度。</p><p>本项目的年度共现网几乎必然断连 (生产 T=19 同篇判据下年均 260 个连通分量), 因此调和中心度相较经典接近中心度具有决定性的实用优势: 它对<b>全部</b> 6,224 个有报道的银行-年格给出有限值, 而无须像 CFB / eccentricity 那样退守 LCC。代价是它保留 networkx 的原始未归一形式 (倒数距离直接求和), 数值随年度网络规模膨胀, 跨年水平比较须谨慎。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个指标衡量"这家银行离网上所有其他银行有多近"。算法是: 对每一家别的银行, 算出关系链上的距离, 取<b>距离的倒数</b>再全部加起来——离得越近贡献越大, 完全联系不上的就记 0 分。之所以要用"倒数再相加"而不是"相加再取倒数", 是因为这张网是碎的: 只要有一家联系不上, 后一种算法就会算出无穷大而彻底失效, 而前一种照样能给出一个有意义的数。所以它是本项目里唯一一个对<b>所有</b>有报道的银行-年都算得出来的"接近型"指标。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">16.114</td><td class="num">50.827</td><td class="num">0</td><td class="num">550.742</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">12.389</td><td class="num">42.365</td><td class="num">0</td><td class="num">485.168</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">8.951</td><td class="num">33.888</td><td class="num">0</td><td class="num">412.956</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>未归一</b>: networkx 返回原始倒数距离和, 数值随年度节点规模上升 (生产 max = 550.7), 跨年比较须先做规模调整。</li><li><b>BLAS 浮点非确定列</b>: 与 clustering / cfbetween 同属 9 个已登记非逐位可复现列。</li><li>断连友好是其存在理由: 不可达对贡献 0 而非 ∞, 故无须退守 LCC。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-boldi2014">Boldi 2014</a> · <a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-bonato2025">Bonato 2025</a> · <a href="#ref-newman2005">Newman 2005</a></p></div>
+</section>
+<section class="card" id="bank_closeness_cent">
+  <header class="cardhead">
+    <div class="idx">9</div>
+    <div class="titles">
+      <h3>接近中心度 <span class="en">Closeness centrality (Wasserman–Faust)</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">路径 / 桥梁</span>
+        <span class="unit">单位/值域: 无量纲非负; <b>WF 改进式</b>; 加权边距可小于 1, 故数值可超出 [0,1]; 孤立银行取 0.0</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_closeness_cent</code> · <code>bank_closeness_cent_win1</code> · <code>bank_closeness_cent_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>C(u) = [(r−1)/(N−1)] · [(r−1) / Σ_v d(u,v)], r = 从 u 可达的节点数 (含 u), N = 节点全集。实现 = <code>nx.closeness_centrality(G_inv, distance='weight')</code>, 用倒数权重图。</p></div>
+  <div class="block"><h4>学术释义</h4><p>接近中心度 (Freeman, 1978) 度量节点到其余所有节点的平均距离之倒数, 刻画"信息从该节点出发扩散到全网的速度"。为处理断连图, networkx 采用 Wasserman–Faust 改进式: 先在可达集合内计算平均距离的倒数, 再乘以可达比例 (r−1)/(N−1) 作为规模惩罚。这一改进使孤立与半孤立节点得到合理的低分而非未定义值, 但也意味着该列同时混合了两种信息——<b>可达范围的大小</b>与<b>可达范围内的紧密程度</b>——解读时须意识到这一复合性。</p><p><b>值域披露</b>: 由于加权边距 = 1/共现次数可以远小于 1 (共现 30 次 ⇒ 边距 1/30), 节点间加权最短路距离可以极小, 使得 WF 式的第二个因子超过 1。因此本列<b>不受 [0,1] 约束</b>, 生产 T=19 同篇判据下实测最大值 0.8100, 但原理上可超 1。孤立银行按 networkx 约定取 0.0 (非 NaN), 这与 eccentricity 的 NaN 约定不同, 下游须区分"真零"与"不可计算"。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>接近中心度问的是: "这家银行要把消息传遍全网, 平均要转几道手?" 转手越少分数越高。因为这张网是碎的, 算法做了个折中: 先在"它能联系上的那一片"里算平均距离, 再按"它能联系上多大一片"打个折。所以这个分数其实混了两件事——<b>够得着多少家</b>和<b>够着的那些有多近</b>。孤立银行按惯例记 0 分 (不是缺失), 这点和"离心率"那一列的处理不一样, 用的时候别搞混。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0279</td><td class="num">0.0737</td><td class="num">0</td><td class="num">0.8100</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0219</td><td class="num">0.0642</td><td class="num">0</td><td class="num">0.7440</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0164</td><td class="num">0.0541</td><td class="num">0</td><td class="num">0.6572</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>复合语义</b>: WF 式同时编码可达范围与范围内紧密度, 两种变异无法从单列中分离。</li><li><b>孤立 = 0.0 而非 NaN</b>: 与 <code>bank_eccentricity</code> (NaN) 的缺失约定不同, 回归中含义迥异。</li><li>值域非 [0,1]: 加权边距 &lt; 1 可使分值超 1 (生产实测未触及, max = 0.8100)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-boldi2014">Boldi 2014</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-iqbal2025">Iqbal 2025</a> · <a href="#ref-park2026">Park 2026</a></p></div>
+</section>
+<section class="card" id="bank_eccentricity">
+  <header class="cardhead">
+    <div class="idx">10</div>
+    <div class="titles">
+      <h3>离心率 <span class="en">Eccentricity</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">路径 / 桥梁</span>
+        <span class="unit">单位/值域: 无量纲; 加权最短路距离的最大值 (单位 = 距离 = 1/共现次数); <b>仅 LCC</b></span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_eccentricity</code> · <code>bank_eccentricity_win1</code> · <code>bank_eccentricity_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>ecc(v) = max_{u ∈ LCC} d(v, u), d = 倒数权重图 G_inv 上的加权最短路距离。实现 = <code>nx.eccentricity(G_inv_lcc, weight='weight')</code>; 非 LCC 节点与 LCC 退化年 (&lt; 2 节点) 置 NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>离心率度量节点到网络中<b>最远</b>那个可达节点的距离, 是图论中半径 (radius) 与直径 (diameter) 的节点级基石: 全图最小离心率即半径, 最大离心率即直径。与接近中心度取"平均距离"不同, 离心率是<b>最坏情形</b>度量, 对网络的外围延展极为敏感——一个位于图中心的节点即便邻居不多, 只要到各个方向的最远点都不太远, 离心率也低; 反之一个挂在长链末端的节点离心率必然高。在信息扩散语境下, 它回答"最坏情况下消息传到最偏远的同业需要多久"。</p><p>实现上与 CFB 同样受连通性约束: 断连图上任意跨分量对的距离为 ∞, 故只在当年最大连通分量内计算, 非 LCC 节点一律 NaN。生产 T=19 同篇判据下覆盖 1,150 格 (与 CFB 同集合), 均值约 3.00。<b>判据敏感性呈非单调</b>: 同篇 3.00 → ±1 句窗 3.40 → 严格同句 3.01, 中间档最高——这是因为判据收紧同时收缩了 LCC 规模与边密度, 两种效应对最远距离的作用方向相反, 属预期的合成结果而非异常。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>离心率量的是"从这家银行出发, 走到网上离它<b>最远</b>的那家, 要走多远"。它不看平均, 只看最坏那一个。位置越靠图的正中间, 这个最远距离就越短; 挂在网络边缘一条长尾巴末端的银行, 这个数就大。全网所有银行里最小的那个离心率叫"半径", 最大的那个就叫"直径"(本手册后面那个 <code>net_diameter_yr</code> 就是它的无权版本)。⚠ 只有落在最大那块连通网里的银行才算得出来, 其余记缺失。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">1,150</td><td class="num">4.9%</td><td class="num">3.002</td><td class="num">0.8631</td><td class="num">1.000</td><td class="num">6.085</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">1,016</td><td class="num">4.3%</td><td class="num">3.405</td><td class="num">1.211</td><td class="num">1.000</td><td class="num">8.383</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">835</td><td class="num">3.5%</td><td class="num">3.011</td><td class="num">1.050</td><td class="num">1.042</td><td class="num">8.219</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>仅 LCC + NaN 约定</b>: 与 <code>bank_closeness_cent</code> 的"孤立 = 0.0"约定相反, 回归中含义不同, 勿混。</li><li><b>加权距离单位</b>: 边距 = 1/共现次数, 故数值不是"跳数"而是加权距离; 与网络级 <code>net_diameter_yr</code> (无权 BFS 跳数) 口径<b>不同</b>, 二者不可互相换算。</li><li>判据敏感性非单调 (3.00 / 3.40 / 3.01), 属 LCC 规模与边密度反向作用的合成结果。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-newman2001">Newman 2001</a> · <a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-li2026ms">Li 2026</a></p></div>
+</section>
+<section class="card" id="bank_clustering">
+  <header class="cardhead">
+    <div class="idx">11</div>
+    <div class="titles">
+      <h3>局部聚类系数 <span class="en">Local clustering coefficient (weighted)</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">闭合性 / 抱团</span>
+        <span class="unit">单位/值域: 无量纲 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_clustering</code> · <code>bank_clustering_win1</code> · <code>bank_clustering_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>加权局部聚类系数 (Onnela 式几何平均三角强度): c_i = (1/[k_i(k_i−1)]) Σ_{jk} (ŵ_ij ŵ_jk ŵ_ki)^{1/3}, ŵ = 边权除以最大边权。实现 = <code>nx.clustering(G, weight='weight')</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Watts 和 Strogatz (1998) 在"小世界"网络的开创性工作中引入局部聚类系数, 度量一个节点的邻居之间<b>彼此也相连</b>的程度, 即该节点自我网络的闭合性。取值 1 表示邻居两两皆相识 (完全闭合的小团体), 0 表示邻居之间毫无联系 (该节点是唯一的连接枢纽)。Barrat et al. (2004) 与后续文献把它推广到加权网络, 使三角形的贡献按边权几何平均加权, 从而区分"由强关系构成的三角"与"由弱关系凑成的三角"。</p><p>在本项目语境下, 高聚类意味着该银行所处的媒体叙事社群高度封闭——它被并提的那些同业彼此也常被并提, 形成一个稳定的"报道套餐"(如国有六大行常年同框)。这一构念与 Burt 的结构洞逻辑<b>互为镜像</b>: 高聚类 ≈ 高约束 ≈ 无结构洞可套利。生产实测均值仅 0.0049, 反映媒体共现网整体极度稀疏; 但网络级的传递性 (<code>net_transitivity_yr</code> ≈ 0.527) 却很高, 这一反差正是"少数超级枢纽 + 大量低度长尾"的度异质结构所致 (低度节点拉低了逐节点平均, 而三角形集中在高度节点之间)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个指标问的是: "跟这家银行一起上过新闻的那些同业, 它们彼此之间也常一起上新闻吗?" 如果它的"新闻同框对象"个个互相认识, 分数接近 1, 说明它待在一个封闭抱团的小圈子里; 如果那些同业彼此毫无交集, 分数接近 0, 说明这家银行是唯一把它们串起来的人——这在社会学上是很值钱的位置 (见后面的"结构洞"几个指标)。⚠ 全样本平均只有 0.005, 是因为绝大多数银行只被零星报道过, 分母上的"可能三角"极少。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0049</td><td class="num">0.0154</td><td class="num">0</td><td class="num">0.2908</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0046</td><td class="num">0.0165</td><td class="num">0</td><td class="num">0.3634</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.0047</td><td class="num">0.0176</td><td class="num">0</td><td class="num">0.3862</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>BLAS 浮点非确定列</b>: 与 cfbetween / harmonic 同属 9 个已登记非逐位可复现列, golden 零漂移验证须按全名剔除。</li><li><b>与 net_transitivity_yr 不等价</b>: 前者是逐节点系数的样本均值 (低度节点权重同等), 后者是全网三角/三元组之比 (高度节点主导), 二者在度异质网络中可差一个数量级——本项目实测 0.005 vs 0.527, 属正常。</li><li>与 <code>bank_ego_density</code> 构念相近但不同: 后者是纯二值拓扑密度且要求 k ≥ 2, 前者加权且孤立/单邻居节点取 0。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-barrat2004">Barrat 2004</a> · <a href="#ref-burt1992">Burt 1992</a> · <a href="#ref-zhu2023">Zhu 2023</a> · <a href="#ref-robins2004">Robins 2004</a></p></div>
+</section>
+<section class="card" id="bank_ego_density">
+  <header class="cardhead">
+    <div class="idx">12</div>
+    <div class="titles">
+      <h3>自我网密度 <span class="en">Ego-network density</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">闭合性 / 抱团</span>
+        <span class="unit">单位/值域: 无量纲比率 ∈ [0, 1]; 度 k ≤ 1 → NaN</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_ego_density</code> · <code>bank_ego_density_win1</code> · <code>bank_ego_density_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>ego_density(i) = ego_edges / [k(k−1)/2]; k = 焦点银行的度数, ego_edges = 其 k 个邻居两两之间<b>实际存在</b>的边数 (二值拓扑, 忽略边权)。手工枚举实现。</p></div>
+  <div class="block"><h4>学术释义</h4><p>自我网密度是自我中心网络 (ego network) 分析的核心结构量: 剥离焦点节点本身, 只看它的邻居集合内部有多少比例的可能连边真实存在。它与局部聚类系数在无权情形下数值相同, 但构念侧重不同——聚类系数被放在"小世界"的全局叙事里 (Watts &amp; Strogatz, 1998), 自我网密度则被放在"个体社会资本"的叙事里: 低密度自我网意味着焦点节点连接了多个互不往来的群体, 拥有信息经纪与套利空间 (Burt, 1992, 2004); 高密度自我网意味着封闭、冗余、信息高度重复, 但换来更强的信任与规范执行力。</p><p>近期战略管理文献对这一权衡有细致刻画: Huang 和 Hsueh (2023) 发现自我网密度对产业集群内创新的调节作用依情境而变; Guan (2024) 记录了自我网特征如何调节结构洞与中心度对市场绩效的交互效应; Tang et al. (2025) 则区分了焦点企业与伙伴企业自我网密度的<b>差异化</b>影响。这些工作共同提示: 自我网密度不应被简单读作"好"或"坏", 而应作为与结构洞测度并置的互补坐标。生产实测均值 0.724, 显著高于加权聚类系数 (0.005), 因为本列的分母只在 k ≥ 2 的银行上定义 (950 格), 天然排除了大量低度长尾。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把这家银行本身从图上抠掉, 只看剩下的那圈"新闻同框对象": 它们之间实际连了多少条线, 占理论上最多能连的比例是多少。比例高 (接近 1) 说明这家银行的朋友圈是个人人相熟的封闭小团体; 比例低说明它把好几拨互不来往的人凑在了一起——后者在社会学里叫"跨结构洞", 是有信息优势的位置。⚠ 只认识 0 或 1 家同业的银行算不出这个比例 (分母为零), 记缺失; 所以有值的只有 950 个银行-年, 是全部指标里覆盖最窄的之一。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">950</td><td class="num">4.0%</td><td class="num">0.7244</td><td class="num">0.2965</td><td class="num">0</td><td class="num">1.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">811</td><td class="num">3.4%</td><td class="num">0.6749</td><td class="num">0.3173</td><td class="num">0</td><td class="num">1.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">702</td><td class="num">3.0%</td><td class="num">0.6985</td><td class="num">0.3010</td><td class="num">0</td><td class="num">1.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>二值拓扑</b>: 只问邻居之间"有没有边", 不看边权; 与加权的 <code>bank_clustering</code> 口径不同。</li><li><b>k ≤ 1 → NaN</b>: 覆盖仅 950 格 (同篇判据), 与 constraint / ci 同集合 (三者共享 degree ≥ 2 的定义域)。</li><li>与结构洞三兄弟 (constraint / ci / effective_size) 构念高度相关, 属同一"闭合 vs 经纪"维度的不同操作化, 不宜同入一式。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-burt1992">Burt 1992</a> · <a href="#ref-burt2004">Burt 2004</a> · <a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-huang2023tasm">Huang 2023</a> · <a href="#ref-guan2024">Guan 2024</a></p></div>
+</section>
+<section class="card" id="bank_constraint">
+  <header class="cardhead">
+    <div class="idx">13</div>
+    <div class="titles">
+      <h3>结构约束 <span class="en">Burt network constraint</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">结构洞</span>
+        <span class="unit">单位/值域: 无量纲; 度 &lt; 2 → NaN</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_constraint</code> · <code>bank_constraint_win1</code> · <code>bank_constraint_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>C_i = Σ_j (p_ij + Σ_q p_iq · p_qj)², p_ij = 节点 i 投向邻居 j 的关系比例 (按边权归一)。实现 = <code>nx.constraint(G, weight='weight')</code>; <code>G.degree(i) &lt; 2</code> → NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Burt (1992) 的网络约束是结构洞理论的核心操作化: 它度量一个节点的关系投资在多大程度上被<b>集中并冗余地</b>锁定在少数彼此相连的对象上。公式中的 p_ij 是直接投入比例, Σ_q p_iq·p_qj 是经由共同邻居的间接投入, 平方求和后使"把鸡蛋放在一个互相认识的篮子里"受到严厉惩罚。约束越高, 该节点可套利的结构洞越少, 信息越冗余、行动越受制; 约束越低, 它越是横跨多个互不连通群体的经纪人。Burt (2004) 用该测度实证了低约束者更可能产生并实现好创意。</p><p>晚近文献对该测度的<b>解释</b>提出了实质性修正。Johnson 和 Sasson (2026) 系统论证网络约束的经验含义远比"结构洞多寡"复杂, 其数值同时受度数、边权分布与局部闭合三重影响, 呼吁重新解读既有结构洞发现; Burt 和 Opper (2024) 则在中国关系情境下指出, 强关系嵌入同样可以构成有效桥接, 挑战"弱关系—结构洞"的单一叙事。对本项目而言, 这意味着 <code>bank_constraint</code> 宜作描述性结构坐标与稳健性维度使用, 而不宜承载过强的因果解释。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个指标量的是"这家银行的关系有多被捆死"。假设它把大部分新闻曝光都和同样那两三家银行绑在一起, 而那两三家彼此还很熟——那它的活动空间就很小, 约束值高。反过来, 如果它的关系分散投给好几拨互不相识的同业, 约束值就低, 说明它左右逢源、有周旋余地。这是社会学家 Burt 的"结构洞"理论里最经典的一个数。⚠ 只认识 0 或 1 家的银行算不出来 (记缺失); 而且近年有学者指出这个数其实混了好几种效应, 别把它当成"结构洞多少"的纯净读数。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">950</td><td class="num">4.0%</td><td class="num">0.4930</td><td class="num">0.2304</td><td class="num">0.1480</td><td class="num">1.125</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">811</td><td class="num">3.4%</td><td class="num">0.5049</td><td class="num">0.2358</td><td class="num">0.1497</td><td class="num">1.389</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">702</td><td class="num">3.0%</td><td class="num">0.5266</td><td class="num">0.2504</td><td class="num">0.1317</td><td class="num">1.389</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>度 &lt; 2 → NaN</b>: 覆盖 950 格 (同篇判据), 与 ego_density / ci 同定义域。</li><li><b>越高 = 越受限</b>: 方向与 <code>bank_ci</code> (其倒数) 相反, 二者是同一信息的两种刻度, <b>严禁同入一式</b> (完全非线性共线)。</li><li>生产实测值域 0.148–1.125 (同篇), 上界略超 1 属 Burt 公式在极小度数下的正常表现。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-burt1992">Burt 1992</a> · <a href="#ref-burt2004">Burt 2004</a> · <a href="#ref-burtopper2024">Burt 2024</a> · <a href="#ref-johnson2026">Johnson 2026</a> · <a href="#ref-shipilov2023">Shipilov 2023</a></p></div>
+</section>
+<section class="card" id="bank_ci">
+  <header class="cardhead">
+    <div class="idx">14</div>
+    <div class="titles">
+      <h3>约束逆 (结构洞指数) <span class="en">Constraint inverse</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">结构洞</span>
+        <span class="unit">单位/值域: 无量纲正值, 右偏, 无固定上界; 约束不可定义时 NaN</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_ci</code> · <code>bank_ci_win1</code> · <code>bank_ci_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>CI_i = 1 / C_i (当 C_i 有定义且 &gt; 0, 否则 NaN); C_i = <code>bank_constraint</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>约束逆是把 Burt 约束翻转成"越大越好"方向的常用变换: 数值越高, 该银行跨越的结构洞越多、经纪空间越大。这一变换在实证文献中广泛使用, 主要出于系数符号的可读性——回归中正系数直接读作"结构洞优势提升结果", 无须在解释时反复做心算翻转。它与原始约束承载<b>完全相同</b>的信息, 仅刻度不同。</p><p>需要注意的是, 取倒数是<b>非线性</b>变换: 它会把约束分布的低端 (强经纪者) 拉伸、高端 (强受限者) 压缩, 从而改变分布形状与异常值结构。生产实测约束逆均值 2.468、标准差 1.079、最大 6.757, 呈明显右偏。因此约束与约束逆在同一回归中的系数不是简单的符号相反关系, 两者的选择应基于理论上关心的是"受限程度"还是"经纪机会"这一构念方向, 而非事后择优。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>就是把上一个指标 (结构约束) 倒过来: 约束越小, 这个数越大。之所以要多做这一步, 纯粹是为了让回归结果好读——用它做自变量时, 系数为正就直接意味着"结构洞越多、结果越好", 不用在脑子里再翻一次符号。⚠ 它和结构约束是<b>同一份信息的两种刻度</b>, 绝对不能同时放进一个回归方程 (那等于把同一个变量放两次)。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">950</td><td class="num">4.0%</td><td class="num">2.468</td><td class="num">1.079</td><td class="num">0.8889</td><td class="num">6.757</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">811</td><td class="num">3.4%</td><td class="num">2.409</td><td class="num">1.062</td><td class="num">0.7200</td><td class="num">6.680</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">702</td><td class="num">3.0%</td><td class="num">2.334</td><td class="num">1.056</td><td class="num">0.7200</td><td class="num">7.591</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>与 bank_constraint 严禁同入一式</b>: 完全非线性共线。</li><li><b>非线性变换改变分布形状</b>: 系数不是简单符号相反; 选哪个应由理论构念方向决定。</li><li>C_i = 0 或不可定义 → NaN; 与 constraint 覆盖同集合 (950 格, 同篇判据)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-burt1992">Burt 1992</a> · <a href="#ref-burt2004">Burt 2004</a> · <a href="#ref-johnson2026">Johnson 2026</a> · <a href="#ref-you2025">You 2025</a> · <a href="#ref-shipilov2023">Shipilov 2023</a></p></div>
+</section>
+<section class="card" id="bank_effective_size">
+  <header class="cardhead">
+    <div class="idx">15</div>
+    <div class="titles">
+      <h3>有效规模 <span class="en">Effective size</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">结构洞</span>
+        <span class="unit">单位/值域: 非冗余邻居数; 无量纲, 尺度同度数, 近似值域 [1, k]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_effective_size</code> · <code>bank_effective_size_win1</code> · <code>bank_effective_size_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>ES_i = k_i − 冗余度 = Σ_j [1 − Σ_q p_iq · m_jq], j ≠ q; 即扣除邻居之间相互冗余后剩下的"实质不同"邻居数。实现 = <code>nx.effective_size(G, weight='weight')</code>; <code>G.degree(i) == 0</code> → NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>有效规模是 Burt (1992) 结构洞工具箱中的另一支柱, 回答"这个节点的 k 个邻居里, 真正提供<b>不重复</b>信息的有几个"。若邻居彼此完全不相识, 有效规模等于度数 k (每个邻居都是独立的信息源); 若邻居两两皆相识 (完全团), 有效规模坍缩到 1 (所有邻居提供同一份信息)。它与约束的差别在于<b>量纲</b>: 约束是无量纲比率, 有效规模保留了"个数"的尺度, 因而可直接与度数并读, 二者之比 (效率, efficiency) 又构成第三个测度。</p><p>在本项目中, 有效规模的实用价值在于它对<b>度数</b>与<b>冗余度</b>两种效应给出可分解的读数: 生产 T=19 同篇判据下均值 4.26、最大 30.68, 而同期平均邻居度约 16.3——两者的落差直观地量化了媒体共现网中"同框对象高度重叠"的程度。它的定义域比 constraint 更宽 (只要求度数 &gt; 0 而非 ≥ 2), 因此覆盖 1,412 格, 比结构洞三兄弟中的另两个 (950 格) 多出约五成。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>一家银行认识 10 家同业, 但如果这 10 家彼此也都熟得很, 那它们提供的其实是同一份消息——"有效规模"就是把这种重复扣掉之后, 还剩下几个<b>真正不同</b>的信息源。极端情况: 10 个邻居互不相识, 有效规模就是 10; 10 个邻居抱成一团, 有效规模就掉到 1。本项目里平均只有 4.26, 而平均每家银行的邻居其实有 16 个左右——差距就是媒体报道里"同框对象高度重复"的量化结果。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">1,412</td><td class="num">6.0%</td><td class="num">4.260</td><td class="num">5.246</td><td class="num">1.000</td><td class="num">30.675</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">1,241</td><td class="num">5.2%</td><td class="num">4.006</td><td class="num">4.640</td><td class="num">1.000</td><td class="num">26.499</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">1,030</td><td class="num">4.3%</td><td class="num">3.938</td><td class="num">4.268</td><td class="num">1.000</td><td class="num">23.906</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>保留个数量纲</b>: 可与 <code>bank_degree_cent</code>/邻居数并读; 与无量纲的 constraint/ci 互补。</li><li><b>定义域更宽</b>: 只要求度 &gt; 0, 覆盖 1,412 格, 多于 constraint/ci/ego_density 的 950 格。</li><li>与结构洞三兄弟同属一个构念维度, 择一入式为宜。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-burt1992">Burt 1992</a> · <a href="#ref-burt2004">Burt 2004</a> · <a href="#ref-han2024">Han 2024</a> · <a href="#ref-you2025">You 2025</a> · <a href="#ref-hernandez2024">Hernandez 2024</a></p></div>
+</section>
+<section class="card" id="bank_avg_nbr_deg">
+  <header class="cardhead">
+    <div class="idx">16</div>
+    <div class="titles">
+      <h3>平均最近邻度 <span class="en">Average nearest-neighbour degree (ANND)</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">嵌入深度</span>
+        <span class="unit">单位/值域: 无量纲正实数; 有边节点下界 1; 度 = 0 → NaN</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_avg_nbr_deg</code> · <code>bank_avg_nbr_deg_win1</code> · <code>bank_avg_nbr_deg_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>k_nn,i^w = (1/s_i) · Σ_{j∈N(i)} w_ij · k_j, s_i = 节点 i 的加权度 (强度), k_j = 邻居 j 的<b>无权</b>度。实现 = <code>nx.average_neighbor_degree(G, weight='weight')</code>; 度 = 0 → NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>平均最近邻度由 Barrat et al. (2004) 在加权复杂网络框架中系统化, 是度—度相关性 (assortativity) 的<b>节点级</b>刻画: 网络级的相关系数只给出一个全局标量, ANND 则告诉我们每个节点具体"混在什么档次的圈子里"。k_nn 随节点自身度数递增即为同配 (assortative, 大鱼跟大鱼游), 递减即为异配 (disassortative, 大鱼被小鱼环绕)。本项目的网络级 <code>net_assortativity_yr</code> 生产实测为负 (同篇 −0.147), 表明中国银行媒体共现网整体呈异配结构——即高度中心的大行主要与大量低度小行共现, 而非彼此抱团。</p><p>在这一异配背景下, ANND 的解读尤其信息丰富: 一家小行若 ANND 很高, 说明它虽然自己曝光少, 却总是与头部大行同框 (蹭到了头部叙事); 一家大行若 ANND 低, 说明它主要在与长尾小行的对比性报道中出现。生产实测同篇判据均值 16.32、最大 42.0, 三判据下单调递减 (16.32 → 13.48 → 11.96), 符合"判据收紧则可及的高度邻居减少"的预期。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个指标问的是: "跟这家银行同框的那些同业, 自己的人脉平均有多广?" 它衡量的不是你自己有多红, 而是<b>你混的圈子档次有多高</b>。本项目里的银行网是"异配"的——大行周围环着一堆小行, 而不是大行抱团。所以: 一家名不见经传的小银行如果这个数很高, 说明它总能跟头部大行一起上新闻 (蹭到了主流叙事); 反过来一家大行这个数低, 说明它主要出现在与长尾小行的对比报道里。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">1,412</td><td class="num">6.0%</td><td class="num">16.324</td><td class="num">10.511</td><td class="num">1.000</td><td class="num">42.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">1,241</td><td class="num">5.2%</td><td class="num">13.478</td><td class="num">8.591</td><td class="num">1.000</td><td class="num">35.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">1,030</td><td class="num">4.3%</td><td class="num">11.956</td><td class="num">7.456</td><td class="num">1.000</td><td class="num">32.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>混合口径 (刻意)</b>: 权重用加权度 s_i 归一, 但被平均的 k_j 是<b>无权</b>度 — 这是 networkx 的 Barrat 式实现约定, 非本项目自选。</li><li>度 = 0 → NaN; 覆盖 1,412 格 (同篇), 与 <code>bank_effective_size</code> 同定义域。</li><li>是网络级 <code>net_assortativity_yr</code> 的节点级对应物, 二者应对照阅读。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-barrat2004">Barrat 2004</a> · <a href="#ref-newman2002">Newman 2002</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-ricca2024">Ricca 2024</a> · <a href="#ref-li2026ms">Li 2026</a></p></div>
+</section>
+<section class="card" id="bank_coreness">
+  <header class="cardhead">
+    <div class="idx">17</div>
+    <div class="titles">
+      <h3>k-核序数 (核度) <span class="en">Coreness (k-core number)</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">嵌入深度</span>
+        <span class="unit">单位/值域: 整数值拓扑指标, 无量纲</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_coreness</code> · <code>bank_coreness_win1</code> · <code>bank_coreness_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>coreness(i) = 最大的 k, 使得 i 属于图 G 的 k-核 (反复剥去度 &lt; k 的节点后仍存活的最大子图)。实现 = <code>nx.core_number(G)</code> (<b>纯拓扑, 忽略边权</b>)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Seidman (1983) 提出的 k-核分解通过"反复剥洋葱"给出网络的层级结构: 先删去所有度 &lt; 1 的节点, 再删度 &lt; 2 的, 依此类推, 一个节点最后被剥掉的那一层序号就是它的核度。与度中心度的关键差别在于, 核度刻画的是<b>嵌入深度</b>而非连接数量——一个节点可以度很高却位于外围松散区 (邻居都是叶子节点, 第一轮就被剥光), 也可以度中等却深嵌于一个高度互连的核心团。因此核度对"结构性核心成员"的识别比度中心度稳健得多, 且对随机删边不敏感。</p><p>在金融网络文献中, k-核分解被用于识别核心—外围结构与系统重要性层级 (Ma &amp; Zhao, 2024; Pang et al., 2025)。本项目生产实测同篇判据均值 0.966、最大 16, 且三判据下单调递减 (0.966 → 0.780 → 0.661)——最大核度 16 稳定不变而均值下降, 表明判据收紧主要剥离的是外围松散层, 核心团本身相当稳固, 这本身就是网络结构稳健性的一个证据。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>想象把这张网当洋葱一层层剥: 先把只连了 0 条线的点扔掉, 再把只连了 1 条线的扔掉, 再扔只连 2 条的……一个银行是在第几轮才被剥掉的, 那个轮次号就是它的"核度"。核度高说明它<b>深深嵌在核心团里</b>——周围的同业彼此也都连得很密, 一起抗剥。这和"认识多少家"不是一回事: 一家银行可能认识很多家, 但那些全是只认识它一个的边缘小行, 第一轮就全被剥光, 它自己也就跟着掉队了。本项目里最深的核心是第 16 层, 而且三种共现判据下这个数字纹丝不动, 说明核心团很结实。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.9659</td><td class="num">2.625</td><td class="num">0</td><td class="num">16.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.7799</td><td class="num">2.303</td><td class="num">0</td><td class="num">16.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.6610</td><td class="num">2.117</td><td class="num">0</td><td class="num">16.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>忽略边权</b>: 纯拓扑整数量, 与加权的 strength/clustering 口径不同。</li><li><b>整数离散</b>: 生产实测 0–16, 大量取 0 (孤立/叶子节点), 分布极偏; 作连续 RHS 前宜考虑分箱或对数化。</li><li>判据收紧下最大值恒为 16 而均值下降 — 核心团稳固、外围层被剥离的直接证据。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-seidman1983">Seidman 1983</a> · <a href="#ref-ma2024ae">Ma 2024</a> · <a href="#ref-pang2025">Pang 2025</a> · <a href="#ref-kirkley2025">Kirkley 2025</a> · <a href="#ref-latapy2008">Latapy 2008</a></p></div>
+</section>
+<section class="card" id="bank_is_hub">
+  <header class="cardhead">
+    <div class="idx">18</div>
+    <div class="titles">
+      <h3>枢纽哑变量 <span class="en">Hub indicator (top ~10% by degree)</span></h3>
+      <div class="meta"><span class="badge b-node">节点级</span>
+        <span class="badge b-sub">嵌入深度</span>
+        <span class="unit">单位/值域: 0/1 指示变量 (落盘 dtype = double)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_is_hub</code> · <code>bank_is_hub_win1</code> · <code>bank_is_hub_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>is_hub = 1 若 <code>bank_degree_cent</code> ≥ cutoff, 否则 0; cutoff = 年内按度中心度降序第 max(1, ⌊0.10·N⌋) 名的度中心度 (<b>并列同判</b>)。退化守卫: cutoff ≤ 0 (全孤立年) 或全体同度 (正则图) → 该年全置 0。</p></div>
+  <div class="block"><h4>学术释义</h4><p>枢纽哑变量把连续的度中心度离散化为"是否属于年内头部约 10%", 服务于两类需求: 一是交乘项设定 (枢纽 × 冲击) 中对非线性阈值效应的刻画, 二是对度中心度分布极端右偏的稳健化处理 (连续度中心度的回归易被少数超级枢纽主导)。这一"头部指示"设定在金融网络的系统重要性研究中很常见, 与监管实务中的 D-SIB (国内系统重要性银行) 名单逻辑同构。</p><p><b>实现修复 (network-metrics-audit 2026-06-13, N-08)</b>: 旧实现按度降序硬切前 top10_count 家, 导致边界并列的银行 (第 k 与 k+1 名同度) 由排序的字典序<b>任意</b>决定 hub = 1/0。现改为阈值法: 取第 top10_count 名的度为 cutoff, 所有度 ≥ cutoff 的银行均判为枢纽 (并列同判, 确定且不任意)。同时增设退化守卫: 若 cutoff ≤ 0 (该年无任何共现对) 或度分布退化为单一值 (正则图), ">= cutoff" 会把<b>全部</b>银行收入, 使该列沦为零方差常数 (进回归被吸收且"人人皆枢纽"违背构念), 此时统一置 0。生产实测枢纽占比 0.120, 略高于名义 10%, 正是并列同判的结果。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把每年的银行按"认识几家同业"从多到少排队, 排在前 10% 的记 1 (枢纽), 其余记 0。做这个 0/1 化主要是为了做交乘项 ("枢纽银行遇上行业负面冲击会不会伤得更重"), 以及避免几家超级大行的极端数值把回归结果带偏。⚠ 两个坑: 一是并列的银行一视同仁都算枢纽, 所以实际占比 12% 而不是正好 10%; 二是"前 10%"是<b>年内相对</b>标准, 每年入网银行数不一样, 所以这一列<b>不能跨年比水平</b>, 只能当年内相对位置读。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.1200</td><td class="num">0.3250</td><td class="num">0</td><td class="num">1.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.1184</td><td class="num">0.3231</td><td class="num">0</td><td class="num">1.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.1242</td><td class="num">0.3298</td><td class="num">0</td><td class="num">1.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>跨年不可比</b>: "~10%" 是年内相对阈值, 随年度 N 漂移; 宜作年内相对指示而非跨年水平变量。</li><li><b>并列同判</b> ⇒ 实际占比 &gt; 10% (生产实测 0.120)。</li><li><b>退化守卫</b>: 全孤立年 / 正则图 → 全置 0, 而非"人人皆枢纽"的零方差常数列。</li><li>派生自 <code>bank_degree_cent</code>, 与之严禁同入一式。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-duarte2021">Duarte 2021</a> · <a href="#ref-fan2023">Fan 2023</a> · <a href="#ref-nezami2025">Nezami 2025</a></p></div>
+</section>
+
+<h2 id="s5"><span class="no">§5</span>网络级指标 (10): 整张网当年长什么样</h2>
+<div class="note">
+<h4>共同性质: 年 FE 下不可识别</h4>
+<p>全部 <code>net_*_yr</code> 列在<b>年内对所有银行恒定</b> (年度标量广播到当年每一行),
+因此在含年固定效应 (year FE) 的回归中会被<b>完全吸收</b>。它们只能用于: (a) 不含年 FE 的
+描述性/结构性规格; (b) 与银行层面特征的<b>交乘项</b> (交乘随 i×t 变异, 不被吸收)。</p>
+</div>
+
+<section class="card" id="net_density_yr">
+  <header class="cardhead">
+    <div class="idx">19</div>
+    <div class="titles">
+      <h3>网络密度 <span class="en">Network density</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">整体连通程度</span>
+        <span class="unit">单位/值域: 无量纲比率 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_density_yr</code> · <code>net_density_yr_win1</code> · <code>net_density_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>density = 2E / [N(N−1)]; E = 年度实际无向边数, N = 该年入网银行数。实现 = <code>nx.density(G)</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>网络密度是最基础的全局连通性度量: 实际边数占理论最大边数的比例。在金融网络的系统性风险文献中, 密度被视为"连通性"的一阶代理——Billio et al. (2012) 的经典工作论证金融机构间连通性的上升先于并伴随系统性风险的累积; Jackson 和 Pernoud (2021) 的综述则强调连通性与稳健性之间存在非单调关系 (适度连通分散风险, 过度连通放大传染)。本项目把它作为年度层面的结构控制变量, 用以吸收"某一年整个行业的媒体叙事有多密集互联"这一共同时变因素。</p><p>生产实测同篇判据均值 0.0141、值域 0.0021–0.0690, 表明媒体共现网极度稀疏 (理论边中仅千分之几实际存在), 这是大规模实体共现网的典型形态。三判据下密度单调下降 (0.0141 → 0.0123 → 0.0100), 直接量化了共现判据从"同篇"收紧到"同句"所剔除的边比例约 29%。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这张网上实际画出来的线, 占"理论上所有银行两两都连一遍"的百分之多少。本项目实测只有 1.4% 左右, 说明媒体共现网非常稀疏——绝大多数银行两两之间从没在同一篇报道里出现过。把共现标准从"同一篇文章"收紧到"同一句话", 密度会掉到 1.0%, 少了差不多三成的线。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.0141</td><td class="num">0.0182</td><td class="num">0.0021</td><td class="num">0.0690</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.0123</td><td class="num">0.0161</td><td class="num">0.0014</td><td class="num">0.0616</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.0100</td><td class="num">0.0126</td><td class="num">0.0009</td><td class="num">0.0468</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>年 FE 不可识别</b>: net_*_yr 全族在年内对所有银行恒定, 含 year 固定效应时被完全吸收; 仅可用于无年 FE 的规格或与银行特征交乘。</li><li><b>受大-N 文章 clique 投影虚增</b>: 一篇提及 N 家银行的榜单一次贡献 C(N,2) 条边, 直接推高密度。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-billio2012">Billio 2012</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-freeman1978">Freeman 1978</a> · <a href="#ref-kazinnik2026">Kazinnik 2026</a> · <a href="#ref-klaucke2025">Klaucke 2025</a></p></div>
+</section>
+<section class="card" id="net_avg_cluster_yr">
+  <header class="cardhead">
+    <div class="idx">20</div>
+    <div class="titles">
+      <h3>平均聚类系数 <span class="en">Average clustering coefficient</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">闭合性</span>
+        <span class="unit">单位/值域: 无量纲 ∈ [0, 1] (加权)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_avg_cluster_yr</code> · <code>net_avg_cluster_yr_win1</code> · <code>net_avg_cluster_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>⟨C⟩ = (1/N) Σ_i c_i, c_i = 加权局部聚类系数。实现 = <code>nx.average_clustering(G, weight='weight')</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>平均聚类系数是 Watts 和 Strogatz (1998) 小世界判据的两大支柱之一 (另一为平均路径长度): 小世界网络的特征是"高聚类 + 短路径"。它对逐节点的局部闭合性取<b>算术平均</b>, 因此每个节点无论度高度低都获得同等权重——这一点使它与下一项全局传递性 (三角/三元组之比, 由高度节点主导) 在度异质网络中可以相差一个数量级。</p><p>本项目生产实测 ⟨C⟩ ≈ 0.0097 而 transitivity ≈ 0.527, 落差达 54 倍, 正是"少数超级枢纽 + 海量低度长尾"结构的典型指纹: 三角形高度集中在头部大行之间, 而占绝大多数的长尾小行局部聚类接近 0, 把算术平均严重拉低。两个指标必须<b>对照阅读</b>, 单看任何一个都会得出关于"抱团程度"的误导性结论。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把每家银行各自算出的"朋友圈闭合度"取平均。要紧的是: 这个平均给大银行和小银行同等发言权, 而小银行数量占压倒多数、闭合度又接近 0, 所以平均值被拉到只有 0.01。而下一个指标 (全局传递性) 用的是另一种算法, 结果高达 0.53。<b>这两个数必须一起看</b>——它们的巨大落差本身就说明: 抱团现象集中在头部大行之间, 长尾小行是零散的。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.0097</td><td class="num">0.0121</td><td class="num">0.0024</td><td class="num">0.0562</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.0103</td><td class="num">0.0160</td><td class="num">0.0023</td><td class="num">0.0744</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.0097</td><td class="num">0.0133</td><td class="num">0.0025</td><td class="num">0.0617</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>与 net_transitivity_yr 差 54 倍属正常</b>: 前者节点等权平均, 后者三角/三元组全局比, 度异质网络下必然分离。</li><li>年 FE 下被吸收 (同全族)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-barrat2004">Barrat 2004</a> · <a href="#ref-newmangirvan2004">Newman 2004</a> · <a href="#ref-zhu2023">Zhu 2023</a> · <a href="#ref-yang2023procs">Yang 2023</a></p></div>
+</section>
+<section class="card" id="net_transitivity_yr">
+  <header class="cardhead">
+    <div class="idx">21</div>
+    <div class="titles">
+      <h3>全局传递性 <span class="en">Global transitivity</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">闭合性</span>
+        <span class="unit">单位/值域: 无量纲比率 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_transitivity_yr</code> · <code>net_transitivity_yr_win1</code> · <code>net_transitivity_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>T = 3 × (三角形数) / (连通三元组数)。实现 = <code>nx.transitivity(G)</code> (<b>忽略边权</b>)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>全局传递性回答"任取一个连通三元组 (两条边共享一个中心节点), 它闭合成三角形的概率是多少"。与平均聚类系数不同, 它是一个<b>全局比率</b>而非节点平均, 分子分母都在全网汇总, 因而高度节点 (贡献大量三元组) 天然主导结果。在社会网络理论中它对应"我朋友的朋友也是我朋友"这一传递性闭合倾向。</p><p><b>clique 膨胀披露</b>: 本项目的共现图由文章隶属关系投影而来, 一篇提及 N 家银行的文章会一次性投出一个 N-团, 其内部所有三元组都自动闭合。因此 transitivity 会被大-N 文章<b>系统性向上虚增</b>, 生产实测 0.527 的高值中有相当部分来自这一投影伪影而非真实的三方共现倾向 (Cimini et al., 2022 对二模投影统计量的零模型校准问题有系统讨论)。由于 transitivity 忽略边权, 它没有加权孪生列 (<code>_hn</code>), 也无法通过 Newman 归一缓解。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>随便找出"甲和乙同框、甲和丙也同框"这样的组合, 问乙和丙自己是不是也同过框——是的比例就是传递性。本项目实测 0.53, 看起来很高, 但这里有个<b>必须知道的水分</b>: 一篇同时点名十几家银行的榜单文章, 会让这十几家两两之间全部连上线, 于是所有三角形自动闭合。所以这个 0.53 里有相当一部分是"榜单文章造出来的假三角", 而不是真的三家银行有什么三方关系。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.5270</td><td class="num">0.0913</td><td class="num">0.3663</td><td class="num">0.6744</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.5209</td><td class="num">0.0898</td><td class="num">0.3701</td><td class="num">0.6940</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.5456</td><td class="num">0.0993</td><td class="num">0.4066</td><td class="num">0.7354</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>clique 投影虚增 (已知局限)</b>: 大-N 文章使三角自动闭合; 忽略边权故<b>无</b> <code>_hn</code> 加权孪生列可对照。</li><li>与 <code>net_avg_cluster_yr</code> 必须对照读 (0.527 vs 0.0097)。</li><li>年 FE 下被吸收。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-cimini2022">Cimini 2022</a> · <a href="#ref-borgatti1997">Borgatti 1997</a> · <a href="#ref-faust1997">Faust 1997</a> · <a href="#ref-breitung2025">Breitung 2025</a></p></div>
+</section>
+<section class="card" id="net_avg_path_yr">
+  <header class="cardhead">
+    <div class="idx">22</div>
+    <div class="titles">
+      <h3>平均最短路径长度 <span class="en">Average shortest path length</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">可达性 / 尺度</span>
+        <span class="unit">单位/值域: 无量纲 (加权口径, 边距 = 1/共现频次); <b>定义于 LCC</b></span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_avg_path_yr</code> · <code>net_avg_path_yr_win1</code> · <code>net_avg_path_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>L = mean over ordered pairs (u,v) ∈ LCC of d(u,v); d = 加权最短路距离, 单边距离 = 1/共现频次 (Opsahl 2010 加权路径的 α = 1 特例)。实现 = <code>nx.average_shortest_path_length(G_inv_lcc, weight='weight')</code>; |LCC| &lt; 2 → NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>平均最短路径长度是小世界判据的第二支柱 (Watts &amp; Strogatz, 1998): 高聚类同时伴随短路径, 意味着信息可以在局部紧密的社群结构中依然快速全局传播。在金融传染语境下, 短路径意味着冲击可以在少数几步内波及远端机构 (Jackson &amp; Pernoud, 2021)。</p><p><b>加权口径的解读要点</b>: 因边距 = 1/共现频次, 一条共现 30 次的边距离仅 1/30, 故加权平均路径长度<b>不是"跳数"</b>而是加权距离, 数值可以小于 1。生产实测同篇判据均值 1.424、最小 0.774——小于 1 恰恰说明 LCC 内部由大量高频共现的强边构成 (强边把有效距离压缩到远小于一跳)。这与网络级 <code>net_diameter_yr</code> (无权 BFS 跳数, 实测均值 4.84) 是两套不可换算的刻度, 混读会得出荒谬结论。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>在最大的那块连通网里, 任意两家银行之间平均要"走多远"。这里的"远近"不是数几步, 而是把共现次数取倒数当距离——一起上过 30 次新闻的两家, 距离算 1/30, 非常近。所以这个数会小于 1 (实测最小 0.77), 那意味着大块网络内部由很多高频同框的强关系构成。⚠ 千万别把它和后面的"网络直径"(实测 4.84) 相比——那个数的是<b>步数</b>, 这个量的是<b>加权距离</b>, 两把尺子完全不同。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">1.424</td><td class="num">0.3420</td><td class="num">0.7742</td><td class="num">2.048</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">1.504</td><td class="num">0.3947</td><td class="num">0.8324</td><td class="num">2.244</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">1.461</td><td class="num">0.4070</td><td class="num">0.7220</td><td class="num">2.540</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>加权距离 ≠ 跳数</b>: 与 <code>net_diameter_yr</code> (无权 BFS 跳数) 不可换算, 严禁混读。</li><li><b>仅 LCC</b>: |LCC| &lt; 2 的退化年置 NaN。</li><li>数值可 &lt; 1 (强边压缩有效距离), 非异常。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-opsahl2010">Opsahl 2010</a> · <a href="#ref-newman2001">Newman 2001</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-li2026ms">Li 2026</a></p></div>
+</section>
+<section class="card" id="net_diameter_yr">
+  <header class="cardhead">
+    <div class="idx">23</div>
+    <div class="titles">
+      <h3>网络直径 <span class="en">Network diameter</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">可达性 / 尺度</span>
+        <span class="unit">单位/值域: 整数跳数 (<b>无权 BFS</b>); 定义于 LCC</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_diameter_yr</code> · <code>net_diameter_yr_win1</code> · <code>net_diameter_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>diameter = max_{v ∈ LCC} ecc(v), 其中 ecc 由<b>无权 BFS</b> 计算 (复用原始图 G_lcc, <b>非</b> 倒数图)。实现 = <code>max(nx.eccentricity(G_lcc).values())</code>; |LCC| &lt; 2 → NaN。</p></div>
+  <div class="block"><h4>学术释义</h4><p>直径是网络"跨度"的最坏情形度量: 巨片内任意两节点间最短路径步数的上确界。与平均路径长度相比, 它对网络的长尾延展极为敏感, 单条长链即可显著抬高直径。Li et al. (2026, Management Science) 在大数据网络形成研究中把度分布、聚类系数、直径与同配性并列为刻画网络形成机制的四大统计量, 本项目的网络级指标集正与之对应。</p><p><b>关键口径差异</b>: 本项目的直径刻意使用<b>无权</b> BFS (复用原始图 G_lcc), 而非节点级 <code>bank_eccentricity</code> 所用的加权倒数图 G_inv_lcc。因此两者虽同名 "eccentricity" 算法, 数值刻度完全不同 (直径实测 4.84 跳 vs 加权离心率实测 3.00 加权距离), <b>直径不是节点级离心率的最大值</b>。这是执行计划 §3.1 R9 明确记录的设计选择, 不得"顺手统一"。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>在最大那块连通网里, 关系链最长的两家银行之间隔了几"步"。本项目实测平均 4.84 步, 最长 9 步——也就是说, 就算是网上离得最远的两家银行, 通过五六层中间人也能搭上线, 是典型的"小世界"。⚠ 注意这里数的是<b>步数</b>, 而前面那个"平均最短路径长度"量的是<b>加权距离</b>, 两个数虽然都叫"路径", 但刻度不同, 不能互相印证或换算。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">4.842</td><td class="num">1.268</td><td class="num">2.000</td><td class="num">7.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">5.263</td><td class="num">1.584</td><td class="num">2.000</td><td class="num">9.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">4.789</td><td class="num">1.436</td><td class="num">3.000</td><td class="num">9.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无权 BFS 跳数</b>: 与 <code>bank_eccentricity</code> / <code>net_avg_path_yr</code> 的加权距离刻度<b>不同</b>, 严禁混读或互相换算。</li><li>整数取值 (实测 2–9), 年度层面变异有限。</li><li>仅 LCC; |LCC| &lt; 2 → NaN。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-li2026ms">Li 2026</a> · <a href="#ref-newmangirvan2004">Newman 2004</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-ying2024">Ying 2024</a></p></div>
+</section>
+<section class="card" id="net_degree_gini_yr">
+  <header class="cardhead">
+    <div class="idx">24</div>
+    <div class="titles">
+      <h3>度分布基尼系数 <span class="en">Degree Gini coefficient</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">集中度 / 不平等</span>
+        <span class="unit">单位/值域: 无量纲不平等指数 ∈ [0, 1); 0 = 各行连接数完全均等</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_degree_gini_yr</code> · <code>net_degree_gini_yr_win1</code> · <code>net_degree_gini_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>Gini(x) = 2·Σ(i·x_(i)) / (n·Σx) − (n+1)/n, x 为<b>升序排列的无权度</b>序列 deg_i (邻居家数)。自实现 <code>_gini()</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>基尼系数 (Gini, 1912) 度量分布的不平等程度, 用于度序列时刻画网络连接的<b>集中化</b>: 少数超级枢纽垄断连接 (高基尼) 还是连接均匀分散 (低基尼)。在金融网络中, 高度集中的结构通常对应"核心—外围"形态, 其系统性风险特征与均匀网络截然不同 (Sánchez García &amp; Cruz Rambaud, 2023; Metelski &amp; Sobieraj, 2024 对金融数据的基尼式集中度分析给出方法参照)。</p><p><b>口径披露 (network-metrics-audit 2026-06-13, N-04)</b>: 本列用的是<b>无权</b>度 (邻居家数), 因此衡量的是"连接数不平等", <b>而非</b>加权共现网的"强度分布不平等"(后者需 weight='weight')。这是有意的选择 (关注拓扑连接集中度), 但与 <code>bank_strength_cent</code> 的加权口径不同, codebook 标签宜明确读作 connection-count Gini, 勿混读为共现频次的集中度。生产实测 0.870 (同篇), 属极高不平等, 且三判据下单调上升 (0.870 → 0.878 → 0.890) — 判据越严, 连接越向头部集中。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把当年每家银行"认识几家同业"的数字排成一列, 算它的贫富差距。本项目实测 0.87, 换算成收入分配的话属于极度悬殊——少数几家大行连接了几乎所有人, 而绝大多数小行只有零星一两条线。而且共现标准越严 (从同篇收紧到同句), 这个不平等还在上升 (0.87→0.89), 说明"严格意义上的同框"更加向头部集中。⚠ 这里数的是<b>线的条数</b>不平等, 不是"同框次数"的不平等。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.8697</td><td class="num">0.0634</td><td class="num">0.7081</td><td class="num">0.9226</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.8781</td><td class="num">0.0616</td><td class="num">0.7200</td><td class="num">0.9299</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.8899</td><td class="num">0.0574</td><td class="num">0.7677</td><td class="num">0.9422</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无权度基尼</b>: 衡量连接数集中度, <b>非</b>共现强度集中度。</li><li>年 FE 下被吸收。</li><li>实测极高 (0.87–0.89), 反映典型核心—外围形态。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-gini1912">Gini 1912</a> · <a href="#ref-sanchez2023">Sánchez García 2023</a> · <a href="#ref-metelski2024">Metelski 2024</a> · <a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-freeman1978">Freeman 1978</a></p></div>
+</section>
+<section class="card" id="net_modularity_yr">
+  <header class="cardhead">
+    <div class="idx">25</div>
+    <div class="titles">
+      <h3>模块度 <span class="en">Modularity Q</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">社群结构</span>
+        <span class="unit">单位/值域: 无量纲 Q 值, 约 ∈ [−0.5, 1)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_modularity_yr</code> · <code>net_modularity_yr_win1</code> · <code>net_modularity_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>Q = <code>nx.community.modularity(G, C, weight='weight')</code>, 社群划分 C = <code>nx.community.greedy_modularity_communities(G, weight='weight')</code> (Clauset–Newman–Moore 2004 贪心, 确定性无 RNG)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Newman 和 Girvan (2004) 提出的模块度 Q 度量一个社群划分相对于随机零模型的"超额组内边比例": Q 越高, 网络越呈现清晰的社群分块结构。Clauset et al. (2004) 的贪心凝聚算法使其可在大规模网络上高效近似最优化, 本项目采用该算法以保证<b>确定性</b> (无随机初始化, 跨次重建可复现) — 这是相较 Louvain/Leiden 等含随机性算法的关键取舍。Rustamaji et al. (2024) 对贪心模块度分解策略的近期评估支持了这一选择在稳定性上的优势。</p><p><b>实现要点 (§3.1 Q2/R10)</b>: 社群<b>检测</b>与模块度<b>打分</b>必须使用同一权重口径。networkx 的 <code>modularity()</code> 默认 weight='weight' 而 <code>greedy_modularity_communities()</code> 默认 weight=None; 若不显式对齐, 会用无权划分去给加权网络打分, 导致 Q 值失真甚至符号异常。本项目两处均显式传 weight='weight'。此外, 与 transitivity 同理, 模块度亦受大-N 文章 clique 投影影响 (团内边全部计入组内) 而<b>向上虚增</b>; 但因其消费边权, 原理上可通过 Newman 归一产出 <code>net_modularity_hn_yr</code> 加权孪生列 (当前未接线)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个数问的是: "这张银行关系网能不能被清楚地切成几个抱团的小圈子?" 能切得越干净、圈子内部越密而圈子之间越稀, 分数越高。本项目实测 0.16–0.19, 属于中等偏弱的社群结构。有意思的是共现标准越严, 模块度反而越高 (0.159→0.194)——因为宽松标准下那些"榜单文章"把大家胡乱连成一片, 把圈子边界糊掉了; 标准收紧后, 真正的同框圈子才显出来。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.1587</td><td class="num">0.0624</td><td class="num">0.0438</td><td class="num">0.2689</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.1809</td><td class="num">0.0747</td><td class="num">0.0427</td><td class="num">0.3084</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.1938</td><td class="num">0.0812</td><td class="num">0.0222</td><td class="num">0.3225</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>检测与打分权重口径必须一致</b> (均 weight='weight'), 否则 Q 失真。</li><li><b>clique 投影虚增</b>: 团内边全计入组内; 可有 <code>_hn</code> 加权孪生 (当前未接线)。</li><li>算法确定性 (CNM 贪心无 RNG), 跨次重建可复现。</li><li>年 FE 下被吸收。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-newmangirvan2004">Newman 2004</a> · <a href="#ref-clauset2004">Clauset 2004</a> · <a href="#ref-rustamaji2024">Rustamaji 2024</a> · <a href="#ref-cimini2022">Cimini 2022</a> · <a href="#ref-yang2023procs">Yang 2023</a></p></div>
+</section>
+<section class="card" id="net_assortativity_yr">
+  <header class="cardhead">
+    <div class="idx">26</div>
+    <div class="titles">
+      <h3>度同配系数 <span class="en">Degree assortativity coefficient</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">混合模式</span>
+        <span class="unit">单位/值域: 无量纲 Pearson 相关系数 ∈ [−1, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_assortativity_yr</code> · <code>net_assortativity_yr_win1</code> · <code>net_assortativity_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>r = 相连节点对的度—度 Pearson 相关。实现 = <code>nx.degree_assortativity_coefficient(G)</code>; 度方差 = 0 (正则/平凡图) → NaN 守卫 (并抑制 0/0 RuntimeWarning)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>Newman (2002) 提出的度同配系数刻画网络的"门当户对"倾向: r &gt; 0 为同配 (高度节点倾向与高度节点相连, 典型如社会网络), r &lt; 0 为异配 (高度节点被大量低度节点环绕, 典型如技术网络与生物网络)。这一结构差异对传染动力学有实质影响——异配网络的枢纽更易成为传播源, 但也更易被针对性隔离; Ricca 和 Scozzari (2024) 进一步把同配性引入投资组合分散化的网络优化框架。</p><p>本项目生产实测<b>全程为负</b> (同篇 −0.147, ±1 句窗 −0.094, 严格同句 −0.034), 表明中国银行媒体共现网是<b>异配</b>的: 头部大行主要与大量长尾小行同框, 而非彼此抱团。这一发现与节点级 <code>bank_avg_nbr_deg</code> 的读数互为印证, 并对系统性风险解读有直接含义 (冲击经由少数枢纽向广大外围一跳直达)。三判据下负值单调收敛于 0, 说明判据收紧后剩下的"严格同框"关系反而更接近门当户对。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这个数问的是: "关系网里是不是<b>大行跟大行连、小行跟小行连</b>?" 正数表示门当户对, 负数表示大小配对。本项目实测全是负数 (−0.15 到 −0.03), 说明中国银行的媒体同框是"一家大行 + 一群小行"的辐射状, 而不是几家大行抱团。这个结构在风险传播上很关键: 消息或冲击从枢纽大行出发, 一步就能扫到一大片外围小行。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">-0.1472</td><td class="num">0.1096</td><td class="num">-0.3938</td><td class="num">0.0094</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">-0.0939</td><td class="num">0.1575</td><td class="num">-0.4381</td><td class="num">0.2010</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">-0.0339</td><td class="num">0.1658</td><td class="num">-0.3419</td><td class="num">0.3088</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>NaN 守卫</b>: 度方差 = 0 (正则/平凡图) → NaN, 避免 0/0 产生伪值。</li><li>异配性 (r &lt; 0) 是本网络的稳定特征, 三判据一致。</li><li>与节点级 <code>bank_avg_nbr_deg</code> 互为印证, 应对照阅读。</li><li>年 FE 下被吸收。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-newman2002">Newman 2002</a> · <a href="#ref-newmangirvan2004">Newman 2004</a> · <a href="#ref-barrat2004">Barrat 2004</a> · <a href="#ref-ricca2024">Ricca 2024</a> · <a href="#ref-li2026ms">Li 2026</a></p></div>
+</section>
+<section class="card" id="net_giant_share_yr">
+  <header class="cardhead">
+    <div class="idx">27</div>
+    <div class="titles">
+      <h3>巨片占比 <span class="en">Giant component share</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">碎片化</span>
+        <span class="unit">单位/值域: 比例 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_giant_share_yr</code> · <code>net_giant_share_yr_win1</code> · <code>net_giant_share_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>giant_share = |V(LCC_t)| / |V_t|; LCC_t = 年度最大连通分量, V_t = 该年入网银行全集。</p></div>
+  <div class="block"><h4>学术释义</h4><p>巨片占比是渗流理论 (percolation) 中的核心序参量: 随着连边概率上升, 网络会在临界点发生相变, 涌现出包含宏观比例节点的巨型连通分量。在金融网络中, 巨片规模直接决定了冲击可以无阻碍传播的范围上界——落在巨片之外的机构在结构上被"防火墙"隔离 (Jackson &amp; Pernoud, 2021; Liu et al., 2024 对中国金融机构互联性的评估提供了本土参照)。</p><p>本项目生产实测同篇判据均值仅 0.226, 即最大连通块只覆盖约 <b>22.6%</b> 的入网银行, 其余七成七散落在数百个小分量中 (对应 <code>net_n_components_yr</code> 均值 260)。这一高度碎片化的形态直接解释了为什么 CFB / eccentricity 等仅在 LCC 上定义的节点指标覆盖率只有约 18%。三判据下巨片占比单调下降 (0.226 → 0.208 → 0.179), 判据收紧加剧碎片化。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>最大的那一整块连通网, 装下了当年多少比例的银行。本项目只有 22.6%——也就是说四分之三以上的银行是散落在几百个小碎块里的, 彼此之间根本连不上。这就解释了为什么前面好几个指标 (电流介数、离心率) 只有不到两成的银行-年有数据: 它们必须在连通的大块里才算得出来。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.2264</td><td class="num">0.0741</td><td class="num">0.1403</td><td class="num">0.3793</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.2083</td><td class="num">0.0808</td><td class="num">0.1298</td><td class="num">0.3793</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">0.1788</td><td class="num">0.0783</td><td class="num">0.0881</td><td class="num">0.3506</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>直接决定 LCC-only 指标的覆盖率</b> (CFB / eccentricity ≈ 18%)。</li><li>生产实测仅 0.226 (同篇), 网络高度碎片化。</li><li>年 FE 下被吸收。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-liu2024iscience">Liu 2024</a> · <a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-duarte2021">Duarte 2021</a> · <a href="#ref-wang2020natcomm">Wang 2020</a></p></div>
+</section>
+<section class="card" id="net_n_components_yr">
+  <header class="cardhead">
+    <div class="idx">28</div>
+    <div class="titles">
+      <h3>连通分量数 <span class="en">Number of connected components</span></h3>
+      <div class="meta"><span class="badge b-net">网络级 (年度)</span>
+        <span class="badge b-sub">碎片化</span>
+        <span class="unit">单位/值域: 正整数计数</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>net_n_components_yr</code> · <code>net_n_components_yr_win1</code> · <code>net_n_components_yr_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>n_components = |{G_t 的连通分量}|。实现 = <code>len(list(nx.connected_components(G)))</code>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>连通分量数是巨片占比的互补面: 前者说"最大一块有多大", 后者说"总共碎成几块"。二者共同刻画网络的<b>全局碎片化程度</b>。在系统性风险语境下, 分量数多意味着存在天然的结构性隔离带, 冲击难以跨块传播 (Ren &amp; Tang, 2025 讨论了互联银行网络究竟是冲击放大器还是吸收器这一权衡; Sharma &amp; Ahmad, 2025 提供了新兴市场的证据)。</p><p>本项目生产实测同篇判据均值 260、值域 18–467, 且随判据收紧单调上升 (260 → 268 → 279)。需要注意, 该计数<b>包含孤立节点</b> (每个孤立银行自成一个分量), 因此它同时编码了"网络有多碎"与"有多少银行当年虽被报道却无任何同业共现"两种信息。结合 <code>net_giant_share_yr</code> 与年度节点数一并读, 才能把这两种效应分开。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>当年这张网一共碎成了几块。本项目平均 260 块, 最多的年份有 467 块。⚠ 有一点要留意: 一家银行如果当年被报道过、但从没和别的银行同框, 它自己就算<b>一块</b>。所以这个数里既有"网络分裂"的成分, 也有"孤零零被报道"的成分, 要和"巨片占比"以及当年的银行总数一起看才能分清。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">260.158</td><td class="num">164.428</td><td class="num">18.000</td><td class="num">467.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">268.421</td><td class="num">170.788</td><td class="num">18.000</td><td class="num">484.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">23,693</td><td class="num">100.0%</td><td class="num">278.737</td><td class="num">177.832</td><td class="num">21.000</td><td class="num">506.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>含孤立节点</b>: 每个零度银行自成一分量, 该计数混合了碎片化与孤立两种信息。</li><li>与 <code>net_giant_share_yr</code> 互补, 应联读。</li><li>年 FE 下被吸收。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-jackson2021">Jackson 2021</a> · <a href="#ref-ren2025">Ren 2025</a> · <a href="#ref-sharma2025">Sharma 2025</a> · <a href="#ref-watts1998">Watts 1998</a> · <a href="#ref-klaucke2025">Klaucke 2025</a></p></div>
+</section>
+
+<h2 id="s6"><span class="no">§6</span>Gould–Fernandez 经纪角色 (5)</h2>
+<p>前面的中心度回答"你有多重要", 经纪角色回答"<b>离了你, 别人是不是就联系不上</b>"。
+Gould 和 Fernandez (1989) 的做法是: 对每个银行 i, 枚举它的邻居中所有<b>无序且彼此不直连</b>的
+对 {a, c} (即 a 必须真正经由 i 才能达 c), 再按三个端点 (a, i, c) 各自的<b>银行类型分组</b>
+把这条 2-path 归类。分组来自生产 SSOT <code>load_bank_group_maps()</code>, 标签为
+soe (国有大行) / joint (股份制) / city (城商行) / rural (农商行) / private (民营) / foreign (外资) / other。</p>
+<div class="note">
+<h4>为什么是 4 个角色 + 总计, 而不是经典的 5 个</h4>
+<p>GF 原定义在<b>有向</b>交易网上区分 5 种角色。本项目的银行共现图严格<b>无向</b> ——
+每条 2-path a–i–c 即其自身的逆 —— 故 gatekeeper (信息流入本组) 与 representative (信息流出本组)
+在数学上<b>机械坍缩</b>为完全共线的同一个量, 强行分列会造成完美多重共线。因此合并为
+<code>gf_gatekeeper_rep</code>, 落 <b>4 个可区分角色 + gf_total</b>。这是设计裁定, 非实现疏漏。</p>
+</div>
+
+<section class="card" id="gf_coordinator">
+  <header class="cardhead">
+    <div class="idx">29</div>
+    <div class="titles">
+      <h3>协调者 <span class="en">Coordinator</span></h3>
+      <div class="meta"><span class="badge b-gf">GF 经纪角色</span>
+        <span class="badge b-sub">组内经纪</span>
+        <span class="unit">单位/值域: 2-path 计数 (非负, double 存储)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>gf_coordinator</code> · <code>gf_coordinator_win1</code> · <code>gf_coordinator_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>gf_coordinator(i) = #{无序邻居对 {a,c} ⊆ N(i) : (a,c) ∉ E, <b>g(a) = g(i) = g(c)</b>}, g = 银行类型分组。</p></div>
+  <div class="block"><h4>学术释义</h4><p>协调者角色对应三方<b>同属一个群体</b>的经纪: 银行 i 把两家与自己同类型 (如同为城商行) 且彼此无直接同框关系的同业连接起来。Gould 和 Fernandez (1989) 的原始框架把经纪按 2-path 三端点的群归属分解为若干互斥类型, 协调者是其中"纯组内"的一类, 其社会学含义是<b>群体内部的凝聚与协同</b>, 而非跨界套利。</p><p>本项目的分组来自生产 SSOT <code>load_bank_group_maps()</code> (与 IV/DID 模块共用同一事实源, 不重造 loader), 群标签为 soe (国有大行) / joint (股份制) / city (城商行) / rural (农商行) / private (民营) / foreign (外资) / other。生产实测协调者均值仅 0.203, 是四类角色中最低的——反映中国银行媒体共现网中<b>同类型内部</b>的桥接机会稀少, 与后文 liaison (跨三群, 均值 2.59) 形成鲜明对比。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这家银行在自己人当中当"中间人"的次数: 它认识的两家同业, 跟它是同一类银行 (比如都是城商行), 而那两家彼此并不同框, 全靠它牵着。这种角色的意思是"圈内粘合剂"。本项目实测这类机会最少 (平均 0.2 次), 说明同类型银行之间的媒体叙事本来就比较分散, 内部牵线的空间不大。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.2029</td><td class="num">1.399</td><td class="num">0</td><td class="num">27.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.1740</td><td class="num">1.266</td><td class="num">0</td><td class="num">23.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.1362</td><td class="num">1.091</td><td class="num">0</td><td class="num">24.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无向坍缩</b>: Gould–Fernandez (1989) 原定义在<b>有向</b>交易网上区分 5 种角色; 本项目银行共现图严格无向, 每条 2-path a–i–c 即其自身逆, 故 gatekeeper (入) 与 representative (出) 机械坍缩为同一量 (完全共线), 合并为 <code>gf_gatekeeper_rep</code>, 落 <b>4 可区分角色 + 总计</b>。</li><li><b>clique 鲁棒 (经典 GF 铁律)</b>: 只计端点<b>不直连</b> (a–c 无边) 的 2-path — a 必须真正经由 i 才能达 c。因此对 C(N,2) 团投影天然免疫 (团内端点全互邻 ⇒ 经纪计数 0), 这是 GF 族相较 transitivity/modularity 的重要优势。</li><li><b>0 与 NaN 语义严格区分</b>: 银行<b>有</b>分组但无可用 2-path (孤立 / 邻居全直连 / 邻居全缺分组) → <b>0.0</b> (真实零经纪); 银行<b>分组缺失</b> (未命中 <code>load_bank_group_maps</code>) → <b>NaN</b> (不可计算)。下游回归必须区分。</li><li>分组 SSOT = <code>pipeline/panel/iv_did.py::load_bank_group_maps</code>; 加载失败 → 全部 gf_* 优雅置 NaN。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-gould1989">Gould 1989</a> · <a href="#ref-zador2022">Zádor 2022</a> · <a href="#ref-burt2004">Burt 2004</a> · <a href="#ref-han2024">Han 2024</a> · <a href="#ref-kostaris2023">Kostaris 2023</a></p></div>
+</section>
+<section class="card" id="gf_itinerant">
+  <header class="cardhead">
+    <div class="idx">30</div>
+    <div class="titles">
+      <h3>巡回经纪 <span class="en">Itinerant broker</span></h3>
+      <div class="meta"><span class="badge b-gf">GF 经纪角色</span>
+        <span class="badge b-sub">跨组经纪</span>
+        <span class="unit">单位/值域: 2-path 计数 (非负, double 存储)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>gf_itinerant</code> · <code>gf_itinerant_win1</code> · <code>gf_itinerant_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>gf_itinerant(i) = #{{a,c} ⊆ N(i) : (a,c) ∉ E, <b>g(a) = g(c) ≠ g(i)</b>}。</p></div>
+  <div class="block"><h4>学术释义</h4><p>巡回经纪 (itinerant broker, 又译"外来中间人") 刻画的是一种特殊的跨界位置: 被连接的两方彼此<b>同属</b>一个群体, 而经纪人自己<b>在这个群体之外</b>。其社会学含义耐人寻味——一个外来者在为某个群体的内部成员牵线, 这既可能反映该外来者具有该群体内部所不具备的协调能力, 也可能反映该群体内部沟通渠道的失效。</p><p>在本项目语境下, 一个典型情形是: 某国有大行 (soe) 同时与两家城商行 (city) 同框, 而那两家城商行彼此从未同框——大行在城商行群体的媒体叙事中扮演了"外来串联者"。生产实测均值 0.790, 明显高于协调者 (0.203), 印证了前述<b>异配</b>结构 (<code>net_assortativity_yr</code> &lt; 0): 大行与小行群体的跨类型连接远多于同类型内部连接。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这家银行给<b>别的类型</b>的两家银行牵线, 而那两家彼此还是同一类。举例: 一家国有大行分别和两家城商行同过框, 但这两家城商行自己从没同框过——那这家大行就在城商行这个圈子里当了个"外来的中间人"。本项目里这种情况比"圈内牵线"多约四倍, 正好印证了前面说的"大行辐射小行"的网络形态。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.7898</td><td class="num">7.210</td><td class="num">0</td><td class="num">154.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.4484</td><td class="num">3.846</td><td class="num">0</td><td class="num">99.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">0.2686</td><td class="num">2.423</td><td class="num">0</td><td class="num">66.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无向坍缩</b>: Gould–Fernandez (1989) 原定义在<b>有向</b>交易网上区分 5 种角色; 本项目银行共现图严格无向, 每条 2-path a–i–c 即其自身逆, 故 gatekeeper (入) 与 representative (出) 机械坍缩为同一量 (完全共线), 合并为 <code>gf_gatekeeper_rep</code>, 落 <b>4 可区分角色 + 总计</b>。</li><li><b>clique 鲁棒 (经典 GF 铁律)</b>: 只计端点<b>不直连</b> (a–c 无边) 的 2-path — a 必须真正经由 i 才能达 c。因此对 C(N,2) 团投影天然免疫 (团内端点全互邻 ⇒ 经纪计数 0), 这是 GF 族相较 transitivity/modularity 的重要优势。</li><li><b>0 与 NaN 语义严格区分</b>: 银行<b>有</b>分组但无可用 2-path (孤立 / 邻居全直连 / 邻居全缺分组) → <b>0.0</b> (真实零经纪); 银行<b>分组缺失</b> (未命中 <code>load_bank_group_maps</code>) → <b>NaN</b> (不可计算)。下游回归必须区分。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-gould1989">Gould 1989</a> · <a href="#ref-zador2022">Zádor 2022</a> · <a href="#ref-han2024">Han 2024</a> · <a href="#ref-kostaris2023">Kostaris 2023</a> · <a href="#ref-gomes2024">Gomes 2024</a></p></div>
+</section>
+<section class="card" id="gf_gatekeeper_rep">
+  <header class="cardhead">
+    <div class="idx">31</div>
+    <div class="titles">
+      <h3>守门人 / 代表 (合并) <span class="en">Gatekeeper ∪ Representative</span></h3>
+      <div class="meta"><span class="badge b-gf">GF 经纪角色</span>
+        <span class="badge b-sub">跨组经纪</span>
+        <span class="unit">单位/值域: 2-path 计数 (非负, double 存储)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>gf_gatekeeper_rep</code> · <code>gf_gatekeeper_rep_win1</code> · <code>gf_gatekeeper_rep_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>gf_gatekeeper_rep(i) = #{{a,c} ⊆ N(i) : (a,c) ∉ E, <b>g(a)、g(c) 中恰有一个 = g(i)</b>}。</p></div>
+  <div class="block"><h4>学术释义</h4><p>在 Gould–Fernandez 的有向原始框架中, 守门人 (gatekeeper) 指来自组外的关系经由本组成员 i 进入本组, 代表 (representative) 指本组关系经由 i 输出到组外——两者方向相反但结构镜像。本项目的共现图<b>严格无向</b>, 每条 2-path a–i–c 与其逆 c–i–a 是同一条, 因此两个角色<b>机械坍缩</b>为完全共线的同一量, 强行分列会产生完美多重共线。故合并为单列 <code>gf_gatekeeper_rep</code>, 这是执行计划 §6/R2 的明确设计裁定, 而非实现疏漏。</p><p>该角色刻画的是<b>群体边界的看守与代言</b>: 银行 i 站在自己所属类型与外部类型的交界处, 控制着信息进出本群的通道。生产实测均值 1.866, 是四类角色中的次高者, 反映中国银行业媒体叙事中大量存在"跨类型边界"的中介位置。Zádor et al. (2022) 提出的加权归一化 GF 测度为该族的进一步精化提供了方法路径 (本项目当前采用原始计数口径)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这家银行守在"自己这类银行"和"别类银行"的<b>交界口</b>上: 它牵线的两家里, 一家跟它同类、一家不同类, 而这两家彼此不同框。它等于是本群体对外的门房兼代言人。⚠ 原始理论里这其实是两个角色 (信息进来时叫"守门人", 出去时叫"代表"), 但因为本项目的关系网没有方向 (甲乙同框 = 乙甲同框), 这两个角色在数学上完全一样, 硬拆会导致回归共线, 所以合成一列。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">1.866</td><td class="num">9.684</td><td class="num">0</td><td class="num">133.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">1.433</td><td class="num">7.644</td><td class="num">0</td><td class="num">102.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">1.109</td><td class="num">6.180</td><td class="num">0</td><td class="num">95.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无向坍缩</b>: Gould–Fernandez (1989) 原定义在<b>有向</b>交易网上区分 5 种角色; 本项目银行共现图严格无向, 每条 2-path a–i–c 即其自身逆, 故 gatekeeper (入) 与 representative (出) 机械坍缩为同一量 (完全共线), 合并为 <code>gf_gatekeeper_rep</code>, 落 <b>4 可区分角色 + 总计</b>。</li><li><b>clique 鲁棒 (经典 GF 铁律)</b>: 只计端点<b>不直连</b> (a–c 无边) 的 2-path — a 必须真正经由 i 才能达 c。因此对 C(N,2) 团投影天然免疫 (团内端点全互邻 ⇒ 经纪计数 0), 这是 GF 族相较 transitivity/modularity 的重要优势。</li><li><b>0 与 NaN 语义严格区分</b>: 银行<b>有</b>分组但无可用 2-path (孤立 / 邻居全直连 / 邻居全缺分组) → <b>0.0</b> (真实零经纪); 银行<b>分组缺失</b> (未命中 <code>load_bank_group_maps</code>) → <b>NaN</b> (不可计算)。下游回归必须区分。</li><li>合并是<b>设计裁定</b>而非疏漏: 无向图下 gatekeeper 与 representative 完全共线。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-gould1989">Gould 1989</a> · <a href="#ref-zador2022">Zádor 2022</a> · <a href="#ref-han2024">Han 2024</a> · <a href="#ref-hirshleifer2024">Hirshleifer 2024</a> · <a href="#ref-kostaris2023">Kostaris 2023</a></p></div>
+</section>
+<section class="card" id="gf_liaison">
+  <header class="cardhead">
+    <div class="idx">32</div>
+    <div class="titles">
+      <h3>联络人 <span class="en">Liaison</span></h3>
+      <div class="meta"><span class="badge b-gf">GF 经纪角色</span>
+        <span class="badge b-sub">跨组经纪</span>
+        <span class="unit">单位/值域: 2-path 计数 (非负, double 存储)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>gf_liaison</code> · <code>gf_liaison_win1</code> · <code>gf_liaison_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>gf_liaison(i) = #{{a,c} ⊆ N(i) : (a,c) ∉ E, <b>g(a)、g(i)、g(c) 三群两两互异</b>}。</p></div>
+  <div class="block"><h4>学术释义</h4><p>联络人是 Gould–Fernandez 分类中"跨界程度最高"的角色: 经纪人与被连接的两方分属<b>三个互不相同</b>的群体。这一位置在结构洞理论中价值最高 (Burt, 1992) — 它同时跨越两道群体边界, 所掌握的信息组合在网络中最难被替代。Shipilov et al. (2023) 关于"无争议结构洞"在市场危机中的组织绩效优势的证据, 为这类高度跨界位置的实质价值提供了近期支持。</p><p>生产实测联络人均值 2.592, 是四类角色中<b>最高</b>的, 且最大值高达 416, 分布极端右偏 (标准差 21.07)。这一形态说明: 中国银行媒体共现网中的经纪机会主要来自<b>跨类型</b>连接, 且高度集中在少数横跨多个银行类型叙事的枢纽机构手中。三判据下均值单调下降 (2.59 → 1.53 → 1.01), 判据收紧削减跨界机会近六成。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>最"跨界"的一种中间人: 它自己、以及它牵线的那两家, 分属<b>三种不同类型</b>的银行 (比如它是股份制, 一头连国有大行、一头连农商行, 而那两头彼此不同框)。社会学上认为这种位置信息价值最高, 因为它手上的组合别人复制不了。本项目里这类机会最多 (平均 2.6 次), 但极度集中——最多的一家银行一年能有 416 次, 而多数银行是 0。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">2.592</td><td class="num">21.072</td><td class="num">0</td><td class="num">416.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">1.526</td><td class="num">11.625</td><td class="num">0</td><td class="num">304.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">1.012</td><td class="num">7.763</td><td class="num">0</td><td class="num">244.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无向坍缩</b>: Gould–Fernandez (1989) 原定义在<b>有向</b>交易网上区分 5 种角色; 本项目银行共现图严格无向, 每条 2-path a–i–c 即其自身逆, 故 gatekeeper (入) 与 representative (出) 机械坍缩为同一量 (完全共线), 合并为 <code>gf_gatekeeper_rep</code>, 落 <b>4 可区分角色 + 总计</b>。</li><li><b>clique 鲁棒 (经典 GF 铁律)</b>: 只计端点<b>不直连</b> (a–c 无边) 的 2-path — a 必须真正经由 i 才能达 c。因此对 C(N,2) 团投影天然免疫 (团内端点全互邻 ⇒ 经纪计数 0), 这是 GF 族相较 transitivity/modularity 的重要优势。</li><li><b>0 与 NaN 语义严格区分</b>: 银行<b>有</b>分组但无可用 2-path (孤立 / 邻居全直连 / 邻居全缺分组) → <b>0.0</b> (真实零经纪); 银行<b>分组缺失</b> (未命中 <code>load_bank_group_maps</code>) → <b>NaN</b> (不可计算)。下游回归必须区分。</li><li><b>极端右偏</b> (mean 2.59 / sd 21.07 / max 416): 作 RHS 前宜考虑对数化或分箱。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-gould1989">Gould 1989</a> · <a href="#ref-burt1992">Burt 1992</a> · <a href="#ref-zador2022">Zádor 2022</a> · <a href="#ref-shipilov2023">Shipilov 2023</a> · <a href="#ref-han2024">Han 2024</a></p></div>
+</section>
+<section class="card" id="gf_total">
+  <header class="cardhead">
+    <div class="idx">33</div>
+    <div class="titles">
+      <h3>经纪总量 <span class="en">Total brokerage</span></h3>
+      <div class="meta"><span class="badge b-gf">GF 经纪角色</span>
+        <span class="badge b-sub">汇总</span>
+        <span class="unit">单位/值域: 2-path 计数 (非负, double 存储)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>gf_total</code> · <code>gf_total_win1</code> · <code>gf_total_sent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>gf_total = gf_coordinator + gf_itinerant + gf_gatekeeper_rep + gf_liaison (四角色守恒, 单测锁定)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>经纪总量汇总一家银行在年度共现网中所有<b>端点不直连</b>的 2-path 中介机会, 不区分群归属。它可作为"经纪活跃度"的单一综合指标使用, 也可作为四角色分解的分母以构造角色占比 (如 liaison / total = 跨界经纪的相对偏好)。守恒关系由单元测试强制锁定, 保证四角色分解不遗漏、不重复。</p><p><b>与特征向量中心度的构念区分 (§3.1 R-D6-08)</b>: <code>brokerage_eigen_cent</code> 度量的是<b>声望</b> (Bonacich 特征向量, 递归重要性), GF 族度量的是<b>真经纪</b> (跨群桥接的具体机会数)。二者互补而非替代, 一家银行完全可能声望极高却几乎没有经纪机会 (它的邻居彼此都认识), 反之亦然。生产实测 gf_total 均值 5.450, 标准差 36.16, 最大 674 — 极端右偏, 与 liaison 同型。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把上面四种"中间人"角色的次数全加起来, 得到这家银行一年里总共当了多少次中间人。可以直接用它衡量"经纪活跃度", 也可以用它当分母, 算出"这家银行的中间人角色里, 有多大比例是跨界型的"。⚠ 它和"声望型"的中心度 (比如特征向量中心度) 说的是两回事: 声望高是"你认识的人有分量", 经纪多是"离了你他们就联系不上"——一家银行完全可能声望很高但一次中间人也当不成 (因为它的朋友彼此都熟)。</p></div>
+  <div class="statwrap"><table class="stats"><caption>生产面板实测 (40_panel_yearly.parquet, 23,693 银行-年格)</caption><thead><tr><th>共现判据</th><th>有效格数</th><th>覆盖率</th><th>均值</th><th>标准差</th><th>最小</th><th>最大</th></tr></thead><tbody><tr><td>同篇 <span class="sfx">(无后缀)</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">5.450</td><td class="num">36.156</td><td class="num">0</td><td class="num">674.000</td></tr><tr><td>±1 句窗 <span class="sfx">_win1</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">3.581</td><td class="num">22.176</td><td class="num">0</td><td class="num">477.000</td></tr><tr><td>严格同句 <span class="sfx">_sent</span></td><td class="num">6,224</td><td class="num">26.3%</td><td class="num">2.525</td><td class="num">15.734</td><td class="num">0</td><td class="num">390.000</td></tr></tbody></table></div>
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>无向坍缩</b>: Gould–Fernandez (1989) 原定义在<b>有向</b>交易网上区分 5 种角色; 本项目银行共现图严格无向, 每条 2-path a–i–c 即其自身逆, 故 gatekeeper (入) 与 representative (出) 机械坍缩为同一量 (完全共线), 合并为 <code>gf_gatekeeper_rep</code>, 落 <b>4 可区分角色 + 总计</b>。</li><li><b>clique 鲁棒 (经典 GF 铁律)</b>: 只计端点<b>不直连</b> (a–c 无边) 的 2-path — a 必须真正经由 i 才能达 c。因此对 C(N,2) 团投影天然免疫 (团内端点全互邻 ⇒ 经纪计数 0), 这是 GF 族相较 transitivity/modularity 的重要优势。</li><li><b>0 与 NaN 语义严格区分</b>: 银行<b>有</b>分组但无可用 2-path (孤立 / 邻居全直连 / 邻居全缺分组) → <b>0.0</b> (真实零经纪); 银行<b>分组缺失</b> (未命中 <code>load_bank_group_maps</code>) → <b>NaN</b> (不可计算)。下游回归必须区分。</li><li><b>守恒关系由单测锁定</b>: total ≡ coordinator + itinerant + gatekeeper_rep + liaison。</li><li><b>极端右偏</b> (mean 5.45 / sd 36.16 / max 674)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-gould1989">Gould 1989</a> · <a href="#ref-zador2022">Zádor 2022</a> · <a href="#ref-bonacich1972">Bonacich 1972</a> · <a href="#ref-han2024">Han 2024</a> · <a href="#ref-burt2004">Burt 2004</a></p></div>
+</section>
+
+<h2 id="s7"><span class="no">§7</span>附录: 网络衍生变量与 W-轨 (9)</h2>
+<p>以下变量同源于网络思想但<b>不属于</b> 33 结构指标 SSOT, 也不做三判据分轨。
+它们分三类: (a) 用共现网络的行随机权重矩阵 W 传播情感/声量的<b>空间滞后</b>变量;
+(b) 把"同行"重新定义为<b>语义相似</b>的嵌入 W-轨; (c) 建立在<b>媒体—银行二分图</b>上的
+经纪中心度与行业冲击族。</p>
+
+<section class="card" id="peer_tone_lag1">
+  <header class="cardhead">
+    <div class="idx">A1</div>
+    <div class="titles">
+      <h3>同行情感溢出 (一阶) <span class="en">First-order peer tone spillover</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">共现 W 空间滞后</span>
+        <span class="unit">单位/值域: 与 LLM 情感分同刻度</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>peer_tone_lag1_{full, ctx, ss}</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>peer_tone<sub>i,t</sub> = Σ_j W<sub>ij</sub>(t−1) · tone<sub>j</sub>(t−1) / Σ_{j∈obs} W<sub>ij</sub>(t−1); W = 对 t−1 年共现邻接矩阵做<b>行随机标准化</b> (每行和 = 1)。<b>网络与情感均取 t−1</b>。</p></div>
+  <div class="block"><h4>学术释义</h4><p>这是空间计量经济学的标准空间滞后算子 W·y (LeSage &amp; Pace, 2009) 在同行网络上的应用, 对应公司金融中 Leary 和 Roberts (2014) 开创的"同行均值"范式。行随机标准化保证每家银行受到的同行总权重恒为 1, 从而消除"大银行因新闻多而机械主导他人圈子值"的规模效应。<b>网络与情感双双取 t−1</b>, 是为规避 Manski (1993) 的反射问题 (同期互为因果不可分离识别)。</p><p><b>缺失处理的关键修复 (metric-audit 2026-06-10)</b>: 旧实现对缺失的同行情感做 <code>fillna(0)</code>, 把"在网但滞后情感缺失"的同行以 0 注入分子, 而其权重仍留在分母 (行和 = 1), 导致加权均值系统性向 0 衰减 (伪零 / attenuation)。现改为<b>仅对已观测情感的同行</b>求加权均值并按其权重和重新归一; 无任何观测同行 → NaN。⚠ 由此产生一个须披露的识别问题: 归一化的分母索引集是"去年被媒体充分报道并产出有效票"的同行集合, 属<b>数据可观测性选择集</b>而非纯网络结构; 媒体覆盖与银行规模系统相关, 故 W 的有效支撑内生于结果相关的选择变量。生产分析须提供"平衡覆盖子样本"稳健性对照。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>给每家银行算一个"它的圈子去年舆论怎么样"。谁算同一个圈子? 看新闻里谁常和谁被一起提到。权重做了行标准化 (一家银行的所有同行权重加起来正好等于 1), 这样大银行不会光靠新闻多就主导别人的圈子值。刻意<b>全部用去年的数据</b>——网络用去年的、情感也用去年的, 避免"我影响圈子、圈子同时又影响我"这种纠缠不清 (经济学里叫"反射问题")。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>禁用 fillna(0)</b>: 缺失同行的权重必须同时从分母剔除, 否则加权均值向 0 衰减。</li><li><b>覆盖选择性 (须披露)</b>: 归一分母的索引集内生于媒体覆盖, 非纯外生网络结构。</li><li>三轨 {full, ctx, ss} 共用<b>同一个</b> W (W 由共现决定, track-agnostic), 只是被传播的情感列不同, 故 ctx/ss 轨零额外计算成本。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-lesage2009">LeSage 2009</a> · <a href="#ref-leary2014">Leary 2014</a> · <a href="#ref-manski1993">Manski 1993</a> · <a href="#ref-ge2025">Ge 2025</a> · <a href="#ref-schwenkler2025">Schwenkler 2025</a> · <a href="#ref-tetlock2007">Tetlock 2007</a></p></div>
+</section>
+<section class="card" id="peer_tone_2nd_lag1">
+  <header class="cardhead">
+    <div class="idx">A2</div>
+    <div class="titles">
+      <h3>同行情感溢出 (二阶) <span class="en">Second-order peer tone spillover</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">共现 W² 空间滞后</span>
+        <span class="unit">单位/值域: 与 LLM 情感分同刻度</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>peer_tone_2nd_lag1_{full, ctx, ss}</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>W² 去对角 (<code>np.fill_diagonal(W2, 0)</code>) 后, 对已观测情感同行重归一的加权均值 — 即"邻居的邻居"的舆论。</p></div>
+  <div class="block"><h4>学术释义</h4><p>二阶空间滞后是 Bramoullé, Djebbari 和 Fortin (2009) 用社会网络识别同伴效应的核心工具: 当网络中存在"朋友的朋友不是自己的朋友"这类结构 (即 A、A²、A³ 线性无关) 时, 间接连接可以构造出满足排他性约束的工具变量。<b>去对角是排他性的机械前提</b> — W² 的对角元包含"绕一圈回到自己"的路径, 若不剔除, 工具中就混入本行自身的滞后情感, 直接违反排他性。本列即 brokerage_network 论文的显式 2SLS 工具。</p><p><b>标度声明勘误 (omni-g-net-spill-06)</b>: 对观测同行的重归一是<b>逐行 (row-specific) 确定性变换</b>, 不是全局标量缩放。2SLS 仅对工具集的全局非奇异线性变换不变, 行特定除数会改变工具的截面变异、第一阶段系数与 F 统计量, 故旧注"相关性不变"不成立。此外与一阶同理, 分母索引集的覆盖选择性问题依然存在 — 去对角守住的只是<b>机械</b>排他, 不涵盖覆盖选择内生性。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>不是看你直接同框的那些银行, 而是看"<b>它们</b>又和谁同框"——朋友的朋友那一圈去年舆论如何。这个变量主要用途是当<b>工具变量</b>: 朋友的朋友影响得到你的朋友, 却 (在排他性假设下) 不直接影响你, 正好用来给"同行影响"这件事找外生推力。⚠ 有个必须做的技术动作: 要把"绕一圈又回到自己头上"的那部分扣掉, 否则工具里混进你自己去年的舆论, 工具就脏了。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>W² 必须去对角</b>: 否则工具含本行自身滞后情感, 违排他性。</li><li>重归一是逐行变换, <b>会</b>改变第一阶段 F 与工具截面变异 (非无害缩放)。</li><li>弱工具诊断: 引擎在日志中打印其 mean/sd/min/max 供判读。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-bramoulle2009">Bramoullé 2009</a> · <a href="#ref-bramoulle2020">Bramoullé 2020</a> · <a href="#ref-boucher2024">Boucher 2024</a> · <a href="#ref-manski1993">Manski 1993</a> · <a href="#ref-lesage2009">LeSage 2009</a></p></div>
+</section>
+<section class="card" id="peer_fintech_exposure_lag1">
+  <header class="cardhead">
+    <div class="idx">A3</div>
+    <div class="titles">
+      <h3>同行金科声量溢出 <span class="en">Peer fintech coverage exposure</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">共现 W 空间滞后</span>
+        <span class="unit">单位/值域: 与 ln_news_coverage 同刻度</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>peer_fintech_exposure_lag1</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>peer_exposure<sub>i,t</sub> = Σ_j W<sub>ij</sub>(t−1) · ln_news_coverage<sub>j</sub>(t−1), 同样仅对已观测同行重归一。</p></div>
+  <div class="block"><h4>学术释义</h4><p>与 peer_tone 结构完全同构, 只是被传播的对象从"情感极性"换成"金融科技报道声量"(对数化的新闻覆盖量)。构念上它捕捉的是同行的<b>注意力压力</b>而非情绪压力: 当圈子里的同业都在被大量报道金融科技动作时, 焦点银行面临的竞争性叙事压力与模仿激励更强。</p><p><b>锚点勘误 (metric-audit 2026-06-10)</b>: 早期注释曾把该构念归因于 Berger et al. (2022, JFI) 的银行流动性囤积研究, 属误引 — 该文研究宏观 EPU 指数对银行流动性的影响, 并未定义同行共提网络的行随机空间滞后。正确锚点是 LeSage 和 Pace (2009) 的空间滞后算子与 Leary 和 Roberts (2014) 的同行均值范式。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>和上面的"同行情感溢出"是同一个算法, 只是传播的东西从"同行舆论好不好"换成了"同行被报道得多不多"。它衡量的是<b>注意力压力</b>: 圈子里的同业都在被大写特写金融科技的时候, 这家银行面对的竞争性叙事压力有多大。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li>与 peer_tone 共用同一 W, 缺失处理同口径 (仅观测同行重归一)。</li><li><b>历史引文勘误已修正</b>: 正确锚点为 LeSage &amp; Pace (2009) + Leary &amp; Roberts (2014)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-lesage2009">LeSage 2009</a> · <a href="#ref-leary2014">Leary 2014</a> · <a href="#ref-lee2015">Lee 2015</a> · <a href="#ref-hirshleifer2024">Hirshleifer 2024</a></p></div>
+</section>
+<section class="card" id="emb_peer_tone_lag1">
+  <header class="cardhead">
+    <div class="idx">A4</div>
+    <div class="titles">
+      <h3>嵌入语义同行溢出 <span class="en">Embedding-based peer tone spillover</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">语义 W 空间滞后</span>
+        <span class="unit">单位/值域: 与 LLM 情感分同刻度</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>emb_peer_tone_lag1{_lg}_{full,ctx,ss} · emb_peer_tone_diag_lag1{_lg}_{ctx,ss}</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>按银行×年聚合超级文档 → 嵌入向量 → cosine 相似度矩阵 → 对角置零 → 负值 clip → 行随机标准化得 W<sub>emb</sub>; emb_peer_tone = W<sub>emb</sub>(t−1) × tone(t−1)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>此族把"谁是同行"的定义从<b>共同被提及</b>换成<b>话语语义相似</b>, 直接借鉴 Hoberg 和 Phillips (2016) 用产品描述文本构建内生产品市场网络的思路, 但以稠密嵌入向量的余弦相似度替代 TF-IDF 余弦, 以捕获更深层的语义邻近 (Reimers &amp; Gurevych, 2019; Jha et al., 2026 展示了语言嵌入方法在金融社会价值度量上的可行性)。它与共现 W 构成<b>两族基底完全不同的网络</b>: 前者的边是"话语相似", 后者的边是"被媒体共同提及"，<b>严禁并入同一 over-identified Hansen J 检验</b>。</p><p><b>co-primary 双轨与 diag 新轨</b>: 嵌入侧实行双模型协主 (canonical 无后缀 = Qwen3-Embedding-8B / <code>_lg</code> = text-embedding-3-large), 两轨严格 parity (列名双射, 任一 embed 失败 → 同族两列同置 NaN)。此外 2026-07-03 起新增 <b>diag 轨</b>: 历史列的 W 来源恒为 full 轨文本, diag 轨则让 W 与被传播的 tone <b>同轨</b>对角 (W_ctx × tone_ctx), 消除"用 full 语义网传播 ctx 情感"的口径错配。per-W-轨<b>独立降级</b> (非 both-or-neither)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>前面那套"同行"是按<b>一起上新闻</b>定义的; 这一套改按<b>新闻内容像不像</b>定义。做法: 把每家银行当年的所有报道拼成一篇"超级长文", 交给嵌入模型转成一串数字向量, 两家银行的向量夹角越小就越算同行。这样即使两家银行从没在同一篇文章里出现过, 只要报道主题高度雷同, 也算一个圈子。⚠ 这两种"圈子"是<b>两回事</b>, 结论要分开报, 不能混在一个检验里当两份独立证据。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>与共现 W 基底不同</b>: 严禁混入同一 Hansen J。</li><li><b>双轨 parity</b>: canonical (Qwen 4096 维) 与 <code>_lg</code> (OpenAI 3072 维) both-or-neither; 余弦维度无关, 但<b>绝不混算</b>。</li><li><b>diag 轨</b> 消除 W 与 tone 的轨道错配; per-W-轨独立降级。</li><li>嵌入结果经确定性缓存穿透, 离线可 $0 复现。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-hoberg2016">Hoberg 2016</a> · <a href="#ref-reimers2019">Reimers 2019</a> · <a href="#ref-jha2026">Jha 2026</a> · <a href="#ref-steck2024">Steck 2024</a> · <a href="#ref-manski1993">Manski 1993</a> · <a href="#ref-marra2024">Marra 2024</a></p></div>
+</section>
+<section class="card" id="bank_emb_sim_mean_lag1">
+  <header class="cardhead">
+    <div class="idx">A5</div>
+    <div class="titles">
+      <h3>嵌入平均语义相似度 <span class="en">Mean embedding similarity</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">语义网络位置</span>
+        <span class="unit">单位/值域: 余弦相似度均值 (track-agnostic 元数据)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_emb_sim_mean_lag1{_lg}{_ctx,_ss}</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>银行 i 与当年所有其他银行超级文档嵌入向量的余弦相似度<b>均值</b> (t−1 文本, 后缀标注 W 来源轨与嵌入模型)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>该列是语义网络上的"平均邻近度", 构念上对应认知邻近度 (Boschma, 2005) 的嵌入操作化: 高值表示该银行的新闻话语与全行业高度趋同 (认知锁定风险), 低值表示其在信息空间中具有辨识度 (差异化)。它是节点级的一阶语义位置度量, 与结构网络中的 <code>bank_avg_nbr_deg</code> 在功能上类似 (都刻画"你混的圈子长什么样"), 但基底图不同。</p><p><b>方法学警示</b>: Steck et al. (2024) 指出嵌入余弦相似度未必真的度量语义相似 — 其值受嵌入模型训练目标与正则化的强烈影响, 不同模型的余弦刻度不可直接比较。本项目以 co-primary 双轨 (Qwen / OpenAI large) 并置正是对这一风险的稳健性设计: 若两个独立训练的嵌入空间给出一致的排序, 结论才可信。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>这家银行今年的新闻内容, 跟全行业其他银行的新闻内容平均有多像。像得越厉害, 说明它的媒体形象越"泯然众人"; 越不像, 说明它有自己的辨识度。⚠ 有个学界近年的提醒: 嵌入模型算出来的"像不像"其实很吃模型本身的脾气, 换个模型刻度就变。所以本项目<b>同时用两个独立的嵌入模型各算一遍</b>, 只有两边结论一致才敢下判断。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>track-agnostic 元数据</b>: 后缀标注的是 W 的来源文本轨与嵌入模型, 不是情感轨。</li><li><b>余弦刻度不跨模型可比</b>: 双轨并置用于稳健性, 不可平均或混算。</li><li>列名显式带 <code>_lag1</code> 披露其为 t−1 文本 (omni-g-net-spill-03 修复)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-boschma2005">Boschma 2005</a> · <a href="#ref-hoberg2016">Hoberg 2016</a> · <a href="#ref-steck2024">Steck 2024</a> · <a href="#ref-jha2026">Jha 2026</a> · <a href="#ref-marra2024">Marra 2024</a></p></div>
+</section>
+<section class="card" id="bank_cogn_mean">
+  <header class="cardhead">
+    <div class="idx">A6</div>
+    <div class="titles">
+      <h3>认知邻近度 (TF-IDF) <span class="en">Cognitive proximity</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">语义网络位置</span>
+        <span class="unit">单位/值域: 余弦相似度均值 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>bank_cogn_mean{_ctx,_ss}</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>逐年把每家银行所有新闻 (标题 + 正文) 拼为超级文档 → TF-IDF (<code>char_wb</code> analyzer, ngram 2–4, 中文友好免分词) → 成对余弦 → 取该银行与其余所有银行的均值。&lt; 100 字符的银行剔除。</p></div>
+  <div class="block"><h4>学术释义</h4><p>认知邻近度源自 Boschma (2005) 的邻近性框架, 指主体间<b>知识基础的相似程度</b>, 余弦相似度是其标准操作化。本项目的具体实现 (两两 TF-IDF char-ngram 余弦求均值) 是<b>自定义操作化</b>而非文献既有测度。</p><p><b>引文勘误 (network-metrics-audit 2026-06-13, P2-16)</b>: 旧注曾把该操作化归因于 Dahlke et al. (2024, Research Policy), 不成立 — 该文方法是用 transformer 从企业网站文本识别 AI 采纳并构建企业间<b>超链接</b>网络的度中心度, 全文不含"两两 TF-IDF 余弦求均值 = 认知邻近度"这一操作化。须坦承的构念距离: TF-IDF 余弦度量的是<b>新闻话语相似度</b>, 它是否等同于"知识基础相似度"须经业务相似度基准的外部效度验证。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>和上一个指标目的一样 (量"这家银行的新闻内容跟同行像不像"), 但用的是更传统、更透明的方法: 数词频。具体做法是把中文按 2–4 个字的片段切开统计, 不需要分词, 然后算两两之间的夹角余弦。它的好处是完全可解释、零 API 成本; 缺点是只能捕捉字面重合, 抓不到"说法不同但意思一样"。所以它和嵌入版本互为参照。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>操作化为本项目自定义</b>: Boschma (2005) 提供构念, 具体算法非文献既有测度。</li><li><b>历史引文勘误已修正</b>: 与 Dahlke et al. (2024) 无等价关系。</li><li>char_wb + ngram(2,4) 中文免分词; &lt; 100 字符文本剔除 (TF-IDF 在过短文本上退化)。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-boschma2005">Boschma 2005</a> · <a href="#ref-hoberg2016">Hoberg 2016</a> · <a href="#ref-mainali2022">Mainali 2022</a> · <a href="#ref-marra2024">Marra 2024</a> · <a href="#ref-steck2024">Steck 2024</a></p></div>
+</section>
+<section class="card" id="brokerage_eigen_cent">
+  <header class="cardhead">
+    <div class="idx">A7</div>
+    <div class="titles">
+      <h3>媒体—银行二分图经纪中心度 <span class="en">Bipartite brokerage eigenvector centrality</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">二分图信息网络</span>
+        <span class="unit">单位/值域: 特征向量中心度 (分量内归一; 孤立点/微小分量缺失)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>brokerage_eigen_cent</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>构建年度<b>媒体—银行二分图</b> (Set A = 媒体来源, Set B = 银行, 边权 = 该媒体当年报道该银行的文章数), 在其上按连通分量求银行端特征向量中心度。</p></div>
+  <div class="block"><h4>学术释义</h4><p>本列改造自 Han, Kim 和 Nanda (2024, RFS) 的机构经纪网络框架: 原文用"基金—券商"二分图刻画机构如何通过经纪商网络获得流动性, 本项目把它移植为"媒体—银行"二分图, 度量银行在<b>信息分发网络</b>中的枢纽地位。高中心度银行能通过更多、更异质的媒体渠道传播与接收信息。与银行—银行同质共现图不同, 二分图保留了"通过哪家媒体相连"这一层信息 (Borgatti &amp; Everett, 1997; Latapy et al., 2008)。</p><p>实现上采用与 <code>bank_eigen_cent</code> 相同的<b>按连通分量分别求解 + 分量内归一</b>策略, 孤立点与微小分量置 NaN (同一 bug 家族的同款修复)。它与 <code>industry_neg_shock</code> 交乘构成 <code>brokerage_fire_sale</code>, 用于识别"信息枢纽银行在行业负面冲击下的放大效应"(Duarte &amp; Eisenbach, 2021; Caccioli et al., 2024 提供火灾甩卖传染的理论参照)。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>前面所有指标画的都是"银行—银行"的关系网; 这一个画的是"<b>媒体—银行</b>"的两层网: 一边是各家报纸媒体, 另一边是银行, 哪家媒体报道过哪家银行就连一条线, 报道越多线越粗。然后问: 哪家银行占据了信息分发的枢纽位置 (被越多、越有分量的媒体渠道覆盖)? 这个位置意味着它的消息传得更快更广——好消息如此, 坏消息也如此。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>基底图与 33 结构指标不同</b> (二分图 vs 银行—银行同质图), 不属 33 指标 SSOT, 亦不做三判据分轨。</li><li>按连通分量求解 + 分量内归一; 孤立/微小分量 → NaN。</li><li>与 <code>industry_neg_shock</code> 交乘得 <code>brokerage_fire_sale</code>。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-han2024">Han 2024</a> · <a href="#ref-borgatti1997">Borgatti 1997</a> · <a href="#ref-latapy2008">Latapy 2008</a> · <a href="#ref-bonacich1972">Bonacich 1972</a> · <a href="#ref-duarte2021">Duarte 2021</a> · <a href="#ref-fanhu2024">Fan 2024</a></p></div>
+</section>
+<section class="card" id="industry_neg_shock">
+  <header class="cardhead">
+    <div class="idx">A8</div>
+    <div class="titles">
+      <h3>行业负面冲击指数 <span class="en">Industry negative shock (leave-one-out)</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">行业冲击</span>
+        <span class="unit">单位/值域: 负面报道比率 ∈ [0, 1]</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>industry_neg_shock{_ctx,_ss} · industry_neg_shock_lag1{_ctx,_ss}</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>shock<sub>i,t</sub> = 同年<b>其余所有</b>银行 j ≠ i 的负面报道比率均值 (leave-one-out, LOO)。滞后变体取 t−1。</p></div>
+  <div class="block"><h4>学术释义</h4><p>LOO 构造是同伴效应文献中消除机械自相关的标准做法 (Manski, 1993): 银行 i 的行业冲击值不含它自身, 从而避免"自己解释自己"。它与 Khwaja 和 Mian (2008)、Amiti 和 Weinstein (2018) 的银行冲击分离思想同源。</p><p><b>两条必读的识别警示</b>。其一 (2026-06-10): 同期 LOO 仅去自相关, <b>不</b>解决 Manski 反射/同时性 — 同期同行结果仍由共同冲击联合决定, 作 IV 或处理变量须滞后或工具化。其二 <b>年 FE 完全共线 (omni-g-net-brok-01)</b>: 同期 LOO 均值是组内常数减自身的仿射变换 shock<sub>i,t</sub> = S<sub>t</sub>/(N<sub>t</sub>−1) − ratio<sub>i,t</sub>/(N<sub>t</sub>−1); 含年固定效应时 S<sub>t</sub>/(N<sub>t</sub>−1) 被吸收, 剩余识别变异与自身负面比率在年内<b>精确共线 (corr = −1)</b>。故含年 FE 的规格<b>必须</b>改用 <code>industry_neg_shock_lag1</code>。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>衡量"这家银行所处的行业今年整体挨了多少骂", 算法是把<b>除它自己以外</b>所有银行的负面报道比例取平均 (排除自己, 免得变成自己解释自己)。⚠ 两个大坑必须记住: 一是同期的版本只解决了"自己算自己"的问题, 没解决"大家同时互相影响"的问题; 二是如果回归里放了年份固定效应, 同期版本会和银行自己的负面比率<b>完全共线</b>(相关系数正好 −1), 结果毫无意义 —— 这种情况一律改用滞后一期的版本。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li><b>含年 FE 时必须用 _lag1 变体</b>: 同期版与自身负面比率在年内精确共线 (corr = −1)。</li><li>LOO 只去机械自相关, 不解决反射/同时性。</li><li>交乘项 <code>brokerage_fire_sale</code> 随 i×t 变异, 不受上述完全共线影响; 但其<b>主效应项</b>同染, 主效应须用 _lag1。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-manski1993">Manski 1993</a> · <a href="#ref-khwaja2008">Khwaja 2008</a> · <a href="#ref-amiti2018">Amiti 2018</a> · <a href="#ref-duarte2021">Duarte 2021</a> · <a href="#ref-fang2024">Fang 2024</a> · <a href="#ref-gabaix2024giv">Gabaix 2024</a></p></div>
+</section>
+<section class="card" id="brokerage_fire_sale">
+  <header class="cardhead">
+    <div class="idx">A9</div>
+    <div class="titles">
+      <h3>火灾甩卖交乘项 <span class="en">Fire-sale interaction</span></h3>
+      <div class="meta"><span class="badge b-spill">衍生 / W-轨</span>
+        <span class="badge b-sub">行业冲击</span>
+        <span class="unit">单位/值域: 交乘项 (无独立量纲)</span></div>
+    </div>
+  </header>
+  <div class="cols">落列: <code>brokerage_fire_sale</code></div>
+  <div class="block formula"><h4>定义与实现</h4><p>brokerage_fire_sale = brokerage_eigen_cent(t−1) × industry_neg_shock(t)。</p></div>
+  <div class="block"><h4>学术释义</h4><p>该交乘项识别"信息枢纽地位在行业负面冲击下的<b>放大效应</b>": 正系数意味着处于媒体信息分发枢纽的银行, 在行业整体遭遇负面舆论时承受更大的声誉损失 — 枢纽地位在顺境是资产, 在逆境是负债。构念上呼应 Duarte 和 Eisenbach (2021) 的火灾甩卖溢出与系统性风险框架, 以及 Caccioli et al. (2024) 对银行与非银机构间甩卖传染的建模。</p><p>交乘项本身随 i×t 变异, 因此<b>不受</b>同期 LOO 与年 FE 完全共线问题的影响; 但同一回归中的<b>冲击主效应项</b>仍受影响, 须改用 <code>industry_neg_shock_lag1</code>。中心度取 t−1 是为避免"当期冲击同时改变中心度与结果"的同时性。</p></div>
+  <div class="block plain"><h4>大白话</h4><p>把"这家银行是不是信息枢纽"和"今年行业整体挨了多少骂"两件事乘起来, 看它们的<b>叠加效应</b>。如果系数为正, 说明: 平时越是媒体宠儿的银行, 一旦行业出事, 挨的骂也越狠——聚光灯顺境是资产、逆境是负债。⚠ 交乘项本身没有共线问题, 但同一个回归里那个单独的"行业冲击"项<b>有</b>, 记得换成滞后版本。</p></div>
+  
+  <div class="block warn"><h4>口径披露与使用注意</h4><ul><li>中心度取 t−1 (避免同时性), 冲击取 t。</li><li>交乘项随 i×t 变异, 不受年 FE 共线影响; <b>但主效应项须用 _lag1</b>。</li></ul></div>
+  <div class="block refs"><h4>参考文献</h4><p><a href="#ref-duarte2021">Duarte 2021</a> · <a href="#ref-caccioli2024">Caccioli 2024</a> · <a href="#ref-han2024">Han 2024</a> · <a href="#ref-fang2024">Fang 2024</a> · <a href="#ref-manski1993">Manski 1993</a></p></div>
+</section>
+
+<h2 id="s8"><span class="no">§8</span>使用禁忌速查</h2>
+<div class="note hard">
+<h4>结构性禁忌 (违反会直接导致结果无效)</h4>
+<ol>
+<li><b>三判据不可并入同一 Hansen J</b>: <i>无后缀</i> / <code>_win1</code> / <code>_sent</code>
+是同一构念的三种测量, 各自 just-identified 并排。</li>
+<li><b>判据后缀 ≠ 文本轨后缀</b>: 与 <code>_full</code>/<code>_ctx</code>/<code>_ss</code>
+属两个正交概念空间, 不可混入同一识别式。</li>
+<li><b>net_*_yr 全族在年 FE 下被吸收</b>: 仅可用于无年 FE 规格或交乘项。</li>
+<li><b>industry_neg_shock 同期版在年 FE 下与自身负面比率精确共线 (corr = −1)</b>:
+含年 FE 必须改用 <code>industry_neg_shock_lag1</code>。</li>
+<li><b>bank_constraint 与 bank_ci 严禁同入一式</b> (完全非线性共线, 后者 = 前者倒数)。</li>
+<li><b>bank_is_hub 与 bank_degree_cent 严禁同入一式</b> (前者由后者阈值化派生)。</li>
+<li><b>共现 W 与嵌入语义 W 基底图不同</b>: 二者的溢出变量不可并入同一 over-identified 检验。</li>
+</ol>
+</div>
+<div class="note hard">
+<h4>刻度与可比性陷阱</h4>
+<ol>
+<li><b>跨年不可比</b>: <code>bank_strength_cent</code> (年内最大值归一, 每年恒有一家 = 1.0)、
+<code>bank_is_hub</code> (年内相对 top 10% 阈值)、<code>bank_harmonic_cent</code> (未归一, 随年度规模膨胀)。</li>
+<li><b>加权距离 ≠ 跳数</b>: <code>bank_eccentricity</code> 与 <code>net_avg_path_yr</code> 用加权距离
+(边距 = 1/共现次数, 可 &lt; 1); <code>net_diameter_yr</code> 用无权 BFS 跳数。三者<b>不可互相换算或印证</b>。</li>
+<li><b>分量内可比</b>: <code>bank_eigen_cent</code> 在各连通分量内 L2 归一, 跨分量比较只在
+"是否处于大分量"这一意义上成立。</li>
+<li><b>极端右偏, 作 RHS 前宜对数化</b>: <code>bank_subgraph_cent</code> (min 1 → max 3.3×10⁷)、
+<code>gf_liaison</code>、<code>gf_total</code>。</li>
+<li><b>0 与 NaN 语义不同且不统一</b>: <code>bank_closeness_cent</code> 孤立节点取 <b>0.0</b>,
+<code>bank_eccentricity</code> 取 <b>NaN</b>; GF 族则严格区分"有分组但无 2-path"(0.0) 与"分组缺失"(NaN)。</li>
+<li><b>平均聚类系数 vs 全局传递性差 54 倍属正常</b> (0.0097 vs 0.527): 前者节点等权平均, 后者全局三角比;
+在度异质网络中必然分离, 须对照阅读。</li>
+</ol>
+</div>
+<div class="note hard">
+<h4>可复现性: 9 个 BLAS 浮点非确定列</h4>
+<p><code>bank_clustering</code> · <code>bank_cfbetween_cent</code> · <code>bank_harmonic_cent</code>
+各自的 3 个判据变体 (共 <b>9 列</b>) 受 BLAS 浮点运算顺序影响, <b>跨次重建非逐位可复现</b>。
+验证 golden 零漂移时须按<b>全名</b> drop 排除。其余 24 个指标 (72 列) 均为确定性计算。
+受控重生须钉 <code>PYTHONHASHSEED=0</code> 与全部 BLAS 线程数 = 1
+(<code>MKL/OPENBLAS/NUMEXPR/OMP_NUM_THREADS</code>)。</p>
+</div>
+<div class="note hard">
+<h4>测量距离: 共现 ≠ 业务往来</h4>
+<p>本网络的边是从<b>新闻文本推断</b>出来的, 不是直接观测到的业务往来。两家银行"一起被报道"
+可能反映竞争、合作、同类对比, 也可能只是同属一份榜单。把这些指标当作真实业务网络
+(同业拆借、股权、担保) 的代理时, <b>必须显式声明这层测量距离</b>; 且连边本身携带识别误差,
+其不确定性会向下游全部网络统计量传导 (de Paula et al., 2024)。</p>
+</div>
+
+<h2 id="s9"><span class="no">§9</span>参考文献</h2>
+<p style="font-size:.85rem;color:var(--mut)">带 <a class="doi">doi:</a> 链接者取自本项目已核验 DOI 池
+(<code>config/codebook_longdesc/*.md::citations</code> 与 <code>network_spillover.py</code> 代码内注明);
+标 <span class="nodoi">†</span> 者为经典原始文献, 本项目 DOI 池未收录, 故此处刻意不标 DOI (禁臆造)。</p>
+<ol class="biblio"><li id="ref-amiti2018">Amiti, M., &amp; Weinstein, D. E. (2018). How much do idiosyncratic bank shocks affect investment? Evidence from matched bank-firm loan data. <i>Journal of Political Economy</i>, 126(2), 525–587. <a class="doi" href="https://doi.org/10.1086/696272" target="_blank" rel="noopener">doi:10.1086/696272</a></li><li id="ref-barrat2004">Barrat, A., Barthélemy, M., Pastor-Satorras, R., &amp; Vespignani, A. (2004). The architecture of complex weighted networks. <i>PNAS</i>, 101(11), 3747–3752. <a class="doi" href="https://doi.org/10.1073/pnas.0400087101" target="_blank" rel="noopener">doi:10.1073/pnas.0400087101</a></li><li id="ref-billio2012">Billio, M., Getmansky, M., Lo, A. W., &amp; Pelizzon, L. (2012). Econometric measures of connectedness and systemic risk in the finance and insurance sectors. <i>Journal of Financial Economics</i>, 104(3), 535–559. <a class="doi" href="https://doi.org/10.1016/j.jfineco.2011.12.010" target="_blank" rel="noopener">doi:10.1016/j.jfineco.2011.12.010</a></li><li id="ref-boldi2014">Boldi, P., &amp; Vigna, S. (2014). Axioms for centrality. <i>Internet Mathematics</i>, 10(3–4), 222–262. <a class="doi" href="https://doi.org/10.1080/15427951.2013.865686" target="_blank" rel="noopener">doi:10.1080/15427951.2013.865686</a></li><li id="ref-bonacich1972">Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. <i>The Journal of Mathematical Sociology</i>, 2(1), 113–120. <a class="doi" href="https://doi.org/10.1080/0022250X.1972.9989806" target="_blank" rel="noopener">doi:10.1080/0022250X.1972.9989806</a></li><li id="ref-bonacich1987">Bonacich, P. (1987). Power and centrality: A family of measures. <i>American Journal of Sociology</i>, 92(5), 1170–1182. <a class="doi" href="https://doi.org/10.1086/228631" target="_blank" rel="noopener">doi:10.1086/228631</a></li><li id="ref-bonato2025">Bonato, A., Chavez Palan, J., &amp; Szava, A. (2025). Leaders in the global banking network: Analysis of the Bank for International Settlements network data. <i>PLOS ONE</i>, 20(10), e0335506. <a class="doi" href="https://doi.org/10.1371/journal.pone.0335506" target="_blank" rel="noopener">doi:10.1371/journal.pone.0335506</a></li><li id="ref-borgatti1997">Borgatti, S. P., &amp; Everett, M. G. (1997). Network analysis of 2-mode data. <i>Social Networks</i>, 19(3), 243–269. <a class="doi" href="https://doi.org/10.1016/S0378-8733(96)00301-2" target="_blank" rel="noopener">doi:10.1016/S0378-8733(96)00301-2</a></li><li id="ref-boschma2005">Boschma, R. (2005). Proximity and innovation: A critical assessment. <i>Regional Studies</i>, 39(1), 61–74. <a class="doi" href="https://doi.org/10.1080/0034340052000320887" target="_blank" rel="noopener">doi:10.1080/0034340052000320887</a></li><li id="ref-boucher2024">Boucher, V., Rendall, M., Ushchev, P., &amp; Zenou, Y. (2024). Toward a general theory of peer effects. <i>Econometrica</i>, 92(3), 543–565. <a class="doi" href="https://doi.org/10.3982/ECTA21048" target="_blank" rel="noopener">doi:10.3982/ECTA21048</a></li><li id="ref-bramoulle2009">Bramoullé, Y., Djebbari, H., &amp; Fortin, B. (2009). Identification of peer effects through social networks. <i>Journal of Econometrics</i>, 150(1), 41–55. <a class="doi" href="https://doi.org/10.1016/j.jeconom.2008.12.021" target="_blank" rel="noopener">doi:10.1016/j.jeconom.2008.12.021</a></li><li id="ref-bramoulle2020">Bramoullé, Y., Djebbari, H., &amp; Fortin, B. (2020). Peer effects in networks: A survey. <i>Annual Review of Economics</i>, 12, 603–629. <a class="doi" href="https://doi.org/10.1146/annurev-economics-020320-033926" target="_blank" rel="noopener">doi:10.1146/annurev-economics-020320-033926</a></li><li id="ref-brandes2005">Brandes, U., &amp; Fleischer, D. (2005). Centrality measures based on current flow. In <i>STACS 2005</i> (LNCS 3404, pp. 533–544). Springer. <a class="doi" href="https://doi.org/10.1007/978-3-540-31856-9_44" target="_blank" rel="noopener">doi:10.1007/978-3-540-31856-9_44</a></li><li id="ref-breitung2025">Breitung, C., &amp; Müller, S. (2025). Global business networks. <i>Journal of Financial Economics</i>, 168, 104007. <a class="doi" href="https://doi.org/10.1016/j.jfineco.2025.104007" target="_blank" rel="noopener">doi:10.1016/j.jfineco.2025.104007</a></li><li id="ref-burt1992">Burt, R. S. (1992). <i>Structural Holes: The Social Structure of Competition</i>. Harvard University Press. <span class="nodoi" title="经典原始文献, 未收入本项目已核验 DOI 池, 故此处不标 DOI">†</span></li><li id="ref-burt2004">Burt, R. S. (2004). Structural holes and good ideas. <i>American Journal of Sociology</i>, 110(2), 349–399. <a class="doi" href="https://doi.org/10.1086/421787" target="_blank" rel="noopener">doi:10.1086/421787</a></li><li id="ref-burtopper2024">Burt, R. S., &amp; Opper, S. (2024). Guanxi and structural holes: Strong bridges from relational embedding. <i>American Journal of Sociology</i>, 130(1), 1–48. <a class="doi" href="https://doi.org/10.1086/730630" target="_blank" rel="noopener">doi:10.1086/730630</a></li><li id="ref-caccioli2024">Caccioli, F., Ferrara, G., &amp; Ramadiah, A. (2024). Modelling fire sale contagion across banks and non-banks. <i>Journal of Financial Stability</i>, 70, 101231. <a class="doi" href="https://doi.org/10.1016/j.jfs.2024.101231" target="_blank" rel="noopener">doi:10.1016/j.jfs.2024.101231</a></li><li id="ref-chen2024bjm">Chen, S., Cumming, D., Liu, X., Ma, H., &amp; Yan, C. (2024). Alumni network centrality and competitive aggressiveness. <i>British Journal of Management</i>, 35(4), 1907–1928. <a class="doi" href="https://doi.org/10.1111/1467-8551.12849" target="_blank" rel="noopener">doi:10.1111/1467-8551.12849</a></li><li id="ref-cimini2022">Cimini, G., Carra, A., Didomenicantonio, L., &amp; Zaccaria, A. (2022). Meta-validation of bipartite network projections. <i>Communications Physics</i>, 5, 76. <a class="doi" href="https://doi.org/10.1038/s42005-022-00856-9" target="_blank" rel="noopener">doi:10.1038/s42005-022-00856-9</a></li><li id="ref-clauset2004">Clauset, A., Newman, M. E. J., &amp; Moore, C. (2004). Finding community structure in very large networks. <i>Physical Review E</i>, 70(6), 066111. <a class="doi" href="https://doi.org/10.1103/PhysRevE.70.066111" target="_blank" rel="noopener">doi:10.1103/PhysRevE.70.066111</a></li><li id="ref-duarte2021">Duarte, F., &amp; Eisenbach, T. M. (2021). Fire-sale spillovers and systemic risk. <i>The Journal of Finance</i>, 76(3), 1251–1294. <a class="doi" href="https://doi.org/10.1111/jofi.13010" target="_blank" rel="noopener">doi:10.1111/jofi.13010</a></li><li id="ref-estrada2005">Estrada, E., &amp; Rodríguez-Velázquez, J. A. (2005). Subgraph centrality in complex networks. <i>Physical Review E</i>, 71(5), 056103. <a class="doi" href="https://doi.org/10.1103/PhysRevE.71.056103" target="_blank" rel="noopener">doi:10.1103/PhysRevE.71.056103</a></li><li id="ref-fanhu2024">Fan, H., &amp; Hu, C. (2024). Research on systemic risk of China's bank-asset bipartite network. <i>Heliyon</i>, 10(5), e26952. <a class="doi" href="https://doi.org/10.1016/j.heliyon.2024.e26952" target="_blank" rel="noopener">doi:10.1016/j.heliyon.2024.e26952</a></li><li id="ref-fan2023">Fan, Y., Jiang, Y., Jin, P., &amp; Mai, Y. (2023). CEO network centrality and bank risk: Evidence from US bank holding companies. <i>Journal of Corporate Finance</i>, 83, 102501. <a class="doi" href="https://doi.org/10.1016/j.jcorpfin.2023.102501" target="_blank" rel="noopener">doi:10.1016/j.jcorpfin.2023.102501</a></li><li id="ref-fang2024">Fang, Y., Wang, Q., Wang, Y., &amp; Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. <i>International Review of Economics &amp; Finance</i>, 92, 1088–1104. <a class="doi" href="https://doi.org/10.1016/j.iref.2024.01.067" target="_blank" rel="noopener">doi:10.1016/j.iref.2024.01.067</a></li><li id="ref-faust1997">Faust, K. (1997). Centrality in affiliation networks. <i>Social Networks</i>, 19(2), 157–191. <a class="doi" href="https://doi.org/10.1016/S0378-8733(96)00300-0" target="_blank" rel="noopener">doi:10.1016/S0378-8733(96)00300-0</a></li><li id="ref-freeman1978">Freeman, L. C. (1978). Centrality in social networks conceptual clarification. <i>Social Networks</i>, 1(3), 215–239. <a class="doi" href="https://doi.org/10.1016/0378-8733(78)90021-7" target="_blank" rel="noopener">doi:10.1016/0378-8733(78)90021-7</a></li><li id="ref-gabaix2024giv">Gabaix, X., &amp; Koijen, R. S. J. (2024). Granular instrumental variables. <i>Journal of Political Economy</i>, 132(7), 2274–2303. <a class="doi" href="https://doi.org/10.1086/728743" target="_blank" rel="noopener">doi:10.1086/728743</a></li><li id="ref-gao2024entropy">Gao, Q., Fan, H., &amp; Yu, C. (2024). Systemic importance and risk characteristics of banks based on a multi-layer financial network analysis. <i>Entropy</i>, 26(5), 378. <a class="doi" href="https://doi.org/10.3390/e26050378" target="_blank" rel="noopener">doi:10.3390/e26050378</a></li><li id="ref-ge2025">Ge, S., Li, S., &amp; Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum spillover prevails in China. <i>Journal of Banking &amp; Finance</i>, 171, 107356. <a class="doi" href="https://doi.org/10.1016/j.jbankfin.2024.107356" target="_blank" rel="noopener">doi:10.1016/j.jbankfin.2024.107356</a></li><li id="ref-gini1912">Gini, C. (1912). <i>Variabilità e mutabilità: Contributo allo studio delle distribuzioni e delle relazioni statistiche</i>. Cuppini. <span class="nodoi" title="经典原始文献, 未收入本项目已核验 DOI 池, 故此处不标 DOI">†</span></li><li id="ref-gomes2024">Gomes, A., Gopalan, R., Leary, M. T., &amp; Marcet, F. (2024). Analyst coverage networks and corporate financial policies. <i>Management Science</i>, 70(11), 7419–7442. <a class="doi" href="https://doi.org/10.1287/mnsc.2023.4891" target="_blank" rel="noopener">doi:10.1287/mnsc.2023.4891</a></li><li id="ref-gould1989">Gould, R. V., &amp; Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. <i>Sociological Methodology</i>, 19, 89–126. <a class="doi" href="https://doi.org/10.2307/270949" target="_blank" rel="noopener">doi:10.2307/270949</a></li><li id="ref-guan2024">Guan, F. (2024). Ego-network characteristics moderates the interaction of structural hole and centrality on market performance. <i>Management System Engineering</i>, 3, 12. <a class="doi" href="https://doi.org/10.1007/s44176-024-00031-0" target="_blank" rel="noopener">doi:10.1007/s44176-024-00031-0</a></li><li id="ref-han2024">Han, M., Kim, S. H., &amp; Nanda, V. (2024). Institutional brokerage networks: Facilitating liquidity provision. <i>The Review of Financial Studies</i>, 37(9), 2903–2935. <a class="doi" href="https://doi.org/10.1093/rfs/hhae026" target="_blank" rel="noopener">doi:10.1093/rfs/hhae026</a></li><li id="ref-hernandez2024">Hernandez, E., Lee, J. K., &amp; Shaver, J. M. (2024). Toward an improved causal test of network effects: Does alliance network position enhance firm innovation? <i>Strategic Management Journal</i>, 45(12), 2451–2481. <a class="doi" href="https://doi.org/10.1002/smj.3679" target="_blank" rel="noopener">doi:10.1002/smj.3679</a></li><li id="ref-hirshleifer2024">Hirshleifer, D., Peng, L., &amp; Wang, Q. (2024). News diffusion in social networks and stock market reactions. <i>The Review of Financial Studies</i>, 37(11), 3364–3405. <a class="doi" href="https://doi.org/10.1093/rfs/hhae025" target="_blank" rel="noopener">doi:10.1093/rfs/hhae025</a></li><li id="ref-hoberg2016">Hoberg, G., &amp; Phillips, G. (2016). Text-based network industries and endogenous product differentiation. <i>Journal of Political Economy</i>, 124(5), 1423–1465. <a class="doi" href="https://doi.org/10.1086/688176" target="_blank" rel="noopener">doi:10.1086/688176</a></li><li id="ref-huang2025">Huang, C., Deng, Y., Yang, X., Cai, Y., &amp; Zhao, X. (2025). The benefit of being central: Stock network centrality and stock price crashes. <i>Journal of Systems Science and Complexity</i>. <a class="doi" href="https://doi.org/10.1007/s11424-025-4338-6" target="_blank" rel="noopener">doi:10.1007/s11424-025-4338-6</a></li><li id="ref-huang2023tasm">Huang, C.-H., &amp; Hsueh, C.-C. (2023). How does ego-network structure affect innovation within industrial clusters? <i>Technology Analysis &amp; Strategic Management</i>, 1–15. <a class="doi" href="https://doi.org/10.1080/09537325.2023.2217458" target="_blank" rel="noopener">doi:10.1080/09537325.2023.2217458</a></li><li id="ref-iqbal2025">Iqbal, M. S., Bashir, Z., Usman, M., Sabir, S. A., &amp; Sair, S. A. (2025). Webs of influence: Do institutional networks enhance or distort stock price efficiency? <i>Review of Behavioral Finance</i>. <a class="doi" href="https://doi.org/10.1108/RBF-01-2025-0038" target="_blank" rel="noopener">doi:10.1108/RBF-01-2025-0038</a></li><li id="ref-jackson2021">Jackson, M. O., &amp; Pernoud, A. (2021). Systemic risk in financial networks: A survey. <i>Annual Review of Economics</i>, 13, 171–202. <a class="doi" href="https://doi.org/10.1146/annurev-economics-083120-111540" target="_blank" rel="noopener">doi:10.1146/annurev-economics-083120-111540</a></li><li id="ref-jha2026">Jha, M., Liu, H., &amp; Manela, A. (2026). Does finance benefit society? A language embedding approach. <i>The Review of Financial Studies</i>. <a class="doi" href="https://doi.org/10.1093/rfs/hhaf012" target="_blank" rel="noopener">doi:10.1093/rfs/hhaf012</a></li><li id="ref-johnson2026">Johnson, J. C., &amp; Sasson, A. (2026). Reassessing constraint's meaning: A framework for reinterpreting structural holes' findings. <i>Strategy Science</i>. <a class="doi" href="https://doi.org/10.1287/stsc.2024.0297" target="_blank" rel="noopener">doi:10.1287/stsc.2024.0297</a></li><li id="ref-katz1953">Katz, L. (1953). A new status index derived from sociometric analysis. <i>Psychometrika</i>, 18(1), 39–43. <span class="nodoi" title="经典原始文献, 未收入本项目已核验 DOI 池, 故此处不标 DOI">†</span></li><li id="ref-kazinnik2026">Kazinnik, S., Killen, C., Scidá, D., &amp; Wu, J. Y. (2026). News and networks: Using financial news coverage to measure bank interconnectedness. <i>Journal of Banking &amp; Finance</i>, 107694. <a class="doi" href="https://doi.org/10.1016/j.jbankfin.2026.107694" target="_blank" rel="noopener">doi:10.1016/j.jbankfin.2026.107694</a></li><li id="ref-khwaja2008">Khwaja, A. I., &amp; Mian, A. (2008). Tracing the impact of bank liquidity shocks: Evidence from an emerging market. <i>American Economic Review</i>, 98(4), 1413–1442. <a class="doi" href="https://doi.org/10.1257/aer.98.4.1413" target="_blank" rel="noopener">doi:10.1257/aer.98.4.1413</a></li><li id="ref-kirkley2025">Kirkley, A. (2025). Fast nonparametric inference of network backbones for weighted graph sparsification. <i>Physical Review X</i>, 15, 021045. <a class="doi" href="https://doi.org/10.1103/4pg6-mtmt" target="_blank" rel="noopener">doi:10.1103/4pg6-mtmt</a></li><li id="ref-klaucke2025">Klaucke, K. (2025). Text spillover: Measuring connectedness of financial institutions based on news text data. <i>The North American Journal of Economics and Finance</i>, 76, 102307. <a class="doi" href="https://doi.org/10.1016/j.najef.2024.102307" target="_blank" rel="noopener">doi:10.1016/j.najef.2024.102307</a></li><li id="ref-kostaris2023">Kostaris, K., &amp; Andrikopoulos, A. (2023). Brokers in beneficial ownership: A network approach. <i>International Review of Financial Analysis</i>, 90, 102701. <a class="doi" href="https://doi.org/10.1016/j.irfa.2023.102701" target="_blank" rel="noopener">doi:10.1016/j.irfa.2023.102701</a></li><li id="ref-latapy2008">Latapy, M., Magnien, C., &amp; Del Vecchio, N. (2008). Basic notions for the analysis of large two-mode networks. <i>Social Networks</i>, 30(1), 31–48. <a class="doi" href="https://doi.org/10.1016/j.socnet.2007.04.006" target="_blank" rel="noopener">doi:10.1016/j.socnet.2007.04.006</a></li><li id="ref-lesage2009">LeSage, J., &amp; Pace, R. K. (2009). <i>Introduction to Spatial Econometrics</i>. CRC Press. <a class="doi" href="https://doi.org/10.1201/9781420064254" target="_blank" rel="noopener">doi:10.1201/9781420064254</a></li><li id="ref-leary2014">Leary, M. T., &amp; Roberts, M. R. (2014). Do peer firms affect corporate financial policy? <i>The Journal of Finance</i>, 69(1), 139–178. <a class="doi" href="https://doi.org/10.1111/jofi.12094" target="_blank" rel="noopener">doi:10.1111/jofi.12094</a></li><li id="ref-lee2015">Lee, C. M. C., Ma, P., &amp; Wang, C. C. Y. (2015). Search-based peer firms: Aggregating investor perceptions through internet co-searches. <i>Journal of Financial Economics</i>, 116(2), 410–431. <a class="doi" href="https://doi.org/10.1016/j.jfineco.2015.02.003" target="_blank" rel="noopener">doi:10.1016/j.jfineco.2015.02.003</a></li><li id="ref-li2026ms">Li, H., Xu, T., Qi, J., &amp; Chen, Y.-J. (2026). Analyzing network formation using big data analytics: A study of degree distribution, clustering coefficient, diameter, and assortativity. <i>Management Science</i>. <a class="doi" href="https://doi.org/10.1287/mnsc.2023.00475" target="_blank" rel="noopener">doi:10.1287/mnsc.2023.00475</a></li><li id="ref-li2026aor">Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., &amp; Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. <i>Annals of Operations Research</i>. <a class="doi" href="https://doi.org/10.1007/s10479-026-07305-8" target="_blank" rel="noopener">doi:10.1007/s10479-026-07305-8</a></li><li id="ref-liu2024iscience">Liu, Z., Wang, L., Huang, C., &amp; Yang, B. (2024). Assessing interconnectedness and systemic importance of Chinese financial institutions. <i>iScience</i>, 27(8), 110474. <a class="doi" href="https://doi.org/10.1016/j.isci.2024.110474" target="_blank" rel="noopener">doi:10.1016/j.isci.2024.110474</a></li><li id="ref-ma2024ae">Ma, Y., &amp; Zhao, J. (2024). Do interfund network centralities affect fund systematic risk? Evidence from China open-ended funds. <i>Applied Economics</i>, 1–17. <a class="doi" href="https://doi.org/10.1080/00036846.2024.2302932" target="_blank" rel="noopener">doi:10.1080/00036846.2024.2302932</a></li><li id="ref-mainali2022">Mainali, K. P., Slud, E., Singer, M. C., &amp; Fagan, W. F. (2022). A better index for analysis of co-occurrence and similarity. <i>Science Advances</i>, 8(4), eabj9204. <a class="doi" href="https://doi.org/10.1126/sciadv.abj9204" target="_blank" rel="noopener">doi:10.1126/sciadv.abj9204</a></li><li id="ref-manski1993">Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. <i>The Review of Economic Studies</i>, 60(3), 531–542. <a class="doi" href="https://doi.org/10.2307/2298123" target="_blank" rel="noopener">doi:10.2307/2298123</a></li><li id="ref-marra2024">Marra, A., Cucculelli, M., &amp; Cartone, A. (2024). So far, yet so close: Using networks of words to measure proximity and spillovers between firms. <i>Eurasian Business Review</i>, 14, 767–795. <a class="doi" href="https://doi.org/10.1007/s40821-024-00270-x" target="_blank" rel="noopener">doi:10.1007/s40821-024-00270-x</a></li><li id="ref-metelski2024">Metelski, D., &amp; Sobieraj, J. (2024). Trading volume concentration across S&amp;P 500 index constituents — A Gini-based analysis. <i>Journal of Risk and Financial Management</i>, 17(8), 325. <a class="doi" href="https://doi.org/10.3390/jrfm17080325" target="_blank" rel="noopener">doi:10.3390/jrfm17080325</a></li><li id="ref-newman2001">Newman, M. E. J. (2001). Scientific collaboration networks. II. Shortest paths, weighted networks, and centrality. <i>Physical Review E</i>, 64(1), 016132. <span class="nodoi" title="经典原始文献, 未收入本项目已核验 DOI 池, 故此处不标 DOI">†</span></li><li id="ref-newman2002">Newman, M. E. J. (2002). Assortative mixing in networks. <i>Physical Review Letters</i>, 89(20), 208701. <span class="nodoi" title="经典原始文献, 未收入本项目已核验 DOI 池, 故此处不标 DOI">†</span></li><li id="ref-newman2005">Newman, M. E. J. (2005). A measure of betweenness centrality based on random walks. <i>Social Networks</i>, 27(1), 39–54. <a class="doi" href="https://doi.org/10.1016/j.socnet.2004.11.009" target="_blank" rel="noopener">doi:10.1016/j.socnet.2004.11.009</a></li><li id="ref-newmangirvan2004">Newman, M. E. J., &amp; Girvan, M. (2004). Finding and evaluating community structure in networks. <i>Physical Review E</i>, 69(2), 026113. <a class="doi" href="https://doi.org/10.1103/PhysRevE.69.026113" target="_blank" rel="noopener">doi:10.1103/PhysRevE.69.026113</a></li><li id="ref-nezami2025">Nezami, M., Chisam, N., &amp; Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. <i>Journal of the Academy of Marketing Science</i>, 53(1), 79–104. <a class="doi" href="https://doi.org/10.1007/s11747-024-01043-8" target="_blank" rel="noopener">doi:10.1007/s11747-024-01043-8</a></li><li id="ref-opsahl2010">Opsahl, T., Agneessens, F., &amp; Skvoretz, J. (2010). Node centrality in weighted networks: Generalizing degree and shortest paths. <i>Social Networks</i>, 32(3), 245–251. <a class="doi" href="https://doi.org/10.1016/j.socnet.2010.03.006" target="_blank" rel="noopener">doi:10.1016/j.socnet.2010.03.006</a></li><li id="ref-pang2025">Pang, C., Fan, H., Wu, J., Gao, Q., &amp; Chen, N. (2025). Beyond single-network assumptions: Structural uncertainty and systemic risk in financial networks. <i>Applied Economics</i>. <a class="doi" href="https://doi.org/10.1080/00036846.2025.2597474" target="_blank" rel="noopener">doi:10.1080/00036846.2025.2597474</a></li><li id="ref-park2026">Park, C. (2026). Network centrality drives optimal protection investment against systemic risk propagation in complex systems. <i>Scientific Reports</i>, 16, 1183. <a class="doi" href="https://doi.org/10.1038/s41598-025-34645-5" target="_blank" rel="noopener">doi:10.1038/s41598-025-34645-5</a></li><li id="ref-reimers2019">Reimers, N., &amp; Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In <i>EMNLP-IJCNLP 2019</i> (pp. 3982–3992). <a class="doi" href="https://doi.org/10.18653/v1/D19-1410" target="_blank" rel="noopener">doi:10.18653/v1/D19-1410</a></li><li id="ref-ren2025">Ren, J., &amp; Tang, L. (2025). Interconnected bank networks: Shock amplifiers or absorbers in the financial system? <i>International Review of Economics &amp; Finance</i>, 100, 103979. <a class="doi" href="https://doi.org/10.1016/j.iref.2025.103979" target="_blank" rel="noopener">doi:10.1016/j.iref.2025.103979</a></li><li id="ref-ricca2024">Ricca, F., &amp; Scozzari, A. (2024). Portfolio optimization through a network approach: Network assortative mixing and portfolio diversification. <i>European Journal of Operational Research</i>, 312(2), 700–717. <a class="doi" href="https://doi.org/10.1016/j.ejor.2023.07.010" target="_blank" rel="noopener">doi:10.1016/j.ejor.2023.07.010</a></li><li id="ref-robins2004">Robins, G., &amp; Alexander, M. (2004). Small worlds among interlocking directors: Network structure and distance in bipartite graphs. <i>Computational &amp; Mathematical Organization Theory</i>, 10(1), 69–94. <a class="doi" href="https://doi.org/10.1023/B:CMOT.0000032580.12184.c0" target="_blank" rel="noopener">doi:10.1023/B:CMOT.0000032580.12184.c0</a></li><li id="ref-rustamaji2024">Rustamaji, H. C., Kusuma, W. A., Nurdiati, S., &amp; Batubara, I. (2024). Community detection with greedy modularity disassembly strategy. <i>Scientific Reports</i>, 14, 4694. <a class="doi" href="https://doi.org/10.1038/s41598-024-55190-7" target="_blank" rel="noopener">doi:10.1038/s41598-024-55190-7</a></li><li id="ref-schwenkler2025">Schwenkler, G., &amp; Zheng, H. (2025). News-driven peer co-movement in crypto markets. <i>Journal of Corporate Finance</i>, 91, 102772. <a class="doi" href="https://doi.org/10.1016/j.jcorpfin.2025.102772" target="_blank" rel="noopener">doi:10.1016/j.jcorpfin.2025.102772</a></li><li id="ref-seidman1983">Seidman, S. B. (1983). Network structure and minimum degree. <i>Social Networks</i>, 5(3), 269–287. <a class="doi" href="https://doi.org/10.1016/0378-8733(83)90028-X" target="_blank" rel="noopener">doi:10.1016/0378-8733(83)90028-X</a></li><li id="ref-sharma2025">Sharma, H. K., &amp; Ahmad, W. (2025). Interconnectedness and systemic risk in financial networks: Fresh evidence from India. <i>Emerging Markets Review</i>, 66, 101373. <a class="doi" href="https://doi.org/10.1016/j.ememar.2025.101373" target="_blank" rel="noopener">doi:10.1016/j.ememar.2025.101373</a></li><li id="ref-shipilov2023">Shipilov, A., Li, S. X., Bothner, M. S., &amp; Truong, N. (2023). Network advantage: Uncontested structural holes and organizational performance in market crises. <i>Strategic Management Journal</i>, 44(13), 3090–3124. <a class="doi" href="https://doi.org/10.1002/smj.3538" target="_blank" rel="noopener">doi:10.1002/smj.3538</a></li><li id="ref-steck2024">Steck, H., Ekanadham, C., &amp; Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? In <i>Companion Proceedings of the ACM Web Conference 2024</i> (pp. 887–890). <a class="doi" href="https://doi.org/10.1145/3589335.3651526" target="_blank" rel="noopener">doi:10.1145/3589335.3651526</a></li><li id="ref-sanchez2023">Sánchez García, J., &amp; Cruz Rambaud, S. (2023). The network econometrics of financial concentration. <i>Review of Managerial Science</i>, 17, 2455–2482. <a class="doi" href="https://doi.org/10.1007/s11846-023-00689-y" target="_blank" rel="noopener">doi:10.1007/s11846-023-00689-y</a></li><li id="ref-tetlock2007">Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. <i>The Journal of Finance</i>, 62(3), 1139–1168. <a class="doi" href="https://doi.org/10.1111/j.1540-6261.2007.01232.x" target="_blank" rel="noopener">doi:10.1111/j.1540-6261.2007.01232.x</a></li><li id="ref-wang2020natcomm">Wang, Y., Zhang, Q., &amp; Yang, X. (2020). Evolution of the Chinese guarantee network under financial crisis and stimulus program. <i>Nature Communications</i>, 11, 2693. <a class="doi" href="https://doi.org/10.1038/s41467-020-16535-8" target="_blank" rel="noopener">doi:10.1038/s41467-020-16535-8</a></li><li id="ref-watts1998">Watts, D. J., &amp; Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. <i>Nature</i>, 393(6684), 440–442. <a class="doi" href="https://doi.org/10.1038/30918" target="_blank" rel="noopener">doi:10.1038/30918</a></li><li id="ref-xiang2025">Xiang, Y., &amp; Borjigin, S. (2025). Analyst network: Implications for systemic risk of non-financial firms in China. <i>Emerging Markets Finance and Trade</i>. <a class="doi" href="https://doi.org/10.1080/1540496X.2025.2562336" target="_blank" rel="noopener">doi:10.1080/1540496X.2025.2562336</a></li><li id="ref-xuzhao2024">Xu, Y., &amp; Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction? <i>The North American Journal of Economics and Finance</i>, 74, 102163. <a class="doi" href="https://doi.org/10.1016/j.najef.2024.102163" target="_blank" rel="noopener">doi:10.1016/j.najef.2024.102163</a></li><li id="ref-yang2023procs">Yang, X., Liu, Z., Li, J., &amp; Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. <i>Procedia Computer Science</i>, 221, 428–435. <a class="doi" href="https://doi.org/10.1016/j.procs.2023.08.056" target="_blank" rel="noopener">doi:10.1016/j.procs.2023.08.056</a></li><li id="ref-ying2024">Ying, J. (2024). Gradual information diffusion across commonly owned firms. <i>Journal of Financial Economics</i>, 159, 103852. <a class="doi" href="https://doi.org/10.1016/j.jfineco.2024.103852" target="_blank" rel="noopener">doi:10.1016/j.jfineco.2024.103852</a></li><li id="ref-you2025">You, S., Wang, L., Zhou, K. Z., &amp; Jia, L. (2025). Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective. <i>Journal of Business Research</i>, 190, 115452. <a class="doi" href="https://doi.org/10.1016/j.jbusres.2025.115452" target="_blank" rel="noopener">doi:10.1016/j.jbusres.2025.115452</a></li><li id="ref-yu2024">Yu, M., Hu, X., &amp; Zhong, A. (2024). Network centrality, information diffusion and asset pricing. <i>International Review of Financial Analysis</i>, 95, 103223. <a class="doi" href="https://doi.org/10.1016/j.irfa.2024.103223" target="_blank" rel="noopener">doi:10.1016/j.irfa.2024.103223</a></li><li id="ref-zhu2023">Zhu, B., Hu, X., Deng, Y., &amp; Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter? <i>PLOS ONE</i>, 18(4), e0284861. <a class="doi" href="https://doi.org/10.1371/journal.pone.0284861" target="_blank" rel="noopener">doi:10.1371/journal.pone.0284861</a></li><li id="ref-zador2022">Zádor, Z., Zhu, Z., Smith, M., &amp; Gorgoni, S. (2022). A weighted and normalized Gould–Fernandez brokerage measure. <i>PLOS ONE</i>, 17(9), e0274475. <a class="doi" href="https://doi.org/10.1371/journal.pone.0274475" target="_blank" rel="noopener">doi:10.1371/journal.pone.0274475</a></li></ol>
+
+<footer>
+<p>本文档由 <code>pipeline/panel/network_spillover.py</code> (33 指标 SSOT =
+<code>NETWORK_METRIC_BASES</code>)、<code>pipeline/panel/network_brokerage.py</code>、
+<code>config/codebook_longdesc/</code> 长注释库与生产面板 <code>data/processed/40_panel_yearly.parquet</code>
+实读汇编。所有统计量为实测值, 非估计或引用。</p>
+<p>网络指标扩展执行计划: <code>scripts/audit/NETWORK_TRITRACK_AND_CRITERIA_EXECUTION_PLAN_2026-07-02.md</code> ·
+指标审计: network-metrics-audit / reaudit 2026-06-13 · 口径修复: omni-g-net-spill-01…06 (2026-06-11)</p>
+</footer>
+
+</main>
+</div>
+</div>
+</body>
+</html>
