@@ -166,8 +166,8 @@ foundational guidelines for LLM annotation in management research, warning about
 systematic bias and prompt sensitivity. Our design responds directly to these warnings:
 a majority vote across three independent vendors hedges single-vendor systematic bias;
 a byte-frozen prompt and zero temperature remove stochasticity; an offline cache
-guarantees byte-level reproducibility; and Appendix \ref{app:validity} pre-commits to
-human gold-standard validity checks.
+guarantees byte-level reproducibility; and Appendix \ref{app:validity} reports the
+pre-committed expert-annotation validity checks.
 
 \subsection{Identification and inference}
 
@@ -611,24 +611,27 @@ single and distinctive digital-finance market (concentrated regulation, platform
 dominance, a high share of state-owned banks), so extrapolation to other institutional
 environments requires caution. In addition, the locus machine label is a hybrid of LLM
 voting and keyword adjustment; its validity evidence is delivered through the
-pre-committed human gold-standard checks (Appendix \ref{app:validity}), and until that
-evidence arrives, the discussion of measurement-error direction remains open.
+pre-committed expert-annotation checks (Appendix \ref{app:validity}): the LLM vote label
+agrees with the expert majority 94.0\% of the time on the full track but only about 85\%
+on the ctx and ss tracks, so window tracks carry larger locus error.
 
 \appendix
 
 \section{Measurement-Validity Commitments}\label{app:validity}
 
 This appendix pre-registers the validity-checking protocol for the locus measure
-(commitment status: new\_2026-06-22; evidence status: pending\_T18\_human\_annotation).
-All validity numbers await human annotation on the production corpus ($T=19$); until
-then, this paper claims no validity number as delivered.
+(protocol pre-registered on 2026-06-22; expert annotation completed on 2026-10-12).
+All intervals below are bootstrap 95\% intervals from 2{,}000 resamples of articles.
 
 \paragraph{Criterion validity.}
-Three independent coders label locus on a stratified article sample; the majority gold
-standard is compared against the LLM three-track machine labels, reporting Cohen's
-$\kappa$, Gwet's AC1, and Krippendorff's $\alpha$ (pipeline stage 63, Panel F).
-\NoteThis{$\kappa$ / AC1 / $\alpha$ values to be backfilled after T=19 human
-annotation.} Disclosure: the locus machine label is a HYBRID construction (LLM majority
+Three coders independently label locus for a stratified sample of 575 articles on blind
+workbooks with no machine labels; a third party adjudicates the 4 items on which the two
+coders who coded the item disagree; the expert majority is compared with the LLM
+three-track vote labels (pipeline stage 63, Panel F). Inter-coder Krippendorff's $\alpha$
+is 0.856 [0.810, 0.899] with 92.7\% raw agreement. Full-track accuracy is 94.0\%
+[91.3\%, 96.4\%], Cohen's $\kappa = 0.879$, Gwet's AC1 $= 0.882$, and 93.7\% after
+reweighting to the population; ctx and ss accuracy is 84.9\% and 84.1\%
+($\kappa = 0.685$ and 0.670). Coders' backgrounds and compensation were not recorded. Disclosure: the locus machine label is a HYBRID construction (LLM majority
 vote $+$ keyword confidence adjustment $+$ empty-vote fallback); its
 criterion/discriminant $\kappa$ inherits a keyword circularity absent from the pure-LLM
 dimensions (substance / collab), so locus validity numbers are not directly comparable
@@ -636,7 +639,8 @@ to the pure-LLM dimensions.
 
 \paragraph{Inter-track reliability.}
 Machine--machine agreement across the full / ctx / ss tracks is reported as Cohen's
-$\kappa$ (stage 71). \NoteThis{Inter-track $\kappa$ to be backfilled.}
+$\kappa$ (stage 71, all retained articles): 0.703 for full--ctx, 0.682 for
+full--ss, and 0.776 for ctx--ss.
 
 \paragraph{Construct orthogonality and discriminant validity.}
 Article-level construct orthogonality uses normalized mutual information (NMI) as the

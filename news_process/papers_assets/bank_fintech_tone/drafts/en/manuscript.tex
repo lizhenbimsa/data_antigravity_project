@@ -474,19 +474,69 @@ the tone-IV .do templates await wiring at milestone M5. Until then,
 the tone-IV results described above are design statements, not
 produced estimates.}
 
-\subsection{Measurement Validity: The Human-Annotation Gate}
+\subsection{Measurement Validity: Expert Annotation}
 \label{sec:validity}
-Under the project's validity claim gate, any validity claim for the
-tone measure must rest on \emph{real human annotation} $\kappa$
-agreement: human-annotation samples are drawn via
-\code{61\_human\_samples}, blind-labeled by independent annotators,
-and their agreement with the LLM consensus labels is computed through
-the \code{09\_sentiment\_verify} path. As of this draft, human
-annotation is pending; human--LLM agreement
-$\kappa$ = \NoteThis{backfill once human annotation completes}. Until
-that gate passes, we do not claim that the tone measure has been
-human-validated, and rely only on cross-model/cross-method agreement
-diagnostics (subsection~F1) as machine-side validity evidence.
+We benchmark the tone measure against expert annotation. Coders receive
+blind workbooks that contain no machine label of any kind (machine labels
+are kept in a separate reconciliation file and joined only after coding).
+Sample 1 is a simple random draw of 1{,}000 LLM-annotated articles; two
+coders independently judge whether the article reports fintech activity of
+the target bank and its tone toward that activity (positive / neutral /
+negative), and a third coder adjudicates disagreements (116 relevance and
+127 tone items). Sample 2 draws 400 articles for each text track (full,
+ctx, ss), oversampling cross-method agreement, disagreement, and predicted
+negatives, with stratum weights recovering population quantities; two coders
+judge tone from that track's machine-input text only, and a third coder
+adjudicates the 46, 50, and 48 disagreements. After adjudication, coder B's
+track labels were revised in 16, 13, and 6 places (15, 11, and 6 of them had
+disagreed with coder A and now match both A and the adjudicated label; 3
+revisions created new disagreements, which the third coder then
+adjudicated). We use the revised version and report pre-revision
+agreement alongside. All intervals below are
+bootstrap 95\% intervals from 2{,}000 resamples of articles.
+
+Inter-coder agreement: tone in Sample 1 has Cohen's $\kappa = 0.616$
+[0.556, 0.671] with 87.3\% raw agreement; the three tracks have
+$\kappa$ of 0.765, 0.689, and 0.703 with 89.5\%--92.0\% raw agreement
+(0.685, 0.645, and 0.669 with 87.5\%--88.5\% before coder B's revision).
+About 80\% of articles are coded positive, and such concentrated
+prevalence depresses $\kappa$; prevalence- and bias-adjusted kappa (PABAK)
+is 0.810 and 0.84--0.88. Tone in Sample 1 falls below the pre-registered
+0.667 threshold (as did the ctx track before coder B's revision), which we
+disclose.
+
+Expert labels versus the three-LLM majority vote: in Sample 1, tone
+accuracy is 96.9\% [95.6\%, 98.2\%] ($\kappa = 0.695$) on the 685 articles
+retained by the LLMs and tone-coded by the experts; in Sample 2, accuracy
+is 92.0\% [89.5\%, 94.5\%], 95.8\%, and 93.2\% for the full, ctx, and ss
+tracks ($\kappa$ of 0.724, 0.812, and 0.736), and 97.0\%, 97.8\%, and
+96.0\% after reweighting to the population. On the same full-track sample,
+the six sentiment dictionaries reach 68.3\%--76.0\% accuracy
+($\kappa \le 0.34$) and the three BERT models 52.3\%--76.3\%
+($\kappa \le 0.40$).
+
+The relevance step is less accurate: 72.2\% [69.3\%, 74.8\%]
+($\kappa = 0.463$). Using a separate stratified sample of 575 articles
+coded by three experts (majority vote, reweighted to the population), the
+LLM retention step has recall of 91.8\% [86.8\%, 96.0\%] and precision of
+78.2\% [71.1\%, 84.9\%], so errors mainly admit irrelevant reports rather
+than miss relevant ones; an expert audit puts the miss rate of the
+co-occurrence filter at 13.0\% [9.7\%, 17.3\%]. Misclassification is
+correlated with article features: misclassified articles average about
+2{,}240 characters against about 1{,}400 for correctly classified ones and
+carry lower model confidence \parencite{carlson2026llmannotation}. To gauge
+the effect on the index, we recompute full-track bank--year tone after dropping
+articles longer than the corpus 75th percentile, after dropping articles
+whose mean model confidence is below the 25th percentile, or after
+residualizing article scores on log length. Bank--year correlations with
+the main measure are 0.88, 0.90, and 0.99, and 0.79 when both drops apply
+(0.84 for cells with at least five articles); the national annual means
+correlate at 0.986 or above, with a maximum absolute difference of 0.05.
+
+Disclosure: coders' disciplinary backgrounds, compensation, and whether the
+adjudicator took part in initial coding were not recorded; the
+pre-registered 50-article pilot gate was not run; these deviations are
+logged in the annotation protocol's change log.
 
 \section{Data}\label{sec:data}
 

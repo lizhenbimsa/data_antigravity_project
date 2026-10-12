@@ -165,7 +165,8 @@ tables:
 # -- WS-E + R8-EIC (per-dim validity_claim_gate full coverage of 4 main-measure papers) --
 validation:
   commitment_status: new_2026-06-22
-  evidence_status: pending_human_annotation
+  evidence_status: expert_annotation_complete_2026-10-12  # 原 pending_human_annotation; 2026-10-12 专家标注完成
+  evidence_summary: "专家标注已回收并冻结 (config/validation.yaml::human_annotation_frozen)。tone 维证据: 任务一 1,000 篇 A/B 双编码 + 第三编码者仲裁, 情感 κ=0.616 [0.556,0.671] (原始一致率 87.3%, PABAK 0.810; 低于预注册 0.667, 已披露); 三轨窗口情感各 400 篇, κ=0.765/0.689/0.703 (编码者 B 在 C 仲裁后修订 16/13/6 处判定, 用户 2026-10-12 授权以修订版为准; 修订前 κ=0.685/0.645/0.669)。LLM 三家投票 vs 专家: 任务一情感 accuracy 0.969 [0.956,0.982] κ 0.695; 三轨 accuracy 0.920/0.958/0.932, κ 0.724/0.812/0.736。全部点估与 bootstrap 95% CI: data/processed/eval_reports/human_annotation_bootstrap_ci.csv; 留篇误判稳健性: eval_reports/misclassification_robustness.csv。口径称「专家标注」。"
   validity_claim_gate:
     requires_real_human_kappa_for: tone
   note: "G0 tone real kappa is non-deferred (startable via regenerated BLIND workbenches: 61_human_samples_blind_{A,B} + 09_sentiment_verify*_blind_{A,B}, 2026-07-03 blind two-file protocol; legacy single-file workbooks expose machine labels and must NOT be distributed); unlocks ONLY tone paper"

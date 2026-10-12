@@ -331,10 +331,16 @@ classification series is materialized as per-model twin columns
 \code{deepseekv4\_sub\_frac\_full}, each with an indicator column and a
 denominator equal to that model's own verified article count), reported
 alongside the consensus measure and likewise just-identified. Validity
-disclosure: the human gold-standard Cohen's $\kappa$ validity gate for the
-substantiveness classification awaits human annotation on the production
-corpus ($T=19$; status: pending\_T18\_human\_annotation); we disclose this
-candidly rather than claim completed validation.
+evidence: the substantiveness classification is benchmarked against expert
+annotation. Three coders independently code a stratified sample of 575
+articles on blind workbooks with no machine labels, and a third party
+adjudicates the 20 items on which the two coders who coded the item
+disagree; inter-coder Krippendorff's $\alpha$ is 0.686 [0.620, 0.749]
+(bootstrap 95\% interval; 85.8\% raw agreement). Against the expert
+majority, the LLM consensus label is 83.9\% accurate [80.0\%, 87.5\%] on
+the full track ($\kappa = 0.660$, Gwet's AC1 $= 0.694$), 88.9\% after
+reweighting to the population, and 80.8\% and 81.0\% on the ctx and ss
+tracks. Coders' backgrounds and compensation were not recorded.
 
 \subsection{LLM Routing and Determinism (F1)}
 Classification annotation employs three mutually independent LLM families:
@@ -671,9 +677,11 @@ mitigate but cannot fully eliminate; the measure is also an indirect
 observation of implementation behavior. Third, the sample is the single
 Chinese market, whose banking structure, regulatory regime, and media
 ecosystem limit extrapolation to other institutional environments. Fourth,
-the human gold-standard validity gate for the substantiveness classification
-awaits human annotation on the production corpus; current validity evidence
-rests mainly on cross-vendor agreement. Fifth, some results (e.g., the H4
+agreement with expert annotation is markedly lower for substantiveness
+(83.9\% accuracy, $\kappa = 0.660$) than for locus or collaboration mode,
+and inter-coder $\alpha = 0.686$ only just clears the pre-registered
+threshold: judging ``symbolic'' action leaves considerable room for
+interpretation. Fifth, some results (e.g., the H4
 moderation) depend on production-panel network measures and are disclosed
 candidly as placeholders.
 

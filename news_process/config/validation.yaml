@@ -26,33 +26,28 @@ human_annotation_frozen:
     "61_human_samples_blind_A.xlsx": "3b3b7f7fa2b0d75508452d24dd6aabea15bb6b79c2190d69b0284dcfa1496764"
     "61_human_samples_blind_B.xlsx": "3efb618bf16b1585bcb70af3cd55d83c8879c45f8916e2270fd774d70dee9e55"
     "eval_reports/09_sentiment_verify_full_blind_A.xlsx": "7408ed0f4e04fce59825c9153746d1c17313a109525a45f5e8b64e7c63953f60"
-    "eval_reports/09_sentiment_verify_full_blind_B.xlsx": "a47e2a0740afec2a7da90e53fac3d816c99e4f0258e1b9319797111f914f69bb"
+    "eval_reports/09_sentiment_verify_full_blind_B.xlsx": "91c0e3913cf1536fe21d3a291de0daca9a1a3df27d28c56285ecafb0bda8e683"
     "eval_reports/09_sentiment_verify_ctx_blind_A.xlsx": "977e0550eb0b76d5e5e2effe3712ba7d1a65bd601ff5cfb73967fce77b488beb"
-    "eval_reports/09_sentiment_verify_ctx_blind_B.xlsx": "d3eb9530d0e7e1a98a3197c82257387e2e1590e60a13a95ddac393e1e059eea9"
+    "eval_reports/09_sentiment_verify_ctx_blind_B.xlsx": "a4b93eca92f7315c1b8ab62bedf0cc79ff232f9cde51a76d32887d314562a139"
     "eval_reports/09_sentiment_verify_ss_blind_A.xlsx": "b2c391253860bb23e1476d20a013318e608bb2fb2368deaebfff39154357f962"
-    "eval_reports/09_sentiment_verify_ss_blind_B.xlsx": "a4ec645db06abc18267a05844ce42a1ad391d81f92398d107497a772c987e0af"
+    "eval_reports/09_sentiment_verify_ss_blind_B.xlsx": "ab91c9992b36fb89b6cf5d5ae5b112738554ac5f5cb7b6f279d67e7128e860b9"
     "eval_reports/stage13_reject_audit_blind_A.xlsx": "22d23f2a723c434ea827c5a85dbad99d0ffe1eb2053ae3711b0ac1ccd0fa8043"
     "eval_reports/stage13_reject_audit_blind_B.xlsx": "aba4224f549c71da3fcadb7dde05bd281d5ad47e0ccfe1ba3ff21ba6e1d7c311"
-    "manual_validation_samples_blind_R1.xlsx": "31579047bff4b61033a2bd553b8e8938ddde767a4cfe1c9bdb4181f9c6d9226c"
-    "manual_validation_samples_blind_R2.xlsx": "185720f713108be13c2c776bc9cf963df6d16d09e0d00a8a8ee2bb0b4fb01340"
-    "manual_validation_samples_blind_R3.xlsx": "fc1db48af5b67e35dc94e5f194b337a8d48a03436a04e998f33d491920864532"
+    "manual_validation_samples_blind_R1.xlsx": "b43e74faf242f6bd46a5e3be610b9b53a6a4da81e08a4df4f0f6eb4f868f773c"
+    "manual_validation_samples_blind_R2.xlsx": "47bbb7bde5a596f9589e0e983206a185c77a28dea5f615c822cce410a6b2e9db"
+    "manual_validation_samples_blind_R3.xlsx": "33e804b9540291e313f2d5d99e02dda43e0837e96981301b9e22b9f25e2611d4"
     # 第二轮: 仲裁人 C 的分歧裁决 (2026-10-12 冻结; 回收副本在 human_samples_blind/任务5_分歧仲裁/)
     "61_human_samples_pending_adjudication.xlsx": "f729c6d6b4d694f8a6a35c61cac2e60f1372b5228ee01fefd9cb318a36542e2c"
     "eval_reports/stage13_reject_audit_pending_adjudication.xlsx": "5cfb2e4d24b2bec570f509f1c659526660a57443dbe6ce0b8d97db1fc376c1ba"
     # 第三轮: 仲裁人 C 对任务二 (三轨窗口情感) 与任务四 (创新三维) 的分歧裁决
     # (2026-10-12 冻结; 回收副本在 human_samples_blind/任务6_第二轮分歧仲裁/)
-    "eval_reports/09_sentiment_verify_full_pending_adjudication.xlsx": "6fae672292c26a72121c4e3b9f095bc9a521d805b2d79f5914a16625c7fa5792"
-    "eval_reports/09_sentiment_verify_ctx_pending_adjudication.xlsx": "091441804893e6edcefce8f9e6a1b9aa3a1a302ea547d44652ccbf56ba327068"
+    "eval_reports/09_sentiment_verify_full_pending_adjudication.xlsx": "8fa315f991afa3a1faee0add4958e9fe07bfbc4b1b14526def8fcb18efa5fe80"
+    "eval_reports/09_sentiment_verify_ctx_pending_adjudication.xlsx": "c2047520f0f4651e0fccaf75065ad735ac01fe05d92b68735c1449964aea0511"
     "eval_reports/09_sentiment_verify_ss_pending_adjudication.xlsx": "8983b78665ed19b58109b4ed7b4c25a1f299036ae6b948b10a877741e7d04cb9"
     "manual_validation_pending_adjudication.xlsx": "9ef81828dbffc993d55042773be36d61d88c3f2baf0c18884b9b9c9ab03298a6"
-  # 回收副本与流水线原件不同的例外 (其余副本与原件逐字节相同, 沿用上方 files 的 sha256)。
-  # 2026-10-12 用户在 Excel 中手动删除了任务四三份回收副本的 R*_total_time_sec 列及编码指南
-  # 对应行 (该列口径不一、不用于任何分析); 其余单元格与原件逐格相同。用户裁定接受删除,
-  # 副本以下列 sha256 冻结; 流水线原件仍保留该列, 不受影响。
-  archive_sha256_overrides:
-    "任务4_创新属性三维编码/manual_validation_samples_blind_R1.xlsx": "e35a545eb6179c3060a0ee90cc7a8c5e0ca067458a305e9a34f31edb0ee02ea5"
-    "任务4_创新属性三维编码/manual_validation_samples_blind_R2.xlsx": "3988d4e63ec46d2bec82fc606f42b5b4b7f2ed8a258d698bf5becfee21d10d86"
-    "任务4_创新属性三维编码/manual_validation_samples_blind_R3.xlsx": "beb09077680995efcf5d825ba680a636f72042b536cc2ee940f1fa0f4e766cc2"
+  # 2026-10-12 用户授权以 human_samples_blind/ 回收副本为准替换流水线原件 (此前三份任务四副本删去 R*_total_time_sec 列;
+  # 三份 09 号 B 表在仲裁后修订了 16/13/6 处情感判定, 见协议 §8)。替换后副本与原件逐字节相同, 无例外。
+  archive_sha256_overrides: {}
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38b)

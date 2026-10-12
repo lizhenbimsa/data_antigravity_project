@@ -120,7 +120,7 @@ locus 具有差异化经济价值」的直接顶刊先例; \textcite{lerner2024f
 \textcite{carlson2026llmannotation} 为管理学研究中的 LLM 标注给出基础指南, 警示系统
 偏置与提示词敏感性。本文的设计直接回应这些警示: 三家独立厂商模型多数投票以对冲单一
 厂商系统偏置、提示词字节级冻结与温度归零以消除随机性、离线缓存保证字节级可复现,
-以及附录 \ref{app:validity} 中预先承诺的人工金标效度检验。
+以及附录 \ref{app:validity} 中预先承诺并已完成的专家标注效度检验。
 
 \subsection{识别与推断}
 
@@ -456,28 +456,30 @@ $\to$ 引用加权专利 (H1, 验证性), 应用场景话语 $\to$ 非利息收�
 测度仍非随机指派; 中介分析亦仅为关联分解。其三, 外推边界: 中国是单一但独特的
 数字金融市场 (监管集中、平台主导、国有银行占比高), 结论向其他制度环境的外推须
 谨慎。此外, locus 机器标签为 LLM 投票与关键词调整的混合构造, 其效度证据以预先
-承诺的人工金标检验兑现 (附录 \ref{app:validity}), 在该证据到位前, 测量误差方向
-的讨论保持开放。
+承诺的专家标注检验兑现 (附录 \ref{app:validity}): LLM 投票标签与专家多数票的准确率
+在 full 轨为 94.0\%, 但在 ctx、ss 轨降至约 85\%, 窗口轨的位点判断误差更大。
 
 \appendix
 
 \section{测量效度承诺}\label{app:validity}
 
-本附录预先登记 locus 测度的效度检验协议 (承诺状态: new\_2026-06-22; 证据状态:
-pending\_T18\_human\_annotation)。全部效度数字待生产语料 ($T=19$) 人工标注完成后
-回填; 在此之前本文不宣称任何效度数字已兑现。
+本附录报告 locus 测度的效度检验 (协议于 2026-06-22 预先登记, 专家标注于
+2026-10-12 完成)。以下区间均为按文章重抽 2{,}000 次的 bootstrap 95\% 置信区间。
 
 \paragraph{校标效度 (criterion validity)。}
-三名独立编码员对分层抽样文章集独立标注 locus, 以多数金标对照 LLM 三轨机器标签,
-报告 Cohen $\kappa$、Gwet AC1 与 Krippendorff $\alpha$ (管线 stage 63, Panel F)。
-\NoteThis{$\kappa$ / AC1 / $\alpha$ 数值待 T=19 人工标注回填。}
+三名编码员在不含机器判定的盲表上对 575 篇分层样本独立标注 locus, 两人编码而意见
+相反的 4 条由第三方裁决, 以专家多数票对照 LLM 三轨投票标签 (管线 stage 63, Panel F)。
+编码者间 Krippendorff $\alpha = 0.856$ [0.810, 0.899], 原始一致率 92.7\%。
+full 轨准确率 94.0\% [91.3\%, 96.4\%], Cohen $\kappa = 0.879$, Gwet AC1 $= 0.882$,
+按层权还原总体为 93.7\%; ctx、ss 轨准确率为 84.9\% 与 84.1\%
+($\kappa = 0.685$ 与 0.670)。编码者的学科背景与报酬方式未作记录。
 须予披露: locus 机器标签为 HYBRID 构造 (LLM 多数投票 $+$ 关键词置信度调整 $+$
 空票回退), 其校标 / 判别 $\kappa$ 继承了纯 LLM 维度 (substance / collab) 所没有
 的关键词环路, 故 locus 效度数字与纯 LLM 维度不可直接比较。
 
 \paragraph{轨间信度 (inter-track reliability)。}
-full / ctx / ss 三轨机器—机器一致性以 Cohen $\kappa$ 报告 (stage 71)。
-\NoteThis{轨间 $\kappa$ 待回填。}
+full / ctx / ss 三轨机器—机器一致性以 Cohen $\kappa$ 报告 (stage 71, 全部留篇文章):
+full--ctx 为 0.703, full--ss 为 0.682, ctx--ss 为 0.776。
 
 \paragraph{构念正交性与判别效度。}
 文章级构念正交性以归一化互信息 (NMI) 为主证据 (stage 72); 判别效度辅助证据为

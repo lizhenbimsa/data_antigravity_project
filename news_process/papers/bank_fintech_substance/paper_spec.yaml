@@ -183,7 +183,8 @@ tables:
 # -- WS-E + R8-EIC (per-dim validity_claim_gate full coverage of 4 main-measure papers) --
 validation:
   commitment_status: new_2026-06-22
-  evidence_status: pending_T18_human_annotation
+  evidence_status: expert_annotation_complete_2026-10-12  # 原 pending_T18_human_annotation; 2026-10-12 专家标注完成
+  evidence_summary: "专家标注已回收并冻结。substantiveness 维: 575 篇分层样本 R1/R2/R3 三人独立编码 + 两人打平条目第三方仲裁 (20 条); 编码者间 Krippendorff α=0.686 [0.620,0.749] (原始一致率 85.8%)。LLM vs 专家多数票 (full 轨): accuracy 0.839 [0.800,0.875], κ 0.660, Gwet AC1 0.694, 层权总体 accuracy 0.889。CI 见 eval_reports/human_annotation_bootstrap_ci.csv。"
   validity_claim_gate:
     requires_real_human_kappa_for: substantiveness
   note: "substance criterion closed loop (stage 63 Panel E) exists; awaits real human gold backfill"
