@@ -179,7 +179,7 @@ def _build_coder_guide(coder: str) -> pd.DataFrame:
                  ' 同行提及不传染 (其利好/负面与目标银行无直接关联时视为噪音, 不影响评分)。'),
         ('判断依据', '阅读"标题"+"内容"全文, 定位 target_bank 目标银行本身的情感倾向判断;'
                    ' 客观描述标中性; 标题计入判断但以正文为主。'),
-        ('独立性', '禁止与另一位编码员就任何篇目交流; 禁止使用任何 LLM/翻译/摘要工具辅助判定; '
+        ('独立性', '禁止与另一位编码员就任何篇目交流; '
                    '按表内行序标注, 不得自选顺序。'),
         ('边界规则', '混合情感按主导语调、势均力敌标中性; 引用他行负面不传染; 目标银行被处罚/通报=负面, '
                      '银行主动风险提示/合规声明默认中性; 文本异常(乱码/截断)时 验证=0、情感=中性。'),
@@ -852,8 +852,9 @@ def merge_annotations(input_path: str = None, output_path: str = None,
                 logger.warning(f"读取既有仲裁工作台失败 ({e}), 为安全起见不覆盖: {pending_path}")
                 _skip_pending = True
         if not _skip_pending:
-            pend_cols = [c for c in ('_row_uid', 'docid', '标题', '内容',
-                                     ver_a_col, ver_b_col, sen_a_col, sen_b_col)
+            # target_bank 必带: 两项判定都只针对目标银行, 缺此列仲裁人无从裁决
+            pend_cols = [c for c in ('_row_uid', 'docid', '日期', '媒体类型(中文)', '标题', '内容',
+                                     'target_bank', ver_a_col, ver_b_col, sen_a_col, sen_b_col)
                          if c in df.columns]
             pending_df = df.loc[dis_mask, pend_cols].copy()
             pending_df['编码者C_验证'] = ''

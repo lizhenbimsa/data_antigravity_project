@@ -799,7 +799,7 @@ def generate_validation_sample(df: pd.DataFrame,
             '正面: 积极/利好; 中性: 客观描述; 负面: 消极/风险',
             '在"人工判定_情感"列填写: 正面/中性/负面; 在"人工判定_理由"列简述原因',
             coding_note,
-            '禁止与另一位编码员就任何篇目交流; 禁止使用任何 LLM/翻译工具; '
+            '禁止与另一位编码员就任何篇目交流; '
             '完整协议见 scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md',
         ],
     })

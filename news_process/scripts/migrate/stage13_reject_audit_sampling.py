@@ -15,6 +15,7 @@ Stratum A 均是), 过滤器丢掉的行从未被审计 → 假阴性率 (真银
 用法 (repo 根, python = 项目解释器):
     python news_process/scripts/migrate/stage13_reject_audit_sampling.py            # 抽样产盲表
     python news_process/scripts/migrate/stage13_reject_audit_sampling.py readback   # 标注后算假阴性率
+    python news_process/scripts/migrate/stage13_reject_audit_sampling.py adjudicate # A≠B 分歧行产仲裁表 (C 填)
 
 协议 = scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md (任务 T4)。
 """
@@ -38,6 +39,7 @@ BLIND_A = OUT_DIR / 'stage13_reject_audit_blind_A.xlsx'
 BLIND_B = OUT_DIR / 'stage13_reject_audit_blind_B.xlsx'
 RECON = OUT_DIR / 'stage13_reject_audit_reconciliation.xlsx'
 RESULT_CSV = OUT_DIR / 'stage13_reject_audit.csv'
+PENDING = OUT_DIR / 'stage13_reject_audit_pending_adjudication.xlsx'
 
 SEED = 42
 TARGET_N = 300
@@ -72,7 +74,24 @@ def _stratum_labels(df: pd.DataFrame) -> pd.Series:
     return year.astype(str) + '×' + media
 
 
+def _refuse_if_annotated() -> None:
+    """人工标注防覆写: 任一盲表已有非空标注即拒绝重抽 (config/validation.yaml::
+    human_annotation_frozen 冻结清单; 人工成果不可从代码重建, 无越权开关)。"""
+    for coder, path in (('A', BLIND_A), ('B', BLIND_B)):
+        if not path.exists():
+            continue
+        try:
+            col = pd.read_excel(path, sheet_name='验证数据')[f'编码者{coder}_验证']
+        except Exception as e:
+            raise SystemExit(f'[FATAL] 读取既有盲表失败 ({e}), 为保护人工标注拒绝重抽: {path}')
+        s = col.astype('object').where(col.notna(), '').astype(str).str.strip()
+        if s.ne('').any():
+            raise SystemExit(f'[FATAL] {path} 已有 {int(s.ne("").sum())} 条人工标注, 拒绝重抽 '
+                             '(人工标注严禁修改/删除, 见 config/validation.yaml::human_annotation_frozen)')
+
+
 def sample() -> None:
+    _refuse_if_annotated()
     rejected = _build_rejected_universe()
     if rejected.empty:
         raise SystemExit('[FATAL] 被拒宇宙为空 — stage 13 未丢行或输入文件不齐')
@@ -119,7 +138,7 @@ def sample() -> None:
         [('任务', '独立判定: 编码者X_验证 ∈ {1,0} — 1=该文确为目标银行 (target_bank 列) 的'
                   '金融科技相关新闻 (即被过滤器误拒), 0=不是 (过滤正确)。'),
          ('判断依据', '阅读"标题"+"内容"全文; 银行仅被列举且无金科关联细节=0; 文本异常=0。'),
-         ('独立性', '禁止与另一位编码员交流; 禁止使用任何 LLM/翻译工具; 按行序标注。'),
+         ('独立性', '禁止与另一位编码员交流; 按行序标注。'),
          ('完整协议', 'scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md (任务 T4)')],
         columns=['项目', '说明'])
 
@@ -148,9 +167,8 @@ def sample() -> None:
     print(f'对账表 = {RECON} (层/权重/全列; 不发编码员)')
 
 
-def readback() -> None:
-    from news_process.validation.dict_coverage import wilson_ci
-
+def _load_coded():
+    """读双盲表 + 对账表, 返回 (A 判定, B 判定, 对账表), 均以 _row_uid 为索引。"""
     for p in (BLIND_A, BLIND_B, RECON):
         if not p.exists():
             raise SystemExit(f'[FATAL] 缺文件: {p} — 先跑抽样')
@@ -160,36 +178,88 @@ def readback() -> None:
     if (len(a) != len(b) or set(a['_row_uid']) != set(b['_row_uid'])
             or set(a['_row_uid']) != set(recon['_row_uid'])):
         raise SystemExit('[FATAL] _row_uid 三侧不一致, 拒绝回读')
-
     va = pd.to_numeric(a.set_index('_row_uid')['编码者A_验证'], errors='coerce')
     vb = pd.to_numeric(b.set_index('_row_uid')['编码者B_验证'], errors='coerce').reindex(va.index)
+    return a.set_index('_row_uid'), va, vb, recon.set_index('_row_uid')
+
+
+def adjudicate() -> None:
+    """A≠B 的分歧行 → 仲裁工作台 (镜像 llms_human 任务一仲裁表: 文本 + A/B 判定, 零机器列)。
+
+    第三编码员 C 只填 编码者C_验证; 填毕后 readback 自动并入, 与剔除口径并排报告。
+    """
+    a, va, vb, _ = _load_coded()
+    dis = va.isin(VER_LABELS) & vb.isin(VER_LABELS) & (va != vb)
+    if not dis.any():
+        print('无分歧行, 不需仲裁')
+        return
+    if PENDING.exists():
+        old = pd.read_excel(PENDING, sheet_name='验证数据')
+        if '编码者C_验证' in old.columns and old['编码者C_验证'].notna().any():
+            raise SystemExit(f'[FATAL] 既有仲裁表已含 C 判定, 拒绝覆盖: {PENDING}')
+    ctx = [c for c in BLIND_CONTEXT if c != '_row_uid' and c in a.columns]
+    pend = a.loc[dis, ctx].copy()
+    pend.insert(0, '_row_uid', pend.index)
+    pend['编码者A_验证'] = va[dis].astype(int)
+    pend['编码者B_验证'] = vb[dis].astype(int)
+    pend['编码者C_验证'] = ''
+    with pd.ExcelWriter(PENDING, engine='xlsxwriter') as writer:
+        pend.to_excel(writer, sheet_name='验证数据', index=False)
+        ci = list(pend.columns).index('编码者C_验证')
+        writer.sheets['验证数据'].data_validation(
+            1, ci, len(pend), ci, {'validate': 'list', 'source': ['1', '0']})
+    print(f'仲裁表 = {PENDING} ({len(pend)} 行, 仅 A≠B 分歧行, 零机器列)')
+
+
+def readback() -> None:
+    from news_process.validation.dict_coverage import wilson_ci
+
+    _, va, vb, recon = _load_coded()
     both = va.isin(VER_LABELS) & vb.isin(VER_LABELS)
     agree = both & (va == vb)
     n_both, n_agree = int(both.sum()), int(agree.sum())
     if n_agree == 0:
         raise SystemExit(f'[pending] 双编码共识 0 条 (双合法 {n_both}) — 标注未完成或全分歧')
 
-    gold = va[agree]  # 共识值 (A==B)
-    w = recon.set_index('_row_uid')['population_weight'].reindex(gold.index).astype(float)
-    fn_rate = float((gold == 1).mean())
-    lo, hi = wilson_ci(fn_rate, len(gold))
-    fn_rate_w = float(((gold == 1).astype(float) * w).sum() / w.sum()) if w.sum() > 0 else np.nan
+    # 仲裁口径: 分歧行由 C 裁决补入 (C 空 → 仍剔除); 剔除口径永远并排保留
+    vc = pd.Series(np.nan, index=va.index)
+    if PENDING.exists():
+        adj = pd.read_excel(PENDING, sheet_name='验证数据')
+        if '编码者C_验证' in adj.columns:
+            vc = pd.to_numeric(adj.set_index('_row_uid')['编码者C_验证'],
+                               errors='coerce').reindex(va.index)
+    adj_mask = both & (va != vb) & vc.isin(VER_LABELS)
+    gold_strict = va[agree]
+    gold_adj = pd.concat([gold_strict, vc[adj_mask]])
 
-    rows = [{
-        '指标': 'stage13_假阴性率', '共识n': len(gold), '双合法n': n_both,
-        '分歧n': n_both - n_agree, '点估_未加权': round(fn_rate, 4),
-        'Wilson95CI_下': round(lo, 4), 'Wilson95CI_上': round(hi, 4),
-        '点估_ManskiLerman加权': round(fn_rate_w, 4) if not np.isnan(fn_rate_w) else '',
-        '口径': '共识=1 占比; 加权=总体后分层外推; 分歧行剔除 (attrition 已列)',
-        '生成时间': time.strftime('%Y-%m-%d %H:%M:%S'),
-    }]
+    rows = []
+    for name, gold, note in (
+            ('stage13_假阴性率_剔除口径', gold_strict, '共识=1 占比; 分歧行剔除'),
+            ('stage13_假阴性率_仲裁口径', gold_adj, '共识 + 分歧行 C 裁决; C 未裁决行剔除')):
+        if name.endswith('仲裁口径') and not adj_mask.any():
+            continue
+        w = recon['population_weight'].reindex(gold.index).astype(float)
+        fn_rate = float((gold == 1).mean())
+        lo, hi = wilson_ci(fn_rate, len(gold))
+        fn_rate_w = float(((gold == 1).astype(float) * w).sum() / w.sum()) if w.sum() > 0 else np.nan
+        rows.append({
+            '指标': name, '金标准n': len(gold), '双合法n': n_both,
+            '分歧n': n_both - n_agree, 'C裁决n': int(adj_mask.sum()),
+            '点估_未加权': round(fn_rate, 4),
+            'Wilson95CI_下': round(lo, 4), 'Wilson95CI_上': round(hi, 4),
+            '点估_ManskiLerman加权': round(fn_rate_w, 4) if not np.isnan(fn_rate_w) else '',
+            '口径': note + '; 加权=总体后分层外推',
+            '生成时间': time.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+        print(f'{name} = {fn_rate:.4f} [{lo:.4f}, {hi:.4f}] (加权 {fn_rate_w:.4f}, n={len(gold)})')
     pd.DataFrame(rows).to_csv(RESULT_CSV, index=False, encoding='utf-8-sig')
-    print(f'假阴性率 = {fn_rate:.4f} [{lo:.4f}, {hi:.4f}] (加权 {fn_rate_w:.4f}); '
-          f'结果 → {RESULT_CSV}')
+    print(f'结果 → {RESULT_CSV}')
 
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'readback':
         readback()
+    elif len(sys.argv) > 1 and sys.argv[1] == 'adjudicate':
+        adjudicate()
     else:
         sample()

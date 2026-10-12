@@ -1,7 +1,13 @@
 """人工验证研究 (n≥500) 分层抽样。
 
-输出: news_process/data/processed/manual_validation_samples.xlsx
-含 5 个分层 (strata) + 后置 weighting columns, 供 ≥3 名 rater 独立标注。
+输出 (2026-10-10 起, 文件级隔离; 协议 §4 独立性硬条款):
+  - manual_validation_samples_blind_{R1,R2,R3}.xlsx — 每名 rater 一份盲表,
+    只含文本 + 本人标注列, 零机器列 (不含 stratum / population_weight);
+  - manual_validation_reconciliation.xlsx — orig_index 主键 + stratum +
+    population_weight + v7ref_ LLM 预测, 不发编码员;
+  - manual_validation_samples.xlsx — 仅由 ``merge`` 子命令在三人填毕后装配
+    (三盲表 ⋈ 对账表的层/权重), 供 stage 62 Panel E/F/G 消费, 不发编码员。
+含 5 个分层 (strata) + 纯随机层 F, 供 3 名 rater 独立标注。
 
 分层设计 (substantive×symbolic × application×technology 四格 + 拒判格 A;
 原 docs/methodology/manual_validation_study_plan.md 已随 docs/ 目录整体删除, commit 1698bda5):
@@ -14,7 +20,8 @@
 Stratum E fallback: 若该层不足 100, 取全部 + 把缺额按比例补到 C/D。
 
 运行方式: 从项目根目录运行
-    "F:/Anaconda3/python.exe" news_process/scripts/migrate/manual_validation_sampling.py
+    "F:/Anaconda3/python.exe" news_process/scripts/migrate/manual_validation_sampling.py          # 抽样产盲表
+    "F:/Anaconda3/python.exe" news_process/scripts/migrate/manual_validation_sampling.py merge    # 三人填毕后装配
 
 白话: 从 LLM 已打标的文章里按"类别组合"分五组抽 500 篇, 给三位真人独立标注,
 之后拿真人结果和 LLM 结果对账, 检验 LLM 打标可不可信。少见的类别故意多抽,
@@ -134,6 +141,83 @@ INPUT_FULL_PARQUET = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / '21_
 OUTPUT_XLSX = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / 'manual_validation_samples.xlsx'
 # 反锚定对账表 (R-0/F1): LLM 预测 (v7ref_*), 仅在编码完成+共识冻结后解锁
 RECONCILIATION_XLSX = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / 'manual_validation_reconciliation.xlsx'
+RATERS = ('R1', 'R2', 'R3')
+# 每名 rater 的盲表 (文件级隔离): 旧版三人同表分列 → 后填者可见先填者判定, 破独立性。
+BLIND_XLSX = {r: OUTPUT_XLSX.with_name(f'manual_validation_samples_blind_{r}.xlsx') for r in RATERS}
+BLIND_SHEET = '验证数据'
+# stratum 由 LLM 预测定义 (如 C_symbolic_app), population_weight 与层一一对应可反推层
+# → 二者只进对账表, 绝不进盲表。
+RECON_ONLY_COLS = ['stratum', 'population_weight']
+# 分类标注列的合法取值 (盲表内锁下拉; 拼写错误会被 normalize_rater_value 静默丢成 None)。
+_RATER_DROPDOWNS = {
+    'stage1_relevant': ['yes', 'no'],
+    'stage1_conf': ['low', 'med', 'high'],
+    'stage2_sentiment': ['positive', 'neutral', 'negative'],
+    'stage2_conf': ['low', 'med', 'high'],
+    'stage3a_substantiveness': ['substantive', 'symbolic'],
+    'stage3a_conf': ['low', 'med', 'high'],
+    'stage3b_locus': ['technology', 'application'],
+    'stage3b_conf': ['low', 'med', 'high'],
+    'stage3c_collab': ['self_developed', 'collaborative'],
+    'stage3c_conf': ['low', 'med', 'high'],
+}
+
+
+def _write_rater_blind(blind_df: pd.DataFrame, rater: str, path: Path) -> None:
+    """写单名 rater 的盲表: 验证数据 (锁下拉) + 编码指南。"""
+    guide = pd.DataFrame(
+        [('任务', f'独立填写 {rater}_ 前缀各列; 判断依据 = 标题 + 内容全文, 仅针对 target_bank 目标银行。'),
+         ('stage1_relevant', 'yes / no — 该文是否确为目标银行的金融科技相关新闻'),
+         ('stage2_sentiment', 'positive / neutral / negative — 对目标银行金科活动的情感倾向'),
+         ('stage3a_substantiveness', 'substantive (实质性举措) / symbolic (象征性表态)'),
+         ('stage3b_locus', 'technology (底层技术) / application (应用场景)'),
+         ('stage3c_collab', 'self_developed (自主研发) / collaborative (外部协同)'),
+         ('*_conf', 'low / med / high — 本人对该判定的把握'),
+         ('*_rationale', '自由文本, 简述判定理由'),
+         ('total_time_sec', '本篇用时 (秒)'),
+         ('独立性', '禁止与其他编码员交流; 按行序标注; 不得改动其余列。'),
+         ('完整协议', 'scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md')],
+        columns=['项目', '说明'])
+    with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
+        blind_df.to_excel(writer, sheet_name=BLIND_SHEET, index=False)
+        guide.to_excel(writer, sheet_name='编码指南', index=False)
+        ws = writer.sheets[BLIND_SHEET]
+        for suffix, choices in _RATER_DROPDOWNS.items():
+            col = f'{rater}_{suffix}'
+            if col in blind_df.columns:
+                ci = list(blind_df.columns).index(col)
+                ws.data_validation(1, ci, len(blind_df), ci,
+                                   {'validate': 'list', 'source': choices})
+
+
+def merge() -> None:
+    """三人填毕后装配 manual_validation_samples.xlsx (stage 62 Panel E/F/G 的输入)。
+
+    三盲表按 orig_index 对齐取各自标注列, 再从对账表并回 stratum / population_weight;
+    v7ref_ LLM 预测不并入 (stage 62 的机器预测另从 21_tone_llms.parquet 经 docid 取)。
+    """
+    for p in list(BLIND_XLSX.values()) + [RECONCILIATION_XLSX]:
+        if not p.exists():
+            raise SystemExit(f'[FATAL] 缺文件: {p} — 先跑抽样')
+    frames = {r: pd.read_excel(p, sheet_name=BLIND_SHEET) for r, p in BLIND_XLSX.items()}
+    recon = pd.read_excel(RECONCILIATION_XLSX)
+    keys = set(recon['orig_index'])
+    for r, d in frames.items():
+        if d['orig_index'].duplicated().any() or set(d['orig_index']) != keys:
+            raise SystemExit(f'[FATAL] 盲表 {r} 与对账表 orig_index 不一致, 拒绝装配')
+    merged = frames['R1'].copy()
+    for r in RATERS[1:]:
+        rcols = [c for c in frames[r].columns if c.startswith(f'{r}_')]
+        merged = merged.merge(frames[r][['orig_index'] + rcols], on='orig_index',
+                              how='left', validate='one_to_one')
+    wcols = [c for c in RECON_ONLY_COLS if c in recon.columns]
+    merged = merged.merge(recon[['orig_index'] + wcols], on='orig_index',
+                          how='left', validate='one_to_one')
+    merged.to_excel(OUTPUT_XLSX, index=False)
+    for r in RATERS:
+        n = _count_filled_rater_annotations(BLIND_XLSX[r])
+        print(f'  {r}: {n} 个非空标注单元格')
+    print(f'[装配] {len(merged)} 行 → {OUTPUT_XLSX} (不发编码员)')
 
 SEED = 42
 TARGET_TOTAL = 500
@@ -306,11 +390,10 @@ def main(force_regenerate: bool = False):
                 pure[c] = '' if c.startswith(('R1_', 'R2_', 'R3_')) else pd.NA
         out = pd.concat([out, pure[out.columns]], ignore_index=True)
 
-    # ── 反锚定双文件 (R-0/F1): 编码者盲表零 LLM 标签 + 对账表后解锁 ──
-    rater_cols = [c for c in out.columns if c.startswith(('R1_', 'R2_', 'R3_'))]
+    # ── 反锚定 (R-0/F1): 每名 rater 独立盲表零 LLM 标签 + 对账表后解锁 ──
     # 窗口文本列 (F13/R-P1-3): 供 deferred 窗口级金标准 (各轨独立窗口判标签)
     metadata_cols = ['orig_index', 'docid', 'target_bank', '标题', '内容',
-                     'content_ctx', 'content_ss', 'stratum', 'population_weight']
+                     'content_ctx', 'content_ss']
     metadata_cols = [c for c in metadata_cols if c in out.columns]
 
     # v7ref LLM 预测 (含 collab): 仅进对账表, 绝不进编码者盲表 (anchoring)
@@ -322,27 +405,26 @@ def main(force_regenerate: bool = False):
     # D5 修复: random shuffle 避免 rater 在 stratum boundary anchoring bias
     out = out.sample(frac=1, random_state=43).reset_index(drop=True)
 
-    # (a) coder-facing 盲表: 元数据 + 空白 rater 列, 零 LLM 输出
-    coder_cols = [c for c in (metadata_cols + rater_cols) if c in out.columns]
-    coder_df = out[coder_cols]
-    # (b) reconciliation 对账表: orig_index 主键 + 全部 v7ref_ LLM 预测,
+    # (a) reconciliation 对账表: orig_index 主键 + 层/权重 + 全部 v7ref_ LLM 预测,
     #     编码完成+共识冻结后才解锁对账
-    recon_df = out[['orig_index'] + v7_ref_cols_orig].rename(columns=rename_map)
+    recon_df = out[['orig_index'] + RECON_ONLY_COLS + v7_ref_cols_orig].rename(columns=rename_map)
 
     print(f'\nFinal sample size: {len(out)}')
     print('Stratum breakdown:')
     print(out['stratum'].value_counts().to_string())
-    print(f'\n[盲表] coder-facing (零 LLM 标签) → {OUTPUT_XLSX}')
-    # fix(N2, 2026-07-14): 写出前 N2 防覆写守卫 — 既有工作台若已有非空 R1_/R2_/R3_
-    # 标注或"标注进行中"旗标, 拒绝覆写 (需 force_regenerate=True 显式越权)。
-    _guard_blind_overwrite(OUTPUT_XLSX, force_regenerate)
-    coder_df.to_excel(OUTPUT_XLSX, index=False)
-    _touch_annotation_flag(OUTPUT_XLSX)
-    print(f'[对账表] reconciliation (LLM 预测, 编码后解锁) → {RECONCILIATION_XLSX}')
-    # fix(N2, 2026-07-14): 对账表同款守卫 (镜像上一处; 该表本身无 R1_/R2_/R3_ 列,
-    # 故非空标注计数恒为 0, 但"标注进行中"旗标/读取异常两路仍生效, 防止编码期间
-    # 误重跑过早覆盖/解锁尚未冻结共识的 v7ref_ 对账表)。
+    # (b) 每名 rater 一份盲表: 元数据 + 本人空白标注列, 同内容同行序。
+    # fix(N2, 2026-07-14): 写出前 N2 防覆写守卫 — 既有盲表若已有非空标注,
+    # 拒绝覆写 (需 force_regenerate=True 显式越权)。三份先全部过守卫再落盘, 防半写。
+    print()
+    for rater in RATERS:
+        _guard_blind_overwrite(BLIND_XLSX[rater], force_regenerate)
     _guard_blind_overwrite(RECONCILIATION_XLSX, force_regenerate)
+    for rater in RATERS:
+        own_cols = [c for c in out.columns if c.startswith(f'{rater}_')]
+        _write_rater_blind(out[metadata_cols + own_cols], rater, BLIND_XLSX[rater])
+        _touch_annotation_flag(BLIND_XLSX[rater])
+        print(f'[盲表{rater}] 零机器列, 仅本人标注列 → {BLIND_XLSX[rater]}')
+    print(f'[对账表] reconciliation (层/权重/LLM 预测, 编码后解锁) → {RECONCILIATION_XLSX}')
     recon_df.to_excel(RECONCILIATION_XLSX, index=False)
     _touch_annotation_flag(RECONCILIATION_XLSX)
     print('Done.')
@@ -351,4 +433,8 @@ def main(force_regenerate: bool = False):
 if __name__ == '__main__':
     # fix(N2, 2026-07-14): --force-regenerate 显式越权覆写既有人工标注
     # 用法: python manual_validation_sampling.py [--force-regenerate]
-    main(force_regenerate='--force-regenerate' in sys.argv[1:])
+    #       python manual_validation_sampling.py merge   (三人填毕后装配)
+    if 'merge' in sys.argv[1:]:
+        merge()
+    else:
+        main(force_regenerate='--force-regenerate' in sys.argv[1:])

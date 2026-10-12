@@ -8,6 +8,38 @@ human_validation:
   oversample_negative: true                         # ⚠ 作用于 09/tone 侧 (stage 64 generate_validation_sample) 的 predicted-negative 第三层过采样, 非 61 侧; true=默认 100 篇, 整数=自定目标量, false=关 (WP-B3, 2026-07-03; 层权四格 poststratify 落盘 reconciliation)
 
 # ------------------------------------------------------------------------------
+# 🔒 人工标注成果冻结清单 (2026-10-12 用户裁定)
+# ------------------------------------------------------------------------------
+# 下列 13 份盲表 + 2 份仲裁表已由专家人工标注完成。由于是人工标注, 不可从代码重建:
+#   严禁进行任何修改 (含重新生成 / 覆写 / 改动任何单元格 / 改名 / 移动);
+#   严禁进行文件删除操作。
+# 适用于人和自动化工具 (含 AI 助手) 一切操作; 不得以 --force-regenerate 越权覆写。
+# 每份文件的流水线位置与 data/processed/human_samples_blind/ 下的回收副本
+# 均受本条保护, 二者逐字节相同, sha256 即冻结锚点; 校验不符即视为被篡改。
+# 路径相对 news_process/data/processed/。
+human_annotation_frozen:
+  frozen_date: "2026-10-12"
+  policy: "人工标注, 严禁修改, 严禁删除"
+  archive_dir: "human_samples_blind"
+  files:
+    "61_human_samples_blind_A.xlsx": "3b3b7f7fa2b0d75508452d24dd6aabea15bb6b79c2190d69b0284dcfa1496764"
+    "61_human_samples_blind_B.xlsx": "3efb618bf16b1585bcb70af3cd55d83c8879c45f8916e2270fd774d70dee9e55"
+    "eval_reports/09_sentiment_verify_full_blind_A.xlsx": "7408ed0f4e04fce59825c9153746d1c17313a109525a45f5e8b64e7c63953f60"
+    "eval_reports/09_sentiment_verify_full_blind_B.xlsx": "a47e2a0740afec2a7da90e53fac3d816c99e4f0258e1b9319797111f914f69bb"
+    "eval_reports/09_sentiment_verify_ctx_blind_A.xlsx": "977e0550eb0b76d5e5e2effe3712ba7d1a65bd601ff5cfb73967fce77b488beb"
+    "eval_reports/09_sentiment_verify_ctx_blind_B.xlsx": "d3eb9530d0e7e1a98a3197c82257387e2e1590e60a13a95ddac393e1e059eea9"
+    "eval_reports/09_sentiment_verify_ss_blind_A.xlsx": "b2c391253860bb23e1476d20a013318e608bb2fb2368deaebfff39154357f962"
+    "eval_reports/09_sentiment_verify_ss_blind_B.xlsx": "a4ec645db06abc18267a05844ce42a1ad391d81f92398d107497a772c987e0af"
+    "eval_reports/stage13_reject_audit_blind_A.xlsx": "22d23f2a723c434ea827c5a85dbad99d0ffe1eb2053ae3711b0ac1ccd0fa8043"
+    "eval_reports/stage13_reject_audit_blind_B.xlsx": "aba4224f549c71da3fcadb7dde05bd281d5ad47e0ccfe1ba3ff21ba6e1d7c311"
+    "manual_validation_samples_blind_R1.xlsx": "31579047bff4b61033a2bd553b8e8938ddde767a4cfe1c9bdb4181f9c6d9226c"
+    "manual_validation_samples_blind_R2.xlsx": "185720f713108be13c2c776bc9cf963df6d16d09e0d00a8a8ee2bb0b4fb01340"
+    "manual_validation_samples_blind_R3.xlsx": "fc1db48af5b67e35dc94e5f194b337a8d48a03436a04e998f33d491920864532"
+    # 第二轮: 仲裁人 C 的分歧裁决 (2026-10-12 冻结; 回收副本在 human_samples_blind/任务5_分歧仲裁/)
+    "61_human_samples_pending_adjudication.xlsx": "f729c6d6b4d694f8a6a35c61cac2e60f1372b5228ee01fefd9cb318a36542e2c"
+    "eval_reports/stage13_reject_audit_pending_adjudication.xlsx": "5cfb2e4d24b2bec570f509f1c659526660a57443dbe6ce0b8d97db1fc376c1ba"
+
+# ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38b)
 # ------------------------------------------------------------------------------
 # [已全部 always-on] 2026-06-13 起全部验证阶段无条件常开 (core/dag.py 取 always_enabled,
