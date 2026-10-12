@@ -399,6 +399,33 @@ def main(force_regenerate: bool = False):
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响结果生成): {_e}")
 
+    # 人工标注已回收 → 跳过整个重生 (盲表 + 对账表都不写), 阶段正常结束。
+    # 此前 N2 守卫在写盲表时 raise SystemExit, 标注回收后每次跑验证管道 61 号都记失败;
+    # 改为镜像 stage 64 (tone_validation): 检出人工痕迹即跳过重生。对账表必须一并不写,
+    # 否则上游语料一变它就与冻结盲表行错位。force_regenerate 越权路径不变 (仍走下方守卫)。
+    if not force_regenerate:
+        _bp = derive_blind_paths(os.path.join(
+            CONFIG["paths"]["output_dir"],
+            CONFIG.get('filenames', {}).get('output_32_human_sample', '61_human_samples.xlsx')))
+        _found = {}
+        for _coder in ('A', 'B'):
+            _p = _bp[f'blind_{_coder}']
+            if not os.path.exists(_p):
+                continue
+            try:
+                _found[_p] = _count_filled_annotations_in_file(
+                    _p, [f'编码者{_coder}_验证', f'编码者{_coder}_情感'])
+            except Exception as e:
+                _found[_p] = -1
+                logger.error(f"读取既有盲表 {_p} 失败 ({e}) — 为保护潜在人工标注, 按有标注处理")
+        if any(v != 0 for v in _found.values()):
+            for _p, _n in _found.items():
+                logger.warning(f"检测到人工标注 ({'读取失败' if _n < 0 else f'{_n} 个单元格'}), "
+                               f"跳过盲表与对账表重生以保护标注: {_p}")
+            logger.info("  (人工标注严禁修改/删除, 见 config/validation.yaml::human_annotation_frozen; "
+                        "合并请用 python -m news_process.validation.llms_human merge)")
+            return
+
     # 优先使用全量 LLM 结果
     input_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms_full', '21_tone_llms_full.parquet')
     input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)

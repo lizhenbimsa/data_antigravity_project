@@ -10,12 +10,13 @@ human_validation:
 # ------------------------------------------------------------------------------
 # 🔒 人工标注成果冻结清单 (2026-10-12 用户裁定)
 # ------------------------------------------------------------------------------
-# 下列 13 份盲表 + 2 份仲裁表已由专家人工标注完成。由于是人工标注, 不可从代码重建:
+# 下列 13 份盲表 + 6 份仲裁表已由专家人工标注完成。由于是人工标注, 不可从代码重建:
 #   严禁进行任何修改 (含重新生成 / 覆写 / 改动任何单元格 / 改名 / 移动);
 #   严禁进行文件删除操作。
 # 适用于人和自动化工具 (含 AI 助手) 一切操作; 不得以 --force-regenerate 越权覆写。
 # 每份文件的流水线位置与 data/processed/human_samples_blind/ 下的回收副本
-# 均受本条保护, 二者逐字节相同, sha256 即冻结锚点; 校验不符即视为被篡改。
+# 均受本条保护, 二者逐字节相同 (例外见 archive_sha256_overrides), sha256 即冻结锚点;
+# 校验不符即视为被篡改。校验入口: python news_process/scripts/audit/verify_human_annotation_frozen.py
 # 路径相对 news_process/data/processed/。
 human_annotation_frozen:
   frozen_date: "2026-10-12"
@@ -38,6 +39,20 @@ human_annotation_frozen:
     # 第二轮: 仲裁人 C 的分歧裁决 (2026-10-12 冻结; 回收副本在 human_samples_blind/任务5_分歧仲裁/)
     "61_human_samples_pending_adjudication.xlsx": "f729c6d6b4d694f8a6a35c61cac2e60f1372b5228ee01fefd9cb318a36542e2c"
     "eval_reports/stage13_reject_audit_pending_adjudication.xlsx": "5cfb2e4d24b2bec570f509f1c659526660a57443dbe6ce0b8d97db1fc376c1ba"
+    # 第三轮: 仲裁人 C 对任务二 (三轨窗口情感) 与任务四 (创新三维) 的分歧裁决
+    # (2026-10-12 冻结; 回收副本在 human_samples_blind/任务6_第二轮分歧仲裁/)
+    "eval_reports/09_sentiment_verify_full_pending_adjudication.xlsx": "6fae672292c26a72121c4e3b9f095bc9a521d805b2d79f5914a16625c7fa5792"
+    "eval_reports/09_sentiment_verify_ctx_pending_adjudication.xlsx": "091441804893e6edcefce8f9e6a1b9aa3a1a302ea547d44652ccbf56ba327068"
+    "eval_reports/09_sentiment_verify_ss_pending_adjudication.xlsx": "8983b78665ed19b58109b4ed7b4c25a1f299036ae6b948b10a877741e7d04cb9"
+    "manual_validation_pending_adjudication.xlsx": "9ef81828dbffc993d55042773be36d61d88c3f2baf0c18884b9b9c9ab03298a6"
+  # 回收副本与流水线原件不同的例外 (其余副本与原件逐字节相同, 沿用上方 files 的 sha256)。
+  # 2026-10-12 用户在 Excel 中手动删除了任务四三份回收副本的 R*_total_time_sec 列及编码指南
+  # 对应行 (该列口径不一、不用于任何分析); 其余单元格与原件逐格相同。用户裁定接受删除,
+  # 副本以下列 sha256 冻结; 流水线原件仍保留该列, 不受影响。
+  archive_sha256_overrides:
+    "任务4_创新属性三维编码/manual_validation_samples_blind_R1.xlsx": "e35a545eb6179c3060a0ee90cc7a8c5e0ca067458a305e9a34f31edb0ee02ea5"
+    "任务4_创新属性三维编码/manual_validation_samples_blind_R2.xlsx": "3988d4e63ec46d2bec82fc606f42b5b4b7f2ed8a258d698bf5becfee21d10d86"
+    "任务4_创新属性三维编码/manual_validation_samples_blind_R3.xlsx": "beb09077680995efcf5d825ba680a636f72042b536cc2ee940f1fa0f4e766cc2"
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38b)

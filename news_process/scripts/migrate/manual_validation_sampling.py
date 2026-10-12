@@ -6,7 +6,7 @@
   - manual_validation_reconciliation.xlsx — orig_index 主键 + stratum +
     population_weight + v7ref_ LLM 预测, 不发编码员;
   - manual_validation_samples.xlsx — 仅由 ``merge`` 子命令在三人填毕后装配
-    (三盲表 ⋈ 对账表的层/权重), 供 stage 62 Panel E/F/G 消费, 不发编码员。
+    (三盲表 ⋈ 对账表的层/权重), 供 stage 63 (63_news_llms_evaluation) Panel E/F/G 消费, 不发编码员。
 含 5 个分层 (strata) + 纯随机层 F, 供 3 名 rater 独立标注。
 
 分层设计 (substantive×symbolic × application×technology 四格 + 拒判格 A;
@@ -148,6 +148,13 @@ BLIND_SHEET = '验证数据'
 # stratum 由 LLM 预测定义 (如 C_symbolic_app), population_weight 与层一一对应可反推层
 # → 二者只进对账表, 绝不进盲表。
 RECON_ONLY_COLS = ['stratum', 'population_weight']
+# 仲裁表 (2026-10-12): 两人编码互相矛盾的条目交 C 裁决; merge 时把 C_ 列并入装配表。
+ADJ_XLSX = OUTPUT_XLSX.with_name('manual_validation_pending_adjudication.xlsx')
+_ADJ_DIMS = {  # 维度 → (R 列后缀, 仲裁列, 下拉取值)
+    'substantiveness': ('stage3a_substantiveness', 'C_stage3a_substantiveness', ['substantive', 'symbolic']),
+    'locus': ('stage3b_locus', 'C_stage3b_locus', ['technology', 'application']),
+    'collab': ('stage3c_collab', 'C_stage3c_collab', ['self_developed', 'collaborative']),
+}
 # 分类标注列的合法取值 (盲表内锁下拉; 拼写错误会被 normalize_rater_value 静默丢成 None)。
 _RATER_DROPDOWNS = {
     'stage1_relevant': ['yes', 'no'],
@@ -191,10 +198,10 @@ def _write_rater_blind(blind_df: pd.DataFrame, rater: str, path: Path) -> None:
 
 
 def merge() -> None:
-    """三人填毕后装配 manual_validation_samples.xlsx (stage 62 Panel E/F/G 的输入)。
+    """三人填毕后装配 manual_validation_samples.xlsx (stage 63 (63_news_llms_evaluation) Panel E/F/G 的输入)。
 
     三盲表按 orig_index 对齐取各自标注列, 再从对账表并回 stratum / population_weight;
-    v7ref_ LLM 预测不并入 (stage 62 的机器预测另从 21_tone_llms.parquet 经 docid 取)。
+    v7ref_ LLM 预测不并入 (stage 63 的机器预测另从 21_tone_llms.parquet 经 docid 取)。
     """
     for p in list(BLIND_XLSX.values()) + [RECONCILIATION_XLSX]:
         if not p.exists():
@@ -213,11 +220,48 @@ def merge() -> None:
     wcols = [c for c in RECON_ONLY_COLS if c in recon.columns]
     merged = merged.merge(recon[['orig_index'] + wcols], on='orig_index',
                           how='left', validate='one_to_one')
+    if ADJ_XLSX.exists():
+        adj = pd.read_excel(ADJ_XLSX, sheet_name=BLIND_SHEET)
+        ccols = [c for c in adj.columns if c.startswith('C_')]
+        merged = merged.merge(adj[['orig_index'] + ccols], on='orig_index',
+                              how='left', validate='one_to_one')
+        print(f'  并入仲裁列 {ccols} ({int(adj[ccols].notna().sum().sum())} 个 C 裁决)')
     merged.to_excel(OUTPUT_XLSX, index=False)
     for r in RATERS:
         n = _count_filled_rater_annotations(BLIND_XLSX[r])
         print(f'  {r}: {n} 个非空标注单元格')
     print(f'[装配] {len(merged)} 行 → {OUTPUT_XLSX} (不发编码员)')
+
+
+def adjudicate() -> None:
+    """两人打平的条目 → 仲裁表 (C 填)。读装配表, 只列需裁维度的三人原判 + 空白 C 列。"""
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    from news_process.validation.manual_validation_schema import R_COLUMNS_BY_RATER, needs_adjudication
+    if not OUTPUT_XLSX.exists():
+        raise SystemExit(f'[FATAL] 缺装配表 {OUTPUT_XLSX} — 先跑 merge')
+    if ADJ_XLSX.exists():
+        old = pd.read_excel(ADJ_XLSX, sheet_name=BLIND_SHEET)
+        if old[[c for c in old.columns if c.startswith('C_')]].notna().any().any():
+            raise SystemExit(f'[FATAL] 既有仲裁表已含 C 判定, 拒绝覆盖: {ADJ_XLSX}')
+    mv = pd.read_excel(OUTPUT_XLSX)
+    need = pd.DataFrame({d: mv.apply(lambda r, d=d: needs_adjudication(r, R_COLUMNS_BY_RATER[d]), axis=1)
+                         for d in _ADJ_DIMS})
+    rows = need.any(axis=1)
+    out = mv.loc[rows, ['orig_index', 'docid', 'target_bank', '标题', '内容']].copy()
+    for d, (suf, ccol, _) in _ADJ_DIMS.items():
+        out[f'需裁_{d}'] = need.loc[rows, d].map({True: '是', False: ''})
+        for r in RATERS:
+            out[f'{r}_{suf}'] = mv.loc[rows, f'{r}_{suf}']
+        out[ccol] = ''
+    with pd.ExcelWriter(ADJ_XLSX, engine='xlsxwriter') as writer:
+        out.to_excel(writer, sheet_name=BLIND_SHEET, index=False)
+        ws = writer.sheets[BLIND_SHEET]
+        for _, (_, ccol, choices) in _ADJ_DIMS.items():
+            ci = list(out.columns).index(ccol)
+            ws.data_validation(1, ci, len(out), ci, {'validate': 'list', 'source': choices})
+    print(f'[仲裁] {ADJ_XLSX}: {len(out)} 行; 各维需裁 {need.sum().to_dict()} (零机器判定列)')
+
 
 SEED = 42
 TARGET_TOTAL = 500
@@ -434,7 +478,10 @@ if __name__ == '__main__':
     # fix(N2, 2026-07-14): --force-regenerate 显式越权覆写既有人工标注
     # 用法: python manual_validation_sampling.py [--force-regenerate]
     #       python manual_validation_sampling.py merge   (三人填毕后装配)
+    #       python manual_validation_sampling.py adjudicate   (两人打平条目 → 仲裁表)
     if 'merge' in sys.argv[1:]:
         merge()
+    elif 'adjudicate' in sys.argv[1:]:
+        adjudicate()
     else:
         main(force_regenerate='--force-regenerate' in sys.argv[1:])

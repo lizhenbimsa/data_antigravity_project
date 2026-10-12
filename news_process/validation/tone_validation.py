@@ -1034,6 +1034,20 @@ def _load_blind_consensus(verify_path: str, logger_inst):
     a_aligned = a.reindex(consensus['_row_uid']).to_numpy()
     agree_aligned = agree.reindex(consensus['_row_uid']).to_numpy()
     consensus['人工判定_情感'] = np.where(agree_aligned, a_aligned, '')
+    # 仲裁口径 (2026-10-12): 分歧行若仲裁表 (<base>_pending_adjudication) 有 C 合法裁决,
+    # 以 C 补入金标准; C 空 → 仍剔除。icr 记 C 裁决数, 剔除口径数字照旧可由 n_agree 复原。
+    icr['n_adjudicated'] = 0
+    adj_path = f"{base}_pending_adjudication{ext}"
+    if os.path.isfile(adj_path):
+        try:
+            adj = pd.read_excel(adj_path, sheet_name='验证数据')
+            c = _clean(adj.set_index('_row_uid')['编码者C_情感']).reindex(a.index).fillna('')
+            use = both_valid & ~agree & c.isin(labels)
+            fill = pd.Series(np.where(use, c, ''), index=a.index).reindex(consensus['_row_uid']).to_numpy()
+            consensus['人工判定_情感'] = np.where(fill != '', fill, consensus['人工判定_情感'])
+            icr['n_adjudicated'] = int(use.sum())
+        except Exception as e:  # noqa: BLE001
+            logger_inst.warning(f"  [盲标] 仲裁表读取失败, 按剔除口径评估: {adj_path} ({e})")
     if '人工判定_理由' in df_a.columns and '人工判定_理由' in df_b.columns:
         ra = _clean(df_a.set_index('_row_uid')['人工判定_理由']).reindex(consensus['_row_uid']).to_numpy()
         rb = _clean(df_b.set_index('_row_uid')['人工判定_理由']).reindex(consensus['_row_uid']).to_numpy()
@@ -1043,9 +1057,46 @@ def _load_blind_consensus(verify_path: str, logger_inst):
                                 how='inner', validate='one_to_one')
     logger_inst.info(
         f"  [盲标] 双编码共识合并完成: 双合法 {n_both} / 一致 {n_agree} / "
-        f"分歧 {n_both - n_agree} (分歧不进评估域); κ={icr['cohen_kappa']} "
+        f"分歧 {n_both - n_agree} (其中 C 仲裁补入 {icr['n_adjudicated']}, 其余不进评估域); "
+        f"κ={icr['cohen_kappa']} "
         f"α={icr['krippendorff_alpha']}")
     return verify_df, icr, rp
+
+
+def generate_adjudication_workbook(verify_path: str) -> int:
+    """A≠B 分歧行 → 仲裁表 ``<base>_pending_adjudication.xlsx`` (2026-10-12)。
+
+    镜像任务一仲裁表 (llms_human): 仅文本 + 机器输入文本 + A/B 判定, 零机器判定列;
+    仲裁人 C 填 编码者C_情感 (下拉) 与 编码者C_理由。既有表已含 C 判定 → 拒绝覆盖。
+    返回分歧行数。白话: 两位编码员意见不同的篇目, 单独列成表请第三人裁决。
+    """
+    base, ext = os.path.splitext(verify_path)
+    out = f"{base}_pending_adjudication{ext}"
+    if os.path.isfile(out):
+        old = pd.read_excel(out, sheet_name='验证数据')
+        if '编码者C_情感' in old.columns and old['编码者C_情感'].notna().any():
+            raise SystemExit(f"既有仲裁表已含 C 判定, 拒绝覆盖: {out}")
+    df_a = pd.read_excel(f"{base}_blind_A{ext}", sheet_name='验证数据')
+    df_b = pd.read_excel(f"{base}_blind_B{ext}", sheet_name='验证数据').set_index('_row_uid')
+    labels = list(HUMAN_VERIFY_LABELS)
+    a = df_a['人工判定_情感'].astype('object').where(df_a['人工判定_情感'].notna(), '').astype(str).str.strip()
+    b = df_b['人工判定_情感'].reindex(df_a['_row_uid']).astype('object')
+    b = b.where(b.notna(), '').astype(str).str.strip().to_numpy()
+    dis = a.isin(labels).to_numpy() & np.isin(b, labels) & (a.to_numpy() != b)
+    ctx = [c for c in ('_row_uid', 'docid', '日期', '媒体(中文)', 'target_bank', '标题',
+                       '机器输入文本', '内容') if c in df_a.columns]
+    pend = df_a.loc[dis, ctx].copy()
+    pend['编码者A_情感'] = a[dis].to_numpy()
+    pend['编码者B_情感'] = b[dis]
+    pend['编码者C_情感'] = ''
+    pend['编码者C_理由'] = ''
+    with pd.ExcelWriter(out, engine='xlsxwriter') as writer:
+        pend.to_excel(writer, sheet_name='验证数据', index=False)
+        ci = list(pend.columns).index('编码者C_情感')
+        writer.sheets['验证数据'].data_validation(
+            1, ci, max(len(pend), 1), ci, {'validate': 'list', 'source': labels})
+    logger.info(f"[仲裁] {out}: {len(pend)} 行分歧 (零机器判定列)")
+    return len(pend)
 
 
 def evaluate_human_verification(verify_path: str, track: str,
@@ -3391,4 +3442,11 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
 
 if __name__ == "__main__":
-    main()
+    # 用法: python -m news_process.validation.tone_validation adjudicate   (三轨分歧 → 仲裁表)
+    if len(sys.argv) > 1 and sys.argv[1] == 'adjudicate':
+        _dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
+        for _t in ('_full', '_ctx', '_ss'):
+            n = generate_adjudication_workbook(os.path.join(_dir, f'09_sentiment_verify{_t}.xlsx'))
+            print(f'{_t}: {n} 行分歧 → 09_sentiment_verify{_t}_pending_adjudication.xlsx')
+    else:
+        main()

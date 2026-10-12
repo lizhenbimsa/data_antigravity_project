@@ -959,8 +959,9 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
     """
     from news_process.core.config import load_config
     from news_process.validation.manual_validation_schema import (
+        ADJUDICATION_COLUMNS,
         R_COLUMNS_BY_RATER,
-        merge_three_rater_majority,
+        adjudicated_gold,
         normalize_rater_value,
     )
 
@@ -1021,20 +1022,21 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
             "  collab R-columns absent; Panel G → pending (E/F continue)."
         )
 
-    # 编码者合并 → gold (逐行对 3 名编码者做多数票)
+    # 编码者合并 → gold (逐行对 3 名编码者做多数票; 2026-10-12 起两人打平的条目
+    # 取仲裁人 C 裁决 C_stage3*_ 列, 列不存在时与纯多数票逐位相同)
     df_mv = df_mv.copy()
     df_mv['gold_substantiveness'] = df_mv.apply(
-        lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['substantiveness']),
+        lambda r: adjudicated_gold(r, R_COLUMNS_BY_RATER['substantiveness'], ADJUDICATION_COLUMNS['substantiveness']),
         axis=1,
     )
     df_mv['gold_locus'] = df_mv.apply(
-        lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['locus']),
+        lambda r: adjudicated_gold(r, R_COLUMNS_BY_RATER['locus'], ADJUDICATION_COLUMNS['locus']),
         axis=1,
     )
     # collab gold (R6-P2-1): merge_three_rater_majority 用 row.get 容错, collab
     # 缺列时返全 None → 软 pending; 勿改 df_mv[...] 直索引 (会 KeyError)。
     df_mv['gold_collab'] = df_mv.apply(
-        lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['collab']),
+        lambda r: adjudicated_gold(r, R_COLUMNS_BY_RATER['collab'], ADJUDICATION_COLUMNS['collab']),
         axis=1,
     )
 

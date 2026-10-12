@@ -110,3 +110,30 @@ def merge_three_rater_majority(row, rater_columns):
     if most_common[0][1] >= 2:
         return most_common[0][0]
     return None  # 1-1 平局 (第 3 票缺失), 或 1-1-1 (二分类下不可能)
+
+
+# 仲裁 (2026-10-12): 三人多数票无法成票、且恰有两人编码而互相矛盾的条目, 交第三方 C 裁决。
+# 只有一人编码 (另两人判"不相关"未往下编码) 的条目不仲裁 —— 多数人已判其不相关, 该维度不适用。
+ADJUDICATION_COLUMNS = {
+    'substantiveness': 'C_stage3a_substantiveness',
+    'locus': 'C_stage3b_locus',
+    'collab': 'C_stage3c_collab',
+}
+
+
+def needs_adjudication(row, rater_columns):
+    """恰有 2 个有效编码且互相矛盾 → 需仲裁。"""
+    values = [normalize_rater_value(row.get(c)) for c in rater_columns]
+    values = [v for v in values if v is not None]
+    return len(values) == 2 and values[0] != values[1]
+
+
+def adjudicated_gold(row, rater_columns, adj_column):
+    """多数票 gold; 多数票缺位且需仲裁时取 C 裁决 (C 空/非法 → None)。
+
+    白话: 三人能投出多数就用多数; 两人打平才看仲裁人怎么判。
+    """
+    gold = merge_three_rater_majority(row, rater_columns)
+    if gold is None and needs_adjudication(row, rater_columns):
+        return normalize_rater_value(row.get(adj_column))
+    return gold
