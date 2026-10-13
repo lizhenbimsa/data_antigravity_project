@@ -511,16 +511,20 @@ retained by the LLMs and tone-coded by the experts; in Sample 2, accuracy
 is 92.0\% [89.5\%, 94.5\%], 95.8\%, and 93.2\% for the full, ctx, and ss
 tracks ($\kappa$ of 0.724, 0.812, and 0.736), and 97.0\%, 97.8\%, and
 96.0\% after reweighting to the population. On the same full-track sample,
-the six sentiment dictionaries reach 68.3\%--76.0\% accuracy
-($\kappa \le 0.34$) and the three BERT models 52.3\%--76.3\%
+the six sentiment dictionaries reach 68.2\%--76.0\% accuracy
+($\kappa \le 0.34$) and the three BERT models 52.2\%--76.2\%
 ($\kappa \le 0.40$).
 
 The relevance step is less accurate: 72.2\% [69.3\%, 74.8\%]
-($\kappa = 0.463$). Using a separate stratified sample of 575 articles
-coded by three experts (majority vote, reweighted to the population), the
-LLM retention step has recall of 91.8\% [86.8\%, 96.0\%] and precision of
-78.2\% [71.1\%, 84.9\%], so errors mainly admit irrelevant reports rather
-than miss relevant ones; an expert audit puts the miss rate of the
+($\kappa = 0.463$). On this random sample of 1{,}000 articles, the LLM
+retention step has recall of 95.1\% [92.7\%, 96.8\%] and precision of
+62.6\% [58.9\%, 66.2\%] (Wilson intervals), so errors mainly admit
+irrelevant reports rather than miss relevant ones. A separate stratified
+sample of 575 articles coded by three experts (majority vote, reweighted to
+the population) gives recall of 91.8\% [86.8\%, 96.0\%] and precision of
+78.2\% [71.1\%, 84.9\%]; the two samples have different coders, and
+inter-coder $\alpha$ for relevance in the latter is only 0.548, so we rely
+on the random-sample estimate. An expert audit puts the miss rate of the
 co-occurrence filter at 13.0\% [9.7\%, 17.3\%]. Misclassification is
 correlated with article features: misclassified articles average about
 2{,}240 characters against about 1{,}400 for correctly classified ones and

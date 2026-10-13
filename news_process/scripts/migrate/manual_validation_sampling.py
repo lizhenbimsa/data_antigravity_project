@@ -181,7 +181,6 @@ def _write_rater_blind(blind_df: pd.DataFrame, rater: str, path: Path) -> None:
          ('stage3c_collab', 'self_developed (自主研发) / collaborative (外部协同)'),
          ('*_conf', 'low / med / high — 本人对该判定的把握'),
          ('*_rationale', '自由文本, 简述判定理由'),
-         ('total_time_sec', '本篇用时 (秒)'),
          ('独立性', '禁止与其他编码员交流; 按行序标注; 不得改动其余列。'),
          ('完整协议', 'scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md')],
         columns=['项目', '说明'])
@@ -412,7 +411,7 @@ def main(force_regenerate: bool = False):
             f'{rater}_stage3c_collab',           # self_developed / collaborative
             f'{rater}_stage3c_conf',
             f'{rater}_stage3c_rationale',
-            f'{rater}_total_time_sec',           # 用于注意力检查
+            # (用时列 total_time_sec 已于 2026-10-12 去掉: 全仓无消费代码, 回收数据口径不一)
         ]:
             out[stage_col] = ''
 
